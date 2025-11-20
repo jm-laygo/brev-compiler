@@ -1,15 +1,13 @@
-# compiler.py
 from lexer import Lexer, LexicalError, Token
 
 
 def run_code(source: str):
-    """Runs lexical analysis on the given source code."""
     lexer = Lexer(source)
     result = lexer.make_tokens()
 
     # Handle both (tokens, errors) tuple or None returns
     if not result or len(result) != 2:
-        print("❌ Lexer.make_tokens() did not return (tokens, errors).")
+        print("Lexer.make_tokens() did not return (tokens, errors).")
         return
 
     tokens, errors = result
@@ -23,7 +21,7 @@ def run_code(source: str):
         for error in errors:
             print(error.as_string())
     else:
-        print("\n✅ No lexical errors found.")
+        print("\nNo lexical errors found.")
 
 
 def repl():

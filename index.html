@@ -10,21 +10,41 @@
       font-family: monospace;
       margin: 0;
       padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
     }
-    h2 { color: #00ff99; padding: 10px; }
+
+    .container {
+      width: 1000px; /* more compact */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    h2 {
+      color: #00ff99;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
     textarea {
-      width: 98%;
-      height: 200px;
-      margin: 10px;
+      width: 100%;
+      height: 150px;
+      margin: 10px 0;
       background: #1a1a1a;
       color: #00ff99;
       border: none;
       padding: 10px;
       resize: none;
       font-size: 15px;
+      text-align: left;
     }
+
     button {
-      margin: 5px;
+      margin: 10px 0;
       padding: 10px 25px;
       font-family: monospace;
       background: #00aa66;
@@ -33,47 +53,59 @@
       border-radius: 5px;
       cursor: pointer;
     }
-    button:hover { background: #00cc77; }
-    table {
-      width: 98%;
-      border-collapse: collapse;
-      margin: 10px;
+
+    button:hover {
+      background: #00cc77;
     }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+    }
+
     th, td {
       border: 1px solid #444;
       padding: 5px;
       text-align: left;
     }
-    th { background: #222; color: #00ff99; }
+
+    th {
+      background: #222;
+      color: #00ff99;
+    }
+
     #terminal {
       background: #111;
       color: #0f0;
       padding: 10px;
-      height: 200px;
+      height: 150px;
       overflow-y: auto;
       white-space: pre-wrap;
-      margin: 10px;
+      margin: 10px 0;
+      width: 100%;
     }
   </style>
 </head>
 <body>
-  <h2>Lexical Analyzer Online</h2>
-  <textarea id="code" placeholder="Type your Grow-A-Language code here..."></textarea><br>
-  <button id="runLex">Run Lexical Analysis</button>
-  <button id="runProg">Run Program</button>
+  <div class="container">
+    <h2>Lexical Analyzer</h2>
+    <textarea id="code" placeholder="Type in here..."></textarea>
+    <button id="runLex">Run Lexical Analysis</button>
 
-  <h3 style="color:#00ff99;margin-left:10px;">Tokens</h3>
-  <table id="tokenTable">
-    <thead>
-      <tr><th>Type</th><th>Value</th><th>Line</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+    <h3 style="color:#00ff99;">Tokens</h3>
+    <table id="tokenTable">
+      <thead>
+        <tr><th>Lexeme</th><th>Token</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
 
-  <h3 style="color:#00ff99;margin-left:10px;">Output</h3>
-  <div id="terminal"></div>
+    <h3 style="color:#00ff99;">Output</h3>
+    <div id="terminal"></div>
+  </div>
 
-  <script src="/static/js/socket.io.min.js"></script>
+  <script src="/static/js/main.js"></script>
   <script src="main.js"></script>
 </body>
 </html>
