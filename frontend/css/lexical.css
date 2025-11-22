@@ -1,0 +1,211 @@
+.lexical-container {
+    width: 1920px;
+    height: 842px;
+    padding: 10px;
+    border: 30px solid transparent;
+    border-image: url('/frontend/css/images/border_background.svg') 12.7% round;
+    z-index: 10;
+}
+
+.background-image {
+    position: absolute;
+    bottom: -20px;
+    left: -22px;
+    width: 1875px;
+    height: 880px;
+    background-image: url("/frontend/css/background/main_background02.webp");
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center;
+    z-index: -1;
+    border-radius: inherit;
+    filter: brightness(10%);
+}
+
+.inner-content {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    padding: 30px;
+    box-sizing: border-box;
+    z-index: 0;
+}
+
+.title-wrapper .header-title {
+    font-family: "Paradox King Script", sans-serif;
+    font-size: 1.5em;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+/* header */
+.header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.header-title {
+    font-size: 26px;
+    color: GOLD;
+    margin: 0;
+}
+
+.title-wrapper {
+    width: 290px;
+    padding: 10px;
+    background-color: #111;
+    border: 20px solid transparent;
+    border-image: url('/frontend/css/images/border_background.svg') 8.4% round;
+    border-radius: 15px;
+    box-sizing: border-box;
+    margin-bottom: 15px;
+}
+
+.top-btn {
+    padding: 8px 25px;
+    color: gold;
+    cursor: pointer;
+    border: 12px solid transparent;
+    background-color: #111;
+    border-image: url('/frontend/css/images/border_background.svg') 12% round;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.top-btn:hover {
+    color: #fff;
+    box-shadow: 0 0 15px gold, 0 0 30px rgba(255, 215, 0, 0.5);
+    transform: translateY(-2px);
+}
+
+/* left column */
+.left-column {
+    position: relative;
+    height: 625px;
+    width: 1000px;
+    display: flex;
+    background: #111;
+    border: 20px solid transparent;
+    border-image: url('/frontend/css/images/border_background.svg') 8.4% round;
+    border-radius: 15px;
+}
+
+.line-numbers {
+    width: 40px;
+    background: #212;
+    color: gold;
+    text-align: right;
+    padding: 10px 10px;
+    box-sizing: border-box;
+    font-family: monospace;
+    font-size: 1em;
+    overflow: hidden;
+    user-select: none;
+    margin-left: -3px;
+    border-right: 2px solid gold;
+}
+
+#code {
+    flex: 1;
+    background: transparent;
+    color: #fff;
+    padding: 10px;
+    font-family: monospace;
+    font-size: 1em;
+    resize: none;
+    border: none;
+    outline: none;
+    overflow: auto;
+}
+
+/* rightcolumn */
+.analysis-wrapper {
+    display: flex;
+    width: 100%;
+    gap: 20px;
+    height: calc(100% - 120px);
+}
+
+.right-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.panel {
+    flex: 1;
+    background: #111;
+    color: #00ff99;
+    padding: 10px;
+    border: 20px solid transparent;
+    border-image: url('/frontend/css/images/border_background.svg') 8.4% round;
+    border-radius: 15px;
+    box-sizing: border-box;
+    overflow: auto;
+}
+
+#terminal {
+    flex: 1;
+    background: #111;
+    color: gold;
+}
+
+.panel-title {
+    color: gold;
+    margin-bottom: 10px;
+    margin-top: -5px;
+    text-align: center;
+}
+
+
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 6px;
+    font-family: monospace;
+    font-size: 0.95em;
+}
+
+th, td {
+    padding: 8px 12px;
+    text-align: left;
+    border-radius: 8px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+th {
+    background-color: #111;
+    color: gold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-align: center;
+    box-shadow: inset 0 -1px 0 gold;
+}
+
+td {
+    background-color: #111;
+    color: #0f0;
+    border-left: 2px solid gold;
+    border-right: 2px solid gold;
+}
+
+tr:hover td {
+    background-color: #222;
+    box-shadow: 0 0 10px #00ff99;
+}
+
+tbody tr td:first-child {
+    border-left: none;
+}
+
+tbody tr td:last-child {
+    border-right: none;
+}
+
+tbody tr:nth-child(even) td {
+    background-color: #111;
+}

@@ -1,0 +1,97 @@
+@font-face {
+    font-family: "Paradox King Script";
+    src: url(../fonts/crusader/Paradox_King_Script.otf);
+}
+@font-face {
+    font-family: "BlizQuadrataWeb";
+    src: url(../fonts/crusader/bliz-quadrata.ttf);
+}
+
+@font-face {
+    font-family: "Source Sans Pro";
+    src: url(../fonts/sourcesanspro/SourceSansPro-Regular.ttf);
+}
+
+@font-face {
+    font-family: "ChampFleury";
+    src: url(../fonts/champfleury/1529ChampFleury.ttf);
+}
+
+@media (max-width: 768px) {
+    .common-background {
+        min-width: 100%;
+        max-width: 100%;
+        background-size: cover;
+    }
+}
+
+* {
+    /* font-family: "Source Sans Pro", sans-serif;  */  /* need new fonts panget */
+    font-family: monospace;
+    text-decoration: none; 
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    color: #000;
+}
+
+html {
+    scroll-behavior: smooth;
+    height: 100%;
+    width: 100%;
+    margin: 0px;
+    padding: 0px;
+    overflow-y: scroll;
+    overflow-x: hidden; 
+}
+
+body {
+    background: #000;
+    color: #e0e0e0;
+    margin: 0 auto;
+    padding: 0;
+    min-width: 1366px;
+    max-width: 1920px; 
+    overflow-x: hidden;
+    position: relative;
+          display: flex;
+      justify-content: center;
+      align-items: flex-start;
+            min-height: 100vh;
+}
+
+a {
+    text-decoration: none;
+    color: rgba(0,0,0,255);
+}
+
+img {
+    user-select: none;
+    -moz-user-select: none;
+    -webkit-user-drag: none;
+    -webkit-user-select: none;
+    -ms-user-select: none;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 6px; 
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background-color: #f1f1f1; 
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #888;
+    border-radius: 10px;
+    transition: background-color 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: gold;
+}
+::-webkit-scrollbar-thumb:horizontal {
+    background-color: #888;
+}

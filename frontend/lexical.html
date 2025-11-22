@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang = "en">
+    <head>
+        <meta charset = "UTF-8">
+        <meta name = "viewport" content = "width = device-width, initial-scale = 1.0">
+        <meta http-equiv = "X-UA-Compatible" content = "IE = edge">
+        <meta name = "description" content = "Brev is a Medieval Catholic Lithurgy Compiler dedicated to present the 13th century.">
+        <meta property = "og:site_name" content = "Brev">
+        <meta property = "og:type" content = "website">
+        <meta property = "og:title" content = "Brev">
+        <meta property = "og:url" content = "https://www.Brev.com/">
+        <title>Lexical Analyzer</title>
+        <link rel = "stylesheet" href = "/frontend/css/default.css">
+        <link rel = "stylesheet" href = "/frontend/css/lexical.css">
+        <link rel = "icon" type = "image/png" href = "/frontend/css/images/logo.svg">
+    </head>
+    <body>
+        <div class = "background"></div>
+        <div class = "lexical-container">
+            <div class = "inner-content">
+                <div class = "background-image"></div>
+
+                <!-- HEADER ROW -->
+                <div class = "header-row">
+                    <div class = "title-wrapper">
+                        <h2 class = "header-title">Lexical Analyzer</h2>
+                    </div>
+                    <div class = "top-buttons">
+                        <button id = "runLex" class = "top-btn">Run</button>
+                        <a href = "/frontend/index.html" class = "top-btn">Back</a>
+                    </div>
+                </div>
+
+                <!-- ANALYSIS WRAPPER -->
+                <div class = "analysis-wrapper">
+                    <!-- LEFT COLUMN -->
+                    <div class = "left-column">
+                        <div id = "lineNumbers" class = "line-numbers">1</div>
+                        <textarea id = "code" placeholder = "Type in here..."></textarea>
+                    </div>
+
+                    <!-- RIGHT COLUMN -->
+                    <div class = "right-column">
+                        <div class = "panel">
+                            <h3 class = "panel-title">Tokens</h3>
+                            <table id = "tokenTable">
+                                <thead>
+                                    <tr>
+                                        <th>Lexeme</th>
+                                        <th>Token</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div class = "panel">
+                            <h3 class = "panel-title">Output</h3>
+                            <pre id = "terminal"></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+    <script src = "/backend/js/lexical.js"></script>
+</html>

@@ -1,4 +1,4 @@
-from lexer import Lexer, LexicalError, Token
+from backend.lexer import Lexer, LexicalError, Token
 
 
 def run_code(source: str):
