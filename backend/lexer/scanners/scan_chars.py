@@ -41,4 +41,5 @@ def scan_char(lexer):
         )
 
     lexer.advance()
-    return Token(TK_LIT_CHAR, ch, pos)
+    return Token(TK_LIT_CHAR, f"'{ch}'", pos)
+
