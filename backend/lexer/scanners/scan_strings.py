@@ -36,7 +36,6 @@ def scan_string(lexer):
         string_val += lexer.current_char
         lexer.advance()
 
-    # String concatenation with &
     while lexer.current_char == "&":
         lexer.advance()
         if lexer.current_char != '"':
@@ -44,4 +43,4 @@ def scan_string(lexer):
         next_string = scan_string(lexer)
         string_val += next_string.value
 
-    return Token(TK_LIT_STRING, string_val, pos) 
+    return Token(TK_LIT_STRING, f"\"{string_val}\"", pos)
