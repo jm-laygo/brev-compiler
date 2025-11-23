@@ -12,39 +12,44 @@
         <title>Lexical Analyzer</title>
         <link rel = "stylesheet" href = "/frontend/css/default.css">
         <link rel = "stylesheet" href = "/frontend/css/lexical.css">
-        <link rel = "icon" type = "image/png" href = "/frontend/css/images/logo.svg">
+        <link rel = "icon" type = "image/svg+xml" href = "/frontend/css/images/logo.svg">
     </head>
     <body>
-        <div class = "background"></div>
-        <div class = "lexical-container">
-            <div class = "inner-content">
-                <div class = "background-image"></div>
-
-                <!-- HEADER ROW -->
-                <div class = "header-row">
-                    <div class = "title-wrapper">
-                        <h2 class = "header-title">Lexical Analyzer</h2>
+        <!-- <header>
+        </header> -->
+        <div id = "lexical-background"></div>
+        <main id = "lexical-container">
+            <section id = "lexical-inner-container">
+                <header id = "header-row">
+                    <div class = "header-left">
+                        <button id = "openFileBtn" class = "command-btn">Open File</button>
+                        <input type = "file" id = "fileInput" accept = ".txt,.c" style = "display: none;">
+                        <button id = "saveFileBtn" class = "command-btn">Save File</button>
                     </div>
-                    <div class = "top-buttons">
-                        <button id = "runLex" class = "top-btn">Run</button>
-                        <a href = "/frontend/index.html" class = "top-btn">Back</a>
-                    </div>
-                </div>
 
-                <!-- ANALYSIS WRAPPER -->
-                <div class = "analysis-wrapper">
-                    <!-- LEFT COLUMN -->
-                    <div class = "left-column">
+                    <div class = "header-title-box">
+                        <h2 class = "header-title-text">Lexical Analyzer</h2>
+                    </div>
+                    <div class = "header-right">
+                        <button id = "runLex" class="command-btn">Run</button>
+                        <button id = "clearBtn" class = "command-btn">Clear</button>
+                        <a href = "/frontend/index.html" class = "command-btn">Back</a>
+                    </div>
+                </header>
+                <!-- main body -->
+                <div id = "lexical-inner-background-image"></div>
+                <div id = "lexical-inner-content">
+                    <!-- left column -->
+                    <div id = "lexical-pane">
                         <div id = "lineNumbers" class = "line-numbers">1</div>
                         <textarea id = "code" placeholder = "Type in here..."></textarea>
                     </div>
-
-                    <!-- RIGHT COLUMN -->
-                    <div class = "right-column">
+                    <!-- right column -->
+                    <div id = "table-terminal">
                         <div class = "panel">
                             <h3 class = "panel-title">Tokens</h3>
                             <table id = "tokenTable">
-                                <thead>
+                                <thead class = "table-head">
                                     <tr>
                                         <th>Lexeme</th>
                                         <th>Token</th>
@@ -59,8 +64,12 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
+            </section>
+        </main>
+        <!-- <footer>
+        </footer> -->
     </body>
-    <script src = "/backend/js/lexical.js"></script>
+    <script src = "/backend/js/jslexical/lexical.js"></script>
+    <script src = "/backend/js/jslexical/lexicalbuttons.js"></script>
+    <script src = "/backend/js/jslexical/lexicalhighlight.js"></script>
 </html>
