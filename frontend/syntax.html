@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang = "en">
+    <head>
+        <meta charset = "UTF-8">
+        <meta name = "viewport" content = "width = device-width, initial-scale = 1.0">
+        <meta http-equiv = "X-UA-Compatible" content = "IE = edge">
+        <meta name = "description" content = "Brev is a Medieval Catholic Lithurgy Compiler dedicated to present the 13th century.">
+        <meta property = "og:site_name" content = "Brev">
+        <meta property = "og:type" content = "website">
+        <meta property = "og:title" content = "Brev">
+        <meta property = "og:url" content = "https://www.Brev.com/">
+        <title>Syntax Analyzer</title>
+        <link rel = "stylesheet" href = "/frontend/css/default.css">
+        <link rel = "stylesheet" href = "/frontend/css/syntax.css">
+        <link rel = "icon" type = "image/svg+xml" href = "/frontend/css/images/logo.svg">
+    </head>
+    <body>
+        <!-- <header>
+        </header> -->
+        <div id = "lexical-background"></div>
+        <main id = "lexical-container">
+            <section id = "lexical-inner-container">
+                <header id = "header-row">
+                    <div class = "header-left">
+                        <button id = "openFileBtn" class = "command-btn">Open File</button>
+                        <input type = "file" id = "fileInput" accept = ".txt,.c" style = "display: none;">
+                        <button id = "saveFileBtn" class = "command-btn">Save File</button>
+                    </div>
+
+                    <div class = "header-title-box">
+                        <h2 class = "header-title-text">Syntax Analyzer</h2>
+                    </div>
+                    <div class = "header-right">
+                        <button id = "runLex" class="command-btn">Run</button>
+                        <button id = "clearBtn" class = "command-btn">Clear</button>
+                        <a href = "/frontend/index.html" class = "command-btn">Back</a>
+                    </div>
+                </header>
+                <!-- main body -->
+                <div id = "lexical-inner-background-image"></div>
+                <div id = "lexical-inner-content">
+                    <!-- left column -->
+                    <div id = "lexical-pane">
+                        <div id = "lineNumbers" class = "line-numbers">1</div>
+                        <div id = "code" contenteditable = "true" spellcheck = "false"></div>
+                    </div>
+                    <!-- right column -->
+                    <div id = "table-terminal">
+                        <div class = "panel">
+                            <h3 class = "panel-title">Tokens</h3>
+                            <table id = "tokenTable">
+                                <thead class = "table-head">
+                                    <tr>
+                                        <th>Lexeme</th>
+                                        <th>Token</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div class = "panel">
+                            <h3 class = "panel-title">Output</h3>
+                            <pre id = "terminal"></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+        <!-- <footer>
+        </footer> -->
+    </body>
+    <script src = "/backend/js/jslexical/editor-utils.js"></script>
+    <script src = "/backend/js/jslexical/lexicalbuttons.js"></script>
+</html>
