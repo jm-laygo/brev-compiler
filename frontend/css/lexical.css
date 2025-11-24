@@ -162,13 +162,16 @@ body {
 #lexical-pane {
     flex: 1 1 600px;
     display: flex;
-    height: 625px;
+    height: 695px;
     background: #111;
-    border: 20px solid transparent;
+    border-style: solid;
+    border-width: 20px 20px 0 0; /* top right bottom left */
     border-image: url('/frontend/css/images/border_background.svg') 8.4% round;
     border-radius: 15px;
-    min-width: 0
+    min-width: 0;
+    margin-left: -52px;
 }
+
 
 .line-numbers {
     width: 40px;
@@ -219,7 +222,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 20px;
-    height: 665px;
+    height: 700px;
     min-height: 0;
     min-width: 0
 }
