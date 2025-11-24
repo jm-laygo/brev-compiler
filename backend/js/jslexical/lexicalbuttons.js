@@ -7,6 +7,7 @@ const runBtn = document.getElementById('runLex');
 openFileBtn.addEventListener("click", () => {
     fileInput.click();
 });
+
 fileInput.addEventListener("change", (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -14,8 +15,9 @@ fileInput.addEventListener("change", (event) => {
     const reader = new FileReader();
     reader.onload = (e) => {
         editor.innerText = e.target.result;
-        if (typeof updateLines === "function") updateLines();
-        if (typeof sanitizeEditorNodes === "function") sanitizeEditorNodes();
+        sanitizeEditor();
+        normalizeLines();
+        updateLineNumbers();
     };
 
     reader.readAsText(file);
