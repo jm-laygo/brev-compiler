@@ -11,7 +11,8 @@ def scan_char(lexer):
     if lexer.current_char is None:
         raise LexicalError(pos, "Unterminated char literal (found end-of-file)")
     if lexer.current_char == "'":
-        raise LexicalError(pos, "Empty char literal '' is not allowed")
+        lexer.advance()
+        return Token(TK_LIT_CHAR, "''", pos)
 
     if lexer.current_char == "\\":
         lexer.advance()

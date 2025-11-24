@@ -1,10 +1,10 @@
 @font-face {
     font-family: "Paradox King Script";
-    src: url(../fonts/crusader/Paradox_King_Script.otf);
+    src: url(/frontend/css/fonts/crusader/Paradox_King_Script.otf);
 }
 @font-face {
     font-family: "BlizQuadrataWeb";
-    src: url(../fonts/crusader/bliz-quadrata.ttf);
+    src: url(/frontend/css/fonts/crusader/bliz-quadrata.ttf);
 }
 
 @font-face {
@@ -14,7 +14,7 @@
 
 @font-face {
     font-family: "ChampFleury";
-    src: url(../fonts/champfleury/1529ChampFleury.ttf);
+    src: url(/frontend/css/fonts/champfleury/1529ChampFleury.ttf);
 }
 
 @media (max-width: 768px) {
@@ -22,6 +22,20 @@
         min-width: 100%;
         max-width: 100%;
         background-size: cover;
+    }
+}
+
+@media (max-width: 1366px) {
+    body {
+        min-width: 100%;
+        max-width: 100%;
+        font-size: 2em;
+    }
+}
+
+@media (max-width: 768px) {
+    body {
+        font-size: 1em;
     }
 }
 
@@ -41,7 +55,7 @@ html {
     width: 100%;
     margin: 0px;
     padding: 0px;
-    overflow-y: scroll;
+    overflow-y: auto;
     overflow-x: hidden; 
 }
 
@@ -54,10 +68,9 @@ body {
     max-width: 1920px; 
     overflow-x: hidden;
     position: relative;
-          display: flex;
-      justify-content: center;
-      align-items: flex-start;
-            min-height: 100vh;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
 }
 
 a {
@@ -73,14 +86,14 @@ img {
     -ms-user-select: none;
 }
 
-/* Scrollbar */
 ::-webkit-scrollbar {
     width: 6px; 
     height: 6px;
 }
 ::-webkit-scrollbar-track {
-    background-color: #f1f1f1; 
+    background-color: #fff; 
     border-radius: 10px;
+    overflow: hidden;
 }
 
 ::-webkit-scrollbar-thumb {
