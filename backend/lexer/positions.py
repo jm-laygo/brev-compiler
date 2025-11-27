@@ -8,7 +8,7 @@ class Position:
         self.index += 1
         if current_char == "\n":
             self.ln += 1
-            self.col = 0
+            self.col = 1
         else:
             self.col += 1
 
