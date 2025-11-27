@@ -3,8 +3,15 @@ const lineNumbers = document.getElementById("lineNumbers");
 const ZERO_WIDTH = "\u200B";
 
 function getEditorLines() {
-    return Array.from(editor.children).map(div => div.textContent === ZERO_WIDTH ? "" : div.textContent);
+    return Array.from(editor.children).map(div => {
+        let text = div.textContent || "";
+        // Remove ZERO_WIDTH spaces everywhere
+        text = text.replace(/\u200B/g, "");
+        return text;
+    });
 }
+const sourceCode = getEditorLines().join("\n");
+
 
 function createLine(text = "") {
     const div = document.createElement("div");
