@@ -5,7 +5,7 @@ It tokenizes reserved words, identifiers, literals, and symbols, with proper err
 
 ---
 
-## **Features**
+<!-- ## **Features**
 
 - Recognizes **Brev reserved words**:
   - `receive`, `proclaim`, `divine`, `tally`, `sigil`, `hollow`, `verity`, etc.
@@ -14,7 +14,7 @@ It tokenizes reserved words, identifiers, literals, and symbols, with proper err
 - Supports basic **symbols/operators**: `+`, `-`, `*`, `/`, `%`, `&&`, `||`, `!`, `~`, parentheses, commas, etc.
 - Easy **CLI testing** (type Brev code, see tokens and errors)
 
----
+--- -->
 
 ## **Setup**
 
