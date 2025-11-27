@@ -17,7 +17,7 @@ from backend.lexer.scanners.scan_symbol import scan_symbol
 
 class Lexer:
     def __init__(self, source_code): 
-        self.source_code = source_code
+        self.source_code = source_code.replace('\r', '')
         self.pos = Position(-1, 1)
         self.current_char = None
         self.advance()
@@ -38,6 +38,27 @@ class Lexer:
         errors = []
 
         while self.current_char is not None:
+            if self.current_char == "\\":
+                peek = self.peek()
+                escape_seq = "\\" + peek if peek else "\\"
+                start_pos = self.pos.copy()
+
+                if escape_seq == r"\n":
+                    tokens.append(Token(TK_SYM_NEWLINE, r"\n", start_pos))
+                    self.advance()
+                    self.advance()
+                    continue
+                elif escape_seq == r"\t":
+                    tokens.append(Token(TK_SYM_SPACE, r"\t", start_pos))
+                    self.advance()
+                    self.advance()
+                    continue
+                else:
+                    errors.append(LexicalError(start_pos, f"Unexpected escape sequence '{escape_seq}'"))
+                    self.advance()
+                    self.advance()
+                    continue
+
             # LETTERS / KEYWORDS
             if self.current_char.isalpha():
                 try:
@@ -56,10 +77,11 @@ class Lexer:
 
             # NEWLINE
             if self.current_char == "\n":
-                tokens.append(Token(TK_SYM_NEWLINE, "\\n", self.pos.copy()))
+                pos_copy = self.pos.copy()
                 self.advance()
+                tokens.append(Token(TK_SYM_NEWLINE, "\n", pos_copy))
                 continue
-
+            
             # COMMENTS
             if self.current_char == "/":
                 if self.peek() == "/" or self.peek() == "*":
