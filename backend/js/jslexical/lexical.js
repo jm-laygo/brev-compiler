@@ -96,9 +96,9 @@ document.addEventListener('DOMContentLoaded', () => {
             suggestOnTriggerCharacters: true,
             tabSize: 4,
             insertSpaces: true,
-            rulers: [
-                { column: 0, color: '#FFD700', lineStyle: 'solid', margin: 20 }
-            ],
+            // rulers: [
+            //     { column: 0, color: '#FFD700', lineStyle: 'solid', margin: 20 }
+            // ],
             padding: { top: 5, bottom: 5, left: 5, right: 5 },
             scrollbar: {
                 alwaysConsumeMouseWheel: true,
