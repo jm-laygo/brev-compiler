@@ -23,7 +23,7 @@ def scan_number(lexer):
         if lexer.current_char is None or lexer.current_char not in DIGITS:
             raise LexicalError(pos, f"Invalid number literal '{num_str}'")
 
-    # must be a digit
+    # must start with a digit
     if lexer.current_char not in DIGITS:
         return None
 
@@ -33,32 +33,29 @@ def scan_number(lexer):
     while lexer.current_char is not None:
         ch = lexer.current_char
 
-        # INTEGERS
+        # integers
         if ch in DIGITS:
             num_str += ch
             lexer.advance()
             continue
 
-        # DOUBLE
+        # doubles
         if ch == ".":
             if has_dot:
                 raise LexicalError(pos, f"Multiple decimal points in '{num_str + ch}'")
-
-            stripped = num_str.replace("~", "")
-            if stripped == "":
-                raise LexicalError(pos, f"Decimal literal must have digits before the decimal point '{num_str + ch}'")
-
             has_dot = True
             num_str += "."
             lexer.advance()
 
-            # must have digit after decimals
+            # must be followed by digit
             if lexer.current_char is None or lexer.current_char not in DIGITS:
                 raise LexicalError(pos, f"Invalid decimal literal '{num_str}'")
-
             continue
 
-        # error if there is an underscore or character
+        if ch == ",":
+            raise LexicalError(pos, f"Invalid character ',' in number '{num_str}'")
+
+        # invalid characters
         if ch in ALPHABET or ch == "_":
             raise LexicalError(pos, f"Invalid character '{ch}' inside number '{num_str}'")
 
@@ -67,8 +64,12 @@ def scan_number(lexer):
 
         raise LexicalError(pos, f"Invalid character '{ch}' after number '{num_str}'")
 
-    # INTEGERS
+    # integers
     if not has_dot:
+        digits = num_str.replace("~", "")
+        if len(digits) > 9:
+            raise LexicalError(pos, f"Integer literal too long '{num_str}' (max 9 digits)")
+
         try:
             val = int(num_str.replace("~", "-"))
         except:
@@ -79,7 +80,14 @@ def scan_number(lexer):
 
         return Token(TK_LIT_INT, num_str, pos)
 
-    # DOUBLE
+    # double
+    clean = num_str.replace("~", "")
+    whole, frac = clean.split(".")
+    if len(whole) > 9:
+        raise LexicalError(pos, f"Too many digits before decimal point in '{num_str}' (max 9)")
+    if len(frac) > 9:
+        raise LexicalError(pos, f"Too many digits after decimal point in '{num_str}' (max 9)")
+
     try:
         val = float(num_str.replace("~", "-"))
     except:
@@ -87,8 +95,5 @@ def scan_number(lexer):
 
     if val < MIN_FLOAT or val > MAX_FLOAT:
         raise LexicalError(pos, f"Decimal literal out of range '{num_str}'")
-
-    if "." not in num_str:
-        raise LexicalError(pos, f"Decimal literal must contain a decimal point '{num_str}'")
 
     return Token(TK_LIT_DECIMAL, num_str, pos)
