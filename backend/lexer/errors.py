@@ -3,11 +3,11 @@ class LexicalError(Exception):
         super().__init__(details)
         self.pos = pos
         self.details = details
-        self.hint = hint  # <-- NEW (optional suggested keyword)
+        self.hint = hint
 
     def as_string(self):
         safe_details = self.details.replace('\n', '\\n')
-        msg = f"Ln {self.pos.ln} Lexical Error: {safe_details}"
+        msg = f"Ln {self.pos.ln}, Col {self.pos.col} Lexical Error: {safe_details}"
         if self.hint:
             msg += f"  Did you mean '{self.hint}'?"
         return msg
