@@ -6,11 +6,8 @@ def scan_string(lexer):
     string_val = ""
     lexer.advance()
 
-    if lexer.current_char is None:
-        raise LexicalError(pos, "Unterminated string literal")
-
     while True:
-        if lexer.current_char is None:
+        if lexer.current_char is None or lexer.current_char == "\n":
             raise LexicalError(pos, "Unterminated string literal")
 
         if lexer.current_char == "\\":
@@ -24,9 +21,9 @@ def scan_string(lexer):
                     string_val += "\\"
                 elif lexer.current_char == '"':
                     string_val += '"'
+                lexer.advance()
             else:
                 raise LexicalError(pos, f"Invalid escape sequence '\\{lexer.current_char}'")
-            lexer.advance()
             continue
 
         if lexer.current_char == '"':
@@ -40,7 +37,7 @@ def scan_string(lexer):
         lexer.advance()
         if lexer.current_char != '"':
             raise LexicalError(pos, "String concatenation must be followed by another string literal")
-        next_string = scan_string(lexer)
-        string_val += next_string.value
+        next_token = scan_string(lexer)
+        string_val += next_token.value[1:-1]
 
     return Token(TK_LIT_STRING, f"\"{string_val}\"", pos)
