@@ -1019,54 +1019,53 @@ def scan_alphabet_manual(lexer, tokens, errors, line):
         tokens.append(Token(TK_IDENTIFIER, ident_str, line))
         return True
 
-    # LETTER T
+   # LETTER T
     if lexer.current_char is not None and lexer.current_char == "t":
         ident_str = "t"
         pos = lexer.pos.copy()
         lexer.advance()
 
-        # TALLY
-        if lexer.current_char is not None and lexer.current_char == "a":
-            lexer.pos = save_pos
-            lexer.current_char = save_char
-            ident_str = save_str
+        # --- Try to match TALLY ---
+        tally_pos = lexer.pos.copy()
+        tally_char = lexer.current_char
+        tally_str = ident_str
 
-            ident_str += "a"
+        if lexer.current_char is not None and lexer.current_char == "a":
+            tally_str += "a"
             lexer.advance()
 
             if lexer.current_char is not None and lexer.current_char == "l":
-                ident_str += "l"
+                tally_str += "l"
                 lexer.advance()
 
                 if lexer.current_char is not None and lexer.current_char == "l":
-                    ident_str += "l"
+                    tally_str += "l"
                     lexer.advance()
 
                     if lexer.current_char is not None and lexer.current_char == "y":
-                        ident_str += "y"
+                        tally_str += "y"
                         lexer.advance()
 
+                        # Check delimiter after reserved word
                         if lexer.current_char is None or lexer.current_char in idnt_delim:
-                            tokens.append(Token(TK_DTYPE_TALLY, ident_str, line))
+                            tokens.append(Token(TK_DTYPE_TALLY, tally_str, line))
                             return True
                         else:
-                            errors.append(LexicalError(pos, f"Invalid delimiter '{lexer.current_char}' after '{ident_str}'"))
-                            lexer.advance()
+                            errors.append(LexicalError(pos, f"Invalid delimiter '{lexer.current_char}' after '{tally_str}'"))
                             return True
 
-            lexer.pos = save_pos
-            lexer.current_char = save_char
-            ident_str = save_str
-
-        # IDENTIFIER
+        # --- Failed TALLY, reset and continue scanning identifier ---
+        lexer.pos = tally_pos
+        lexer.current_char = tally_char
         ident_str = "t"
+
         while lexer.current_char is not None and lexer.current_char in ALPHA_DIG + "_":
             ident_str += lexer.current_char
             lexer.advance()
 
         tokens.append(Token(TK_IDENTIFIER, ident_str, line))
         return True
-
+    
     # LETTER U
     if lexer.current_char is not None and lexer.current_char == "u":
         ident_str = "u"

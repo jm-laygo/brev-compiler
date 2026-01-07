@@ -95,26 +95,26 @@ def scan_operator(lexer):
         if lexer.current_char == "=":
             lexer.advance()
             return Token(TK_OP_NOTEQ, "!=", pos)
-        return Token(TK_OP_NOT, "!!", pos)
+        return Token(TK_OP_NOT, "!", pos)
 
     if ch == "&":
         lexer.advance()
         if lexer.current_char == "&":
             lexer.advance()
             return Token(TK_OP_AND, "&&", pos)
-        return Token(TK_OP_AND, "&", pos)
+        raise LexicalError(pos, "Unexpected character '&'")
 
     if ch == "|":
         lexer.advance()
         if lexer.current_char == "|":
             lexer.advance()
             return Token(TK_OP_OR, "||", pos)
-        raise LexicalError(pos, f"Unexpected character '{ch}'")
+        raise LexicalError(pos, "Unexpected character '|'")
 
     if ch == "~":
         lexer.advance()
         return Token(TK_OP_TILDE, "~", pos)
-    
+
     if ch == "<":
         lexer.advance()
         if lexer.current_char == "=":
