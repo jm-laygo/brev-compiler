@@ -30,7 +30,7 @@ def scan_string(lexer, tokens, errors):
 
     start_pos = lexer.pos.copy()
     value = ""
-    lexer.advance()  # consume opening quote
+    lexer.advance()
 
     while lexer.current_char is not None:
         ch = lexer.current_char
@@ -65,7 +65,7 @@ def scan_string(lexer, tokens, errors):
             continue
 
         if ch == '"':
-            lexer.advance()  # consume closing quote
+            lexer.advance()
             return accept_string(lexer, tokens, errors, start_pos, value, str_delim)
 
         value += ch

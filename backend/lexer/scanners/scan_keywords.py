@@ -288,7 +288,7 @@ def scan_keywords_manual(lexer, tokens, errors):
                 ident_str += "l"; lexer.advance()
                 if lexer.current_char == "y":
                     ident_str += "y"; lexer.advance()
-                    return accept_keyword(TK_OTHERS_HOLY, ident_str, start_pos, bool_delim)
+                    return accept_keyword(TK_LIT_BOOL, ident_str, start_pos, bool_delim)
 
         restore(start_pos)
         return False
@@ -548,7 +548,7 @@ def scan_keywords_manual(lexer, tokens, errors):
                         ident_str += "l"; lexer.advance()
                         if lexer.current_char == "y":
                             ident_str += "y"; lexer.advance()
-                            return accept_keyword(TK_OTHERS_UNHOLY, ident_str, start_pos, bool_delim)
+                            return accept_keyword(TK_LIT_BOOL, ident_str, start_pos, bool_delim)
 
         restore(start_pos)
         return False

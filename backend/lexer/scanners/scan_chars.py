@@ -35,7 +35,7 @@ def scan_char(lexer, tokens, errors):
         return False
 
     start_pos = lexer.pos.copy()
-    lexer.advance()  # consume opening '
+    lexer.advance()
 
     if lexer.current_char is None:
         errors.append(LexicalError(start_pos, "Unterminated char literal"))
@@ -47,7 +47,7 @@ def scan_char(lexer, tokens, errors):
 
     # empty char ''
     if lexer.current_char == "'":
-        lexer.advance()  # consume closing '
+        lexer.advance()
         return accept_char(lexer, tokens, errors, start_pos, "''", chr_delim)
 
     # read one character (escaped or normal)
@@ -83,7 +83,7 @@ def scan_char(lexer, tokens, errors):
         recover_char_literal(lexer)
         return True
 
-    lexer.advance()  # consume closing '
+    lexer.advance()
 
     if ord(ch) > 127:
         errors.append(LexicalError(start_pos, f"Non-ASCII character '{ch}' is not allowed in char literal"))

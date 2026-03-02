@@ -1,5 +1,3 @@
-# backend/lexer/scanners/scan_identifiers.py
-
 from backend.tokens import Token, TK_IDENTIFIER
 from backend.errors import LexicalError
 from backend.delimiters import idnt_delim, format_expected_delims, ALPHABET, ALPHA_DIG
@@ -8,16 +6,6 @@ MAX_IDENTIFIER_LENGTH = 48
 
 
 def scan_identifier(lexer, tokens, errors):
-    """
-    Identifier scanner ONLY.
-    Keywords are handled separately by scan_keywords.py (professor-required long DFA).
-
-    Rules:
-    - Must start with a letter
-    - Next chars: letters/digits/underscore
-    - Max length: 48 (error + discard rest)
-    - Delimiter must be valid (idnt_delim)
-    """
     if lexer.current_char is None:
         return False
 

@@ -28,7 +28,6 @@ def accept_number(lexer, tokens, errors, start_pos, raw_value, allowed_delims, h
     return True
 
 def _consume_number_tail(lexer):
-    # consume the rest of a malformed numeric lexeme, but don't eat valid next tokens
     while lexer.current_char is not None and (
         lexer.current_char.isalnum()
         or lexer.current_char in {".", "_", "~"}
