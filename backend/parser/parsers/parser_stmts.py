@@ -4,29 +4,20 @@ from backend.tokens import *
 from backend.errors import ParserError
 from backend.ast.ast_nodes import (
     Statement,
-    # decl-wrappers
     VarDecl, VarItem,
     VarDeclStmt, OrderStmt, OrdainStmt,
-    # calls / io
     CallStmt, IOStmt, ReceiveStmt, ProclaimStmt,
-    # assign / incdec
     AssignStmt, IncDecStmt,
-    # jumps
     DismissStmt, ProceedStmt, AbsolveStmt,
-    # control flow
     DecreeStmt, EdictClause, AbsolutionClause,
     DiscernStmt, VerseCase, VerseEnd, GraceDefault, IdentifierRef,
-    # loops
     EndureStmt, ProcessionStmt, RitualStmt,
-    # lvalues
     NameRef,
 )
 
-# If you have FallStmt in AST nodes, import it.
-# If not yet, create it: class FallStmt(JumpStmt): pass
 try:
     from backend.ast.ast_nodes import FallStmt
-except Exception:  # keep import-safe if you haven't added it yet
+except Exception:
     FallStmt = None
 
 
@@ -288,12 +279,6 @@ class StmtsMixin:
         return ProcessionStmt(init=init, condition=cond, update=update, body=body, pos=tok.pos)
 
     def parse_procession_init_part(self) -> Statement:
-        """
-        init_opt:
-          - <data_type> id = <expr>
-          - <lvalue> = <expr>
-        No trailing semicolon (procession consumes it).
-        """
         t = self.peek().type
 
         # data_type id = expr
@@ -318,14 +303,6 @@ class StmtsMixin:
         return AssignStmt(target=lv, op=op_tok.type, value=val, pos=op_tok.pos)
 
     def parse_procession_update_part(self) -> Statement:
-        """
-        update_expr:
-          - lvalue ( ++ | -- | assign_op expr )
-          - ++ lvalue_core
-          - -- lvalue_core
-          - ( update_expr )
-        No trailing semicolon (we stop at ')').
-        """
         if self.at(TK_SYM_OPPAREN):
             self.match(TK_SYM_OPPAREN)
             inner = self.parse_procession_update_part()

@@ -9,7 +9,6 @@ from backend.ast.ast_nodes import (
     NameRef,
 )
 
-
 class ExprsMixin:
     # ---------- expressions ----------
     def parse_const_expr(self) -> Expr:
@@ -90,7 +89,6 @@ class ExprsMixin:
 
     def parse_primary(self) -> Expr:
         tok = self.peek()
-
         # literals
         if tok.type in (TK_LIT_INT, TK_LIT_DECIMAL, TK_LIT_CHAR, TK_LIT_STRING, TK_LIT_BOOL):
             self.i += 1
@@ -102,7 +100,6 @@ class ExprsMixin:
                 return LiteralExpr(value=tok.value, literal_type = "sigil", pos=tok.pos)
             if tok.type == TK_LIT_STRING:
                 return LiteralExpr(value=tok.value, literal_type = "scripture", pos=tok.pos)
-            # bool literal
             return LiteralExpr(value=tok.value, literal_type = "verity", pos=tok.pos)
 
         # (expr)

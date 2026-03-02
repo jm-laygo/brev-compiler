@@ -18,15 +18,13 @@ class DeclsMixin:
     def parse_decl_item(self, global_scope: bool) -> Node:
         t = self.peek().type
 
-        # sacred <data_type> <sacred_init_list> ;
         if t == TK_SACRED:
             s_tok = self.match(TK_SACRED)
-            type_name = self.parse_data_type()  # only built-in types
+            type_name = self.parse_data_type()
             items = self.parse_sacred_init_list()
             self.match(TK_SYM_SEMICOL)
             return SacredDecl(type_name=type_name, items=items, pos=s_tok.pos)
 
-        # <data_type> <var_decl_group> ;
         if t in (TK_DTYPE_TALLY, TK_DTYPE_DIVINE, TK_DTYPE_SIGIL, TK_DTYPE_SCRIPTURE, TK_DTYPE_VERITY):
             dt_tok = self.peek()
             type_name = self.parse_data_type()
@@ -34,7 +32,6 @@ class DeclsMixin:
             self.match(TK_SYM_SEMICOL)
             return VarDecl(type_name=type_name, items=items, pos=dt_tok.pos)
 
-        # order ID { <member_list_opt> } ;
         if t == TK_OTHERS_ORDER:
             o_tok = self.match(TK_OTHERS_ORDER)
             name_tok = self.match(TK_IDENTIFIER)
@@ -46,7 +43,6 @@ class DeclsMixin:
             self.match(TK_SYM_SEMICOL)
             return OrderDecl(name=name_tok.value, members=members, pos=o_tok.pos)
 
-        # ordain ID <ordain_dec_list> ;
         if t == TK_OTHERS_ORDAIN:
             o_tok = self.match(TK_OTHERS_ORDAIN)
             name_tok = self.match(TK_IDENTIFIER)
@@ -83,7 +79,6 @@ class DeclsMixin:
         )
 
     # ---------- sacred ----------
-    # sacred_init_list: id (= const_expr)? (, ... )*
     def parse_sacred_init_list(self) -> list[SacredItem]:
         items = [self.parse_sacred_init()]
         while self.accept(TK_SYM_COMMA):
@@ -98,14 +93,12 @@ class DeclsMixin:
         return SacredItem(name=id_tok.value, value=value, pos=id_tok.pos)
 
     # ---------- vars ----------
-    # var_decl_group: var_decl_item (, var_decl_item)*
     def parse_var_decl_group(self) -> list[VarItem]:
         items = [self.parse_var_decl_item()]
         while self.accept(TK_SYM_COMMA):
             items.append(self.parse_var_decl_item())
         return items
 
-    # var_decl_item: id array_dims_tail (= (array_init|expr))?
     def parse_var_decl_item(self) -> VarItem:
         id_tok = self.match(TK_IDENTIFIER)
         dims = self.parse_array_dims_tail()
@@ -138,7 +131,6 @@ class DeclsMixin:
         return ArrayInit(items=items, pos=ob.pos)
 
     def parse_array_val(self) -> Expr:
-        # array_val: '{' array_vals_opt '}' | expr
         if self.at(TK_SYM_OPBRACE):
             return self.parse_array_init()
         return self.parse_expr()

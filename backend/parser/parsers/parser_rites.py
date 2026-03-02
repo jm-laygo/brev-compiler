@@ -7,9 +7,6 @@ from backend.ast.ast_nodes import RiteDecl, Param, Node
 class RitesMixin:
     # ---------- rites ----------
     def parse_rite(self) -> RiteDecl:
-        """
-        rite <return_type_any> ( genesis() {...} | id(params){...} )  [more rites...]
-        """
         rite_tok = self.match(TK_CF_RITE)
         return_type = self.parse_return_type_any()
 
@@ -67,11 +64,6 @@ class RitesMixin:
         )
 
     def parse_return_type_any(self) -> str:
-        """
-        return_type_any:
-          - hollow
-          - data_type_id (built-in dtype token OR custom identifier)
-        """
         if self.at(TK_DTYPE_HOLLOW):
             tok = self.match(TK_DTYPE_HOLLOW)
             return tok.type
@@ -87,10 +79,6 @@ class RitesMixin:
         return params
 
     def parse_param(self) -> Param:
-        """
-        param:
-          data_type_id IDENTIFIER ('[' ']')*
-        """
         type_tok = self.peek()
         type_name = self.parse_data_type_id()
         name_tok = self.match(TK_IDENTIFIER)
@@ -104,9 +92,6 @@ class RitesMixin:
 
     # ---------- local decls ----------
     def parse_local_decls(self) -> list[Node]:
-        """
-        local_decls: repeated decl_item while next token is a declaration starter.
-        """
         decls: list[Node] = []
         while self.peek().type in self.DECL_START:
             decls.append(self.parse_decl_item(global_scope=False))
