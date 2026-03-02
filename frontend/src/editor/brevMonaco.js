@@ -6,7 +6,6 @@ export const brevLanguage = {
       [/\b(decree|absolution|edict|discern|verse|grace|absolve|proceed|fall|procession|endure|ritual|rite|dismiss)\b/, "control"],
       [/\b(sacred|genesis|holy|unholy|order|ordain|verseof)\b/, "constant"],
       [/\d+(\.\d+)?/, "number"],
-      [/".*?"/, "string"],
       [/\/\*/, "comment", "@comment"],
       [/\/\/.*$/, "comment"],
      [ /[+\-*/%=<>!&|$]+/, "operator" ],
@@ -16,6 +15,11 @@ export const brevLanguage = {
       [/[^/*]+/, "comment"],
       [/\*\//, "comment", "@pop"],
       [/[/*]/, "comment"],
+    ],
+    string: [
+      [/[^\\"]+/, "string"],
+      [/\\./, "string.escape"],
+      [/"/, "string", "@pop"],
     ],
   },
 };
