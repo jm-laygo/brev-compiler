@@ -25,7 +25,6 @@ class Token:
     def __repr__(self):
         return f"{self.type}:{self.value}"
 
-
 # TOKEN TYPE 
 
 # I/O TOKENS
@@ -135,7 +134,6 @@ TK_COMMENT_BLOCK = "TK_COMMENT_BLOCK"
 TK_VAR_REF = "TK_VAR_REF"
 TK_EOF = "TK_EOF"
 
-
 KEYWORD_MAP = {
     # I/O
     "receive": TK_IO_RECEIVE,
@@ -176,7 +174,6 @@ KEYWORD_MAP = {
     "ordain": TK_OTHERS_ORDAIN,
     "verseof": TK_OTHERS_VERSEOF,
 }
-
 
 # DISPLAY NAMES
 TOKEN_DISPLAY_NAMES = {
