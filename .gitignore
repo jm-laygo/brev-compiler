@@ -43,7 +43,3 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
-
-# Optional outputs
-tmp/
-outputs/
