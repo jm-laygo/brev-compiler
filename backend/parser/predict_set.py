@@ -54,20 +54,13 @@ PREDICT = {
     },
 
     "<global_dec_item>": {
-        # sacred <data_type> <sacred_init_list> ;
         TK_SACRED: [TK_SACRED, "<data_type>", "<sacred_init_list>", TK_SYM_SEMICOL],
-
-        # <data_type> <var_decl_group> ;
         TK_DTYPE_TALLY:     ["<data_type>", "<var_decl_group>", TK_SYM_SEMICOL],
         TK_DTYPE_DIVINE:    ["<data_type>", "<var_decl_group>", TK_SYM_SEMICOL],
         TK_DTYPE_SIGIL:     ["<data_type>", "<var_decl_group>", TK_SYM_SEMICOL],
         TK_DTYPE_SCRIPTURE: ["<data_type>", "<var_decl_group>", TK_SYM_SEMICOL],
         TK_DTYPE_VERITY:    ["<data_type>", "<var_decl_group>", TK_SYM_SEMICOL],
-
-        # order identifier { <member_list_opt> } ;
         TK_OTHERS_ORDER:  [TK_OTHERS_ORDER, TK_IDENTIFIER, TK_SYM_OPBRACE, "<member_list_opt>", TK_SYM_CLSBRACE, TK_SYM_SEMICOL],
-
-        # ordain identifier <ordain_dec_list> ;
         TK_OTHERS_ORDAIN: [TK_OTHERS_ORDAIN, TK_IDENTIFIER, "<ordain_dec_list>", TK_SYM_SEMICOL],
     },
 
@@ -87,14 +80,11 @@ PREDICT = {
     },
 
     "<rite_after_type>": {
-        # genesis () { <main_local_dec_opt> <statement_list> <dismiss_opt> }
         TK_OTHERS_GENESIS: [
             TK_OTHERS_GENESIS,
             TK_SYM_OPPAREN, TK_SYM_CLSPAREN,
             TK_SYM_OPBRACE, "<main_local_dec_opt>", "<statement_list>", "<dismiss_opt>", TK_SYM_CLSBRACE
         ],
-
-        # identifier ( <param_list_opt> ) { <func_local_dec_opt> <statement_list> <dismiss_opt> } <rite_seq>
         TK_IDENTIFIER: [
             TK_IDENTIFIER,
             TK_SYM_OPPAREN, "<param_list_opt>", TK_SYM_CLSPAREN,
@@ -134,7 +124,6 @@ PREDICT = {
     },
 
     "<member>": {
-        # <data_type_id> identifier <array_dims_tail> <member_init_opt> ;
         TK_DTYPE_TALLY:     ["<data_type_id>", TK_IDENTIFIER, "<array_dims_tail>", "<member_init_opt>", TK_SYM_SEMICOL],
         TK_DTYPE_DIVINE:    ["<data_type_id>", TK_IDENTIFIER, "<array_dims_tail>", "<member_init_opt>", TK_SYM_SEMICOL],
         TK_DTYPE_SIGIL:     ["<data_type_id>", TK_IDENTIFIER, "<array_dims_tail>", "<member_init_opt>", TK_SYM_SEMICOL],
@@ -151,7 +140,6 @@ PREDICT = {
     "<member_init_val>": {
         TK_SYM_OPBRACE: ["<array_init>"],
 
-        # else <expr>
         TK_OP_NOT:         ["<expr>"],
         TK_OP_TILDE:       ["<expr>"],
         TK_OP_INC:         ["<expr>"],
@@ -163,8 +151,7 @@ PREDICT = {
         TK_LIT_DECIMAL:    ["<expr>"],
         TK_LIT_CHAR:       ["<expr>"],
         TK_LIT_STRING:     ["<expr>"],
-        TK_OTHERS_HOLY:    ["<expr>"],
-        TK_OTHERS_UNHOLY:  ["<expr>"],
+        TK_LIT_BOOL:    ["<expr>"],
     },
 
     # 5) SACRED INIT LIST
@@ -210,7 +197,6 @@ PREDICT = {
     "<var_after_eq>": {
         TK_SYM_OPBRACE: ["<array_init>"],
 
-        # else <expr>
         TK_OP_NOT:         ["<expr>"],
         TK_OP_TILDE:       ["<expr>"],
         TK_OP_INC:         ["<expr>"],
@@ -222,15 +208,13 @@ PREDICT = {
         TK_LIT_DECIMAL:    ["<expr>"],
         TK_LIT_CHAR:       ["<expr>"],
         TK_LIT_STRING:     ["<expr>"],
-        TK_OTHERS_HOLY:    ["<expr>"],
-        TK_OTHERS_UNHOLY:  ["<expr>"],
+        TK_LIT_BOOL:    ["<expr>"],
     },
 
     # 7) ARRAYS
     "<array_dims_tail>": {
         TK_SYM_OPBRACK: [TK_SYM_OPBRACK, "<expr>", TK_SYM_CLSBRACK, "<array_dims_tail>"],
 
-        # FOLLOW(array_dims_tail) -> { =, ,, ; }
         TK_OP_ASSIGN:   [EPSILON],
         TK_SYM_COMMA:   [EPSILON],
         TK_SYM_SEMICOL: [EPSILON],
@@ -241,7 +225,6 @@ PREDICT = {
     },
 
     "<array_vals_opt>": {
-        # <array_vals> | λ
         TK_SYM_OPBRACE:    ["<array_vals>"],
         TK_OP_NOT:         ["<array_vals>"],
         TK_OP_TILDE:       ["<array_vals>"],
@@ -254,8 +237,7 @@ PREDICT = {
         TK_LIT_DECIMAL:    ["<array_vals>"],
         TK_LIT_CHAR:       ["<array_vals>"],
         TK_LIT_STRING:     ["<array_vals>"],
-        TK_OTHERS_HOLY:    ["<array_vals>"],
-        TK_OTHERS_UNHOLY:  ["<array_vals>"],
+        TK_LIT_BOOL:    ["<array_vals>"],
         TK_SYM_CLSBRACE:   [EPSILON],
     },
 
@@ -272,8 +254,7 @@ PREDICT = {
         TK_LIT_DECIMAL:    ["<array_val>", "<array_vals_tail>"],
         TK_LIT_CHAR:       ["<array_val>", "<array_vals_tail>"],
         TK_LIT_STRING:     ["<array_val>", "<array_vals_tail>"],
-        TK_OTHERS_HOLY:    ["<array_val>", "<array_vals_tail>"],
-        TK_OTHERS_UNHOLY:  ["<array_val>", "<array_vals_tail>"],
+        TK_LIT_BOOL:    ["<array_val>", "<array_vals_tail>"],
     },
 
     "<array_vals_tail>": {
@@ -282,7 +263,6 @@ PREDICT = {
     },
 
     "<array_val>": {
-        # { <array_vals_opt> }  |  <expr>
         TK_SYM_OPBRACE: [TK_SYM_OPBRACE, "<array_vals_opt>", TK_SYM_CLSBRACE],
 
         TK_OP_NOT:         ["<expr>"],
@@ -296,8 +276,7 @@ PREDICT = {
         TK_LIT_DECIMAL:    ["<expr>"],
         TK_LIT_CHAR:       ["<expr>"],
         TK_LIT_STRING:     ["<expr>"],
-        TK_OTHERS_HOLY:    ["<expr>"],
-        TK_OTHERS_UNHOLY:  ["<expr>"],
+        TK_LIT_BOOL:    ["<expr>"],
     },
 
     # 8) DATA TYPES
@@ -368,7 +347,6 @@ PREDICT = {
         TK_DTYPE_VERITY:    ["<func_local_dec>"],
         TK_OTHERS_ORDER:    ["<func_local_dec>"],
         TK_OTHERS_ORDAIN:   ["<func_local_dec>"],
-        # else λ
         TK_IO_RECEIVE:      [EPSILON],
         TK_IO_PROCLAIM:     [EPSILON],
         TK_CF_DECREE:       [EPSILON],
@@ -406,7 +384,6 @@ PREDICT = {
         TK_DTYPE_VERITY:    ["<func_local_item>", "<func_local_dec_tail>"],
         TK_OTHERS_ORDER:    ["<func_local_item>", "<func_local_dec_tail>"],
         TK_OTHERS_ORDAIN:   ["<func_local_item>", "<func_local_dec_tail>"],
-        # λ
         TK_IO_RECEIVE:      [EPSILON],
         TK_IO_PROCLAIM:     [EPSILON],
         TK_CF_DECREE:       [EPSILON],
@@ -444,7 +421,6 @@ PREDICT = {
         TK_DTYPE_VERITY:    ["<main_local_dec>"],
         TK_OTHERS_ORDER:    ["<main_local_dec>"],
         TK_OTHERS_ORDAIN:   ["<main_local_dec>"],
-        # else λ
         TK_IO_RECEIVE:      [EPSILON],
         TK_IO_PROCLAIM:     [EPSILON],
         TK_CF_DECREE:       [EPSILON],
@@ -482,7 +458,6 @@ PREDICT = {
         TK_DTYPE_VERITY:    ["<main_dec_item>", "<main_local_dec_tail>"],
         TK_OTHERS_ORDER:    ["<main_dec_item>", "<main_local_dec_tail>"],
         TK_OTHERS_ORDAIN:   ["<main_dec_item>", "<main_local_dec_tail>"],
-        # λ
         TK_IO_RECEIVE:      [EPSILON],
         TK_IO_PROCLAIM:     [EPSILON],
         TK_CF_DECREE:       [EPSILON],
@@ -513,7 +488,6 @@ PREDICT = {
 
     # 11) STATEMENTS
     "<statement_list>": {
-        # FIRST(<statement>) plus λ when follow is dismiss or }
         TK_DTYPE_TALLY:     ["<statement>", "<statement_list>"],
         TK_DTYPE_DIVINE:    ["<statement>", "<statement_list>"],
         TK_DTYPE_SIGIL:     ["<statement>", "<statement_list>"],
@@ -528,13 +502,12 @@ PREDICT = {
 
         TK_CF_DECREE:       ["<statement>", "<statement_list>"],
         TK_CF_DISCERN:      ["<statement>", "<statement_list>"],
-
         TK_CF_PROCESSION:   ["<statement>", "<statement_list>"],
         TK_CF_ENDURE:       ["<statement>", "<statement_list>"],
         TK_CF_RITUAL:       ["<statement>", "<statement_list>"],
-
         TK_CF_DISMISS:      ["<statement>", "<statement_list>"],
         TK_CF_PROCEED:      ["<statement>", "<statement_list>"],
+        TK_CF_FALL: ["<statement>", "<statement_list>"],
         TK_CF_ABSOLVE:      ["<statement>", "<statement_list>"],
 
         TK_IDENTIFIER:      ["<statement>", "<statement_list>"],
@@ -542,8 +515,7 @@ PREDICT = {
         TK_OP_DEC:          ["<statement>", "<statement_list>"],
         TK_SYM_OPPAREN:     ["<statement>", "<statement_list>"],
 
-        # λ
-        TK_CF_DISMISS:      ["<statement>", "<statement_list>"],  # already above
+        TK_CF_DISMISS:      ["<statement>", "<statement_list>"],
         TK_SYM_CLSBRACE:    [EPSILON],
     },
 
@@ -564,6 +536,7 @@ PREDICT = {
         TK_CF_RITUAL:       ["<loop_stmt>"],
         TK_CF_DISMISS:      ["<jump_stmt>"],
         TK_CF_PROCEED:      ["<jump_stmt>"],
+        TK_CF_FALL:         ["<jump_stmt>"],
         TK_CF_ABSOLVE:      ["<jump_stmt>"],
         TK_IDENTIFIER:      [TK_IDENTIFIER, "<stmt_id_tail>"],
         TK_OP_INC:          ["<prefix_incdec_stmt>"],
@@ -660,8 +633,7 @@ PREDICT = {
         TK_LIT_DECIMAL:    ["<output_list>"],
         TK_LIT_CHAR:       ["<output_list>"],
         TK_LIT_STRING:     ["<output_list>"],
-        TK_OTHERS_HOLY:    ["<output_list>"],
-        TK_OTHERS_UNHOLY:  ["<output_list>"],
+        TK_LIT_BOOL:    ["<output_list>"],
         TK_SYM_CLSPAREN:   [EPSILON],
     },
 
@@ -677,8 +649,7 @@ PREDICT = {
         TK_LIT_DECIMAL:    ["<expr>", "<output_tail>"],
         TK_LIT_CHAR:       ["<expr>", "<output_tail>"],
         TK_LIT_STRING:     ["<expr>", "<output_tail>"],
-        TK_OTHERS_HOLY:    ["<expr>", "<output_tail>"],
-        TK_OTHERS_UNHOLY:  ["<expr>", "<output_tail>"],
+        TK_LIT_BOOL:    ["<expr>", "<output_tail>"],
     },
 
     "<output_tail>": {
@@ -815,8 +786,7 @@ PREDICT = {
         TK_LIT_DECIMAL:   ["<literal>"],
         TK_LIT_CHAR:      ["<literal>"],
         TK_LIT_STRING:    ["<literal>"],
-        TK_OTHERS_HOLY:   ["<literal>"],
-        TK_OTHERS_UNHOLY: ["<literal>"],
+        TK_LIT_BOOL:   ["<literal>"],
         TK_IDENTIFIER:    [TK_IDENTIFIER],
     },
 
@@ -863,7 +833,6 @@ PREDICT = {
     },
 
     "<expr_opt>": {
-        # <expr> | λ
         TK_OP_NOT:         ["<expr>"],
         TK_OP_TILDE:       ["<expr>"],
         TK_OP_INC:         ["<expr>"],
@@ -875,8 +844,7 @@ PREDICT = {
         TK_LIT_DECIMAL:    ["<expr>"],
         TK_LIT_CHAR:       ["<expr>"],
         TK_LIT_STRING:     ["<expr>"],
-        TK_OTHERS_HOLY:    ["<expr>"],
-        TK_OTHERS_UNHOLY:  ["<expr>"],
+        TK_LIT_BOOL:    ["<expr>"],
         TK_SYM_SEMICOL:    [EPSILON],
     },
 
@@ -918,6 +886,7 @@ PREDICT = {
     # 14) JUMPS + DISMISS OPT
     "<jump_stmt>": {
         TK_CF_DISMISS: [TK_CF_DISMISS, "<expr_opt>", TK_SYM_SEMICOL],
+        TK_CF_FALL: [TK_CF_FALL, TK_SYM_SEMICOL],
         TK_CF_PROCEED: [TK_CF_PROCEED, TK_SYM_SEMICOL],
         TK_CF_ABSOLVE: [TK_CF_ABSOLVE, TK_SYM_SEMICOL],
     },
@@ -939,8 +908,7 @@ PREDICT = {
         TK_LIT_DECIMAL:    ["<expr>", TK_SYM_SEMICOL],
         TK_LIT_CHAR:       ["<expr>", TK_SYM_SEMICOL],
         TK_LIT_STRING:     ["<expr>", TK_SYM_SEMICOL],
-        TK_OTHERS_HOLY:    ["<expr>", TK_SYM_SEMICOL],
-        TK_OTHERS_UNHOLY:  ["<expr>", TK_SYM_SEMICOL],
+        TK_LIT_BOOL:    ["<expr>", TK_SYM_SEMICOL],
         TK_SYM_SEMICOL:    [TK_SYM_SEMICOL],
     },
 
@@ -1063,8 +1031,7 @@ PREDICT = {
         TK_LIT_DECIMAL:    ["<arg_list>"],
         TK_LIT_CHAR:       ["<arg_list>"],
         TK_LIT_STRING:     ["<arg_list>"],
-        TK_OTHERS_HOLY:    ["<arg_list>"],
-        TK_OTHERS_UNHOLY:  ["<arg_list>"],
+        TK_LIT_BOOL:    ["<arg_list>"],
         TK_SYM_CLSPAREN:   [EPSILON],
     },
 
@@ -1080,8 +1047,7 @@ PREDICT = {
         TK_LIT_DECIMAL:    ["<expr>", "<arg_list_tail>"],
         TK_LIT_CHAR:       ["<expr>", "<arg_list_tail>"],
         TK_LIT_STRING:     ["<expr>", "<arg_list_tail>"],
-        TK_OTHERS_HOLY:    ["<expr>", "<arg_list_tail>"],
-        TK_OTHERS_UNHOLY:  ["<expr>", "<arg_list_tail>"],
+        TK_LIT_BOOL:    ["<expr>", "<arg_list_tail>"],
     },
 
     "<arg_list_tail>": {
@@ -1089,7 +1055,7 @@ PREDICT = {
         TK_SYM_CLSPAREN: [EPSILON],
     },
 
-    # 17) EXPR TREE (aligned names to DOC)
+    # 17) EXPR TREE
     "<expr>": {
         TK_OP_NOT:         ["<logic_or>"],
         TK_OP_TILDE:       ["<logic_or>"],
@@ -1102,8 +1068,7 @@ PREDICT = {
         TK_LIT_DECIMAL:    ["<logic_or>"],
         TK_LIT_CHAR:       ["<logic_or>"],
         TK_LIT_STRING:     ["<logic_or>"],
-        TK_OTHERS_HOLY:    ["<logic_or>"],
-        TK_OTHERS_UNHOLY:  ["<logic_or>"],
+        TK_LIT_BOOL:    ["<logic_or>"],
     },
 
     "<logic_or>": {
@@ -1118,8 +1083,7 @@ PREDICT = {
         TK_LIT_DECIMAL:    ["<logic_and>", "<logic_or_tail>"],
         TK_LIT_CHAR:       ["<logic_and>", "<logic_or_tail>"],
         TK_LIT_STRING:     ["<logic_and>", "<logic_or_tail>"],
-        TK_OTHERS_HOLY:    ["<logic_and>", "<logic_or_tail>"],
-        TK_OTHERS_UNHOLY:  ["<logic_and>", "<logic_or_tail>"],
+        TK_LIT_BOOL:    ["<logic_and>", "<logic_or_tail>"],
     },
 
     "<logic_or_tail>": {
@@ -1144,8 +1108,7 @@ PREDICT = {
         TK_LIT_DECIMAL:    ["<equality>", "<logic_and_tail>"],
         TK_LIT_CHAR:       ["<equality>", "<logic_and_tail>"],
         TK_LIT_STRING:     ["<equality>", "<logic_and_tail>"],
-        TK_OTHERS_HOLY:    ["<equality>", "<logic_and_tail>"],
-        TK_OTHERS_UNHOLY:  ["<equality>", "<logic_and_tail>"],
+        TK_LIT_BOOL:    ["<equality>", "<logic_and_tail>"],
     },
 
     "<logic_and_tail>": {
@@ -1171,8 +1134,7 @@ PREDICT = {
         TK_LIT_DECIMAL:    ["<relational>", "<eq_op_opt>"],
         TK_LIT_CHAR:       ["<relational>", "<eq_op_opt>"],
         TK_LIT_STRING:     ["<relational>", "<eq_op_opt>"],
-        TK_OTHERS_HOLY:    ["<relational>", "<eq_op_opt>"],
-        TK_OTHERS_UNHOLY:  ["<relational>", "<eq_op_opt>"],
+        TK_LIT_BOOL:    ["<relational>", "<eq_op_opt>"],
     },
 
     "<eq_op_opt>": {
@@ -1205,8 +1167,7 @@ PREDICT = {
         TK_LIT_DECIMAL:    ["<arith_expr>", "<rel_op_opt>"],
         TK_LIT_CHAR:       ["<arith_expr>", "<rel_op_opt>"],
         TK_LIT_STRING:     ["<arith_expr>", "<rel_op_opt>"],
-        TK_OTHERS_HOLY:    ["<arith_expr>", "<rel_op_opt>"],
-        TK_OTHERS_UNHOLY:  ["<arith_expr>", "<rel_op_opt>"],
+        TK_LIT_BOOL:    ["<arith_expr>", "<rel_op_opt>"],
     },
 
     "<rel_op_opt>": {
@@ -1245,8 +1206,7 @@ PREDICT = {
         TK_LIT_DECIMAL:    ["<mul_expr>", "<add_sub_tail>"],
         TK_LIT_CHAR:       ["<mul_expr>", "<add_sub_tail>"],
         TK_LIT_STRING:     ["<mul_expr>", "<add_sub_tail>"],
-        TK_OTHERS_HOLY:    ["<mul_expr>", "<add_sub_tail>"],
-        TK_OTHERS_UNHOLY:  ["<mul_expr>", "<add_sub_tail>"],
+        TK_LIT_BOOL:    ["<mul_expr>", "<add_sub_tail>"],
     },
 
     "<add_sub_tail>": {
@@ -1282,8 +1242,7 @@ PREDICT = {
         TK_LIT_DECIMAL:    ["<pow_expr>", "<mul_tail>"],
         TK_LIT_CHAR:       ["<pow_expr>", "<mul_tail>"],
         TK_LIT_STRING:     ["<pow_expr>", "<mul_tail>"],
-        TK_OTHERS_HOLY:    ["<pow_expr>", "<mul_tail>"],
-        TK_OTHERS_UNHOLY:  ["<pow_expr>", "<mul_tail>"],
+        TK_LIT_BOOL:    ["<pow_expr>", "<mul_tail>"],
     },
 
     "<mul_tail>": {
@@ -1323,8 +1282,7 @@ PREDICT = {
         TK_LIT_DECIMAL:    ["<unary_expr>", "<pow_tail>"],
         TK_LIT_CHAR:       ["<unary_expr>", "<pow_tail>"],
         TK_LIT_STRING:     ["<unary_expr>", "<pow_tail>"],
-        TK_OTHERS_HOLY:    ["<unary_expr>", "<pow_tail>"],
-        TK_OTHERS_UNHOLY:  ["<unary_expr>", "<pow_tail>"],
+        TK_LIT_BOOL:    ["<unary_expr>", "<pow_tail>"],
     },
 
     "<pow_tail>": {
@@ -1366,8 +1324,7 @@ PREDICT = {
         TK_LIT_DECIMAL:    ["<postfix_expr>"],
         TK_LIT_CHAR:       ["<postfix_expr>"],
         TK_LIT_STRING:     ["<postfix_expr>"],
-        TK_OTHERS_HOLY:    ["<postfix_expr>"],
-        TK_OTHERS_UNHOLY:  ["<postfix_expr>"],
+        TK_LIT_BOOL:    ["<postfix_expr>"],
     },
 
     "<prefix_unary>": {
@@ -1383,8 +1340,7 @@ PREDICT = {
         TK_LIT_DECIMAL:    ["<primary>", "<postfix_inc_opt>"],
         TK_LIT_CHAR:       ["<primary>", "<postfix_inc_opt>"],
         TK_LIT_STRING:     ["<primary>", "<postfix_inc_opt>"],
-        TK_OTHERS_HOLY:    ["<primary>", "<postfix_inc_opt>"],
-        TK_OTHERS_UNHOLY:  ["<primary>", "<postfix_inc_opt>"],
+        TK_LIT_BOOL:    ["<primary>", "<postfix_inc_opt>"],
     },
 
     "<postfix_inc_opt>": {
@@ -1419,8 +1375,7 @@ PREDICT = {
         TK_LIT_DECIMAL:   ["<literal>"],
         TK_LIT_CHAR:      ["<literal>"],
         TK_LIT_STRING:    ["<literal>"],
-        TK_OTHERS_HOLY:   ["<literal>"],
-        TK_OTHERS_UNHOLY: ["<literal>"],
+        TK_LIT_BOOL:   ["<literal>"],
 
         TK_SYM_OPPAREN: [TK_SYM_OPPAREN, "<expr>", TK_SYM_CLSPAREN],
         TK_IDENTIFIER: [TK_IDENTIFIER, "<id_primary_tail>"],
@@ -1461,19 +1416,16 @@ PREDICT = {
         TK_LIT_DECIMAL: [TK_LIT_DECIMAL],
         TK_LIT_CHAR:    [TK_LIT_CHAR],
         TK_LIT_STRING:  [TK_LIT_STRING],
-        TK_OTHERS_HOLY: ["<bool_literal>"],
-        TK_OTHERS_UNHOLY: ["<bool_literal>"],
+        TK_LIT_BOOL: ["<bool_literal>"],
     },
 
     "<bool_literal>": {
-        TK_OTHERS_HOLY:   [TK_OTHERS_HOLY],
-        TK_OTHERS_UNHOLY: [TK_OTHERS_UNHOLY],
+        TK_LIT_BOOL:   [TK_LIT_BOOL],
     },
 
-    # 18) CONST EXPR (DOC IX #239-273)
+    # 18) CONST EXPR
     "<const_expr>": {
-        TK_OTHERS_HOLY:    ["<const_logic_or>"],
-        TK_OTHERS_UNHOLY:  ["<const_logic_or>"],
+        TK_LIT_BOOL:    ["<const_logic_or>"],
         TK_LIT_INT:        ["<const_logic_or>"],
         TK_LIT_DECIMAL:    ["<const_logic_or>"],
         TK_LIT_CHAR:       ["<const_logic_or>"],
@@ -1485,8 +1437,7 @@ PREDICT = {
     },
 
     "<const_logic_or>": {
-        TK_OTHERS_HOLY:    ["<const_logic_and>", "<const_logic_or_tail>"],
-        TK_OTHERS_UNHOLY:  ["<const_logic_and>", "<const_logic_or_tail>"],
+        TK_LIT_BOOL:    ["<const_logic_and>", "<const_logic_or_tail>"],
         TK_LIT_INT:        ["<const_logic_and>", "<const_logic_or_tail>"],
         TK_LIT_DECIMAL:    ["<const_logic_and>", "<const_logic_or_tail>"],
         TK_LIT_CHAR:       ["<const_logic_and>", "<const_logic_or_tail>"],
@@ -1505,8 +1456,7 @@ PREDICT = {
     },
 
     "<const_logic_and>": {
-        TK_OTHERS_HOLY:    ["<const_equality>", "<const_logic_and_tail>"],
-        TK_OTHERS_UNHOLY:  ["<const_equality>", "<const_logic_and_tail>"],
+        TK_LIT_BOOL:    ["<const_equality>", "<const_logic_and_tail>"],
         TK_LIT_INT:        ["<const_equality>", "<const_logic_and_tail>"],
         TK_LIT_DECIMAL:    ["<const_equality>", "<const_logic_and_tail>"],
         TK_LIT_CHAR:       ["<const_equality>", "<const_logic_and_tail>"],
@@ -1526,8 +1476,7 @@ PREDICT = {
     },
 
     "<const_equality>": {
-        TK_OTHERS_HOLY:    ["<const_relational>", "<const_eq_opt>"],
-        TK_OTHERS_UNHOLY:  ["<const_relational>", "<const_eq_opt>"],
+        TK_LIT_BOOL:    ["<const_relational>", "<const_eq_opt>"],
         TK_LIT_INT:        ["<const_relational>", "<const_eq_opt>"],
         TK_LIT_DECIMAL:    ["<const_relational>", "<const_eq_opt>"],
         TK_LIT_CHAR:       ["<const_relational>", "<const_eq_opt>"],
@@ -1549,8 +1498,7 @@ PREDICT = {
     },
 
     "<const_relational>": {
-        TK_OTHERS_HOLY:    ["<const_add>", "<const_rel_opt>"],
-        TK_OTHERS_UNHOLY:  ["<const_add>", "<const_rel_opt>"],
+        TK_LIT_BOOL:    ["<const_add>", "<const_rel_opt>"],
         TK_LIT_INT:        ["<const_add>", "<const_rel_opt>"],
         TK_LIT_DECIMAL:    ["<const_add>", "<const_rel_opt>"],
         TK_LIT_CHAR:       ["<const_add>", "<const_rel_opt>"],
@@ -1576,8 +1524,7 @@ PREDICT = {
     },
 
     "<const_add>": {
-        TK_OTHERS_HOLY:    ["<const_mul>", "<const_add_tail>"],
-        TK_OTHERS_UNHOLY:  ["<const_mul>", "<const_add_tail>"],
+        TK_LIT_BOOL:    ["<const_mul>", "<const_add_tail>"],
         TK_LIT_INT:        ["<const_mul>", "<const_add_tail>"],
         TK_LIT_DECIMAL:    ["<const_mul>", "<const_add_tail>"],
         TK_LIT_CHAR:       ["<const_mul>", "<const_add_tail>"],
@@ -1605,8 +1552,7 @@ PREDICT = {
     },
 
     "<const_mul>": {
-        TK_OTHERS_HOLY:    ["<const_pow>", "<const_mul_tail>"],
-        TK_OTHERS_UNHOLY:  ["<const_pow>", "<const_mul_tail>"],
+        TK_LIT_BOOL:    ["<const_pow>", "<const_mul_tail>"],
         TK_LIT_INT:        ["<const_pow>", "<const_mul_tail>"],
         TK_LIT_DECIMAL:    ["<const_pow>", "<const_mul_tail>"],
         TK_LIT_CHAR:       ["<const_pow>", "<const_mul_tail>"],
@@ -1637,8 +1583,7 @@ PREDICT = {
     },
 
     "<const_pow>": {
-        TK_OTHERS_HOLY:    ["<const_unary>", "<const_pow_tail>"],
-        TK_OTHERS_UNHOLY:  ["<const_unary>", "<const_pow_tail>"],
+        TK_LIT_BOOL:    ["<const_unary>", "<const_pow_tail>"],
         TK_LIT_INT:        ["<const_unary>", "<const_pow_tail>"],
         TK_LIT_DECIMAL:    ["<const_unary>", "<const_pow_tail>"],
         TK_LIT_CHAR:       ["<const_unary>", "<const_pow_tail>"],
@@ -1672,9 +1617,7 @@ PREDICT = {
     "<const_unary>": {
         TK_OP_TILDE: [TK_OP_TILDE, "<const_unary>"],
         TK_OP_NOT:   [TK_OP_NOT, "<const_unary>"],
-        # else primary
-        TK_OTHERS_HOLY:    ["<const_primary>"],
-        TK_OTHERS_UNHOLY:  ["<const_primary>"],
+        TK_LIT_BOOL:    ["<const_primary>"],
         TK_LIT_INT:        ["<const_primary>"],
         TK_LIT_DECIMAL:    ["<const_primary>"],
         TK_LIT_CHAR:       ["<const_primary>"],
@@ -1684,8 +1627,7 @@ PREDICT = {
     },
 
     "<const_primary>": {
-        TK_OTHERS_HOLY:   ["<literal>"],
-        TK_OTHERS_UNHOLY: ["<literal>"],
+        TK_LIT_BOOL:   ["<literal>"],
         TK_LIT_INT:       ["<literal>"],
         TK_LIT_DECIMAL:   ["<literal>"],
         TK_LIT_CHAR:      ["<literal>"],
