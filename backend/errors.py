@@ -1,0 +1,64 @@
+from backend.tokens import TOKEN_DISPLAY_NAMES
+
+class LexicalError(Exception):
+    def __init__(self, pos, details: str, hint: str | None = None):
+        super().__init__(details)
+        self.pos = pos
+        self.details = details
+        self.hint = hint
+
+    def as_string(self) -> str:
+        ln = getattr(self.pos, "ln", "?")
+        col = getattr(self.pos, "col", "?")
+        details = self.details
+        details = details.replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r")
+        msg = f"Ln {ln}, Col {col} Lexical Error: {details}"
+        if self.hint:
+            msg += f" Did you mean '{self.hint}'?"
+        return msg
+
+class ParserError(Exception):
+    def __init__(self, token, expected, details=None):
+        self.token = token
+        # store as list for stable printing
+        if expected is None:
+            self.expected = []
+        elif isinstance(expected, (set, tuple)):
+            self.expected = list(expected)
+        elif isinstance(expected, list):
+            self.expected = expected
+        else:
+            self.expected = [expected]
+        self.details = details
+
+    def as_string(self):
+        pos = getattr(self.token, "pos", None)
+        line = getattr(pos, "ln", "?")
+        col = getattr(pos, "col", "?")
+
+        def friendly(t):
+            return TOKEN_DISPLAY_NAMES.get(t, t)
+
+        expected_str = ", ".join(friendly(t) for t in self.expected) if self.expected else "<?>"
+        found_type = getattr(self.token, "type", None)
+        found_str = friendly(found_type) if found_type else "<?>"
+
+        msg = f"Ln {line}, Col {col} Syntax Error: Expected {expected_str} but found '{found_str}'"
+        if self.details:
+            msg += f" ({self.details})"
+        return msg
+    
+class SemanticError(Exception):
+    def __init__(self, pos, details: str | None = None):
+        # Allow both: SemanticError(pos, "msg")  and SemanticError("msg", pos)
+        if isinstance(pos, str) and (details is None or not isinstance(details, str)):
+            pos, details = details, pos
+
+        super().__init__(details)
+        self.pos = pos
+        self.details = details
+
+    def as_string(self) -> str:
+        ln = getattr(self.pos, "ln", "?")
+        col = getattr(self.pos, "col", "?")
+        return f"Ln {ln}, Col {col} Semantic Error: {self.details}"
