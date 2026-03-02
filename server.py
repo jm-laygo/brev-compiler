@@ -1,8 +1,9 @@
 from flask import Flask, request, jsonify
-from backend.lexer.lexer import Lexer
+from backend.errors import *
 from backend.tokens import *
-from backend.parser.parser import validate
-from backend.errors import ParserError
+from backend.lexer.lexer import Lexer
+from backend.parser.parser import parse_ast
+from backend.semantic.semantic import run_semantic
 
 SKIP_TYPES = {TK_SYM_SPACE, TK_SYM_TAB, TK_SYM_NEWLINE, TK_COMMENT, TK_COMMENT_BLOCK}
 
@@ -49,7 +50,7 @@ def api_syntax():
         }), 200
 
     try:
-        validate(tokens_for_parser(tokens))
+        parse_ast(tokens_for_parser(tokens))
         return jsonify({"syntax_valid": True, "errors": []}), 200
     except ParserError as e:
         return jsonify({"syntax_valid": False, "errors": [e.as_string()]}), 200
@@ -57,8 +58,44 @@ def api_syntax():
         return jsonify({"error": f"Parser crashed: {str(e)}"}), 500
 
 @app.post("/api/sem")
-def sem_placeholder():
-    return jsonify({"errors": ["Semantic not wired yet"]}), 200
+def api_sem():
+    data = request.get_json(silent=True) or {}
+    code = data.get("source_code", "")
+
+    try:
+        lexer = Lexer(code)
+        tokens, lex_errors = lexer.make_tokens()
+    except Exception as e:
+        return jsonify({"error": f"Lexer crashed: {str(e)}"}), 500
+
+    if lex_errors:
+        return jsonify({
+            "semantic_valid": False,
+            "stage": "lex",
+            "errors": [e.as_string() for e in lex_errors],
+        }), 200
+
+    try:
+        ast = parse_ast(tokens_for_parser(tokens))
+    except ParserError as e:
+        return jsonify({
+            "semantic_valid": False,
+            "stage": "syntax",
+            "errors": [e.as_string()],
+        }), 200
+    except Exception as e:
+        return jsonify({"error": f"Parser crashed: {str(e)}"}), 500
+
+    try:
+        sem_result = run_semantic(ast)
+        sem_errors = sem_result.errors or []
+        return jsonify({
+            "semantic_valid": len(sem_errors) == 0,
+            "stage": "semantic",
+            "errors": [err.as_string() if hasattr(err, "as_string") else str(err) for err in sem_errors],
+        }), 200
+    except Exception as e:
+        return jsonify({"error": f"Semantic crashed: {str(e)}"}), 500
 
 @app.post("/api/tac")
 def tac_placeholder():
