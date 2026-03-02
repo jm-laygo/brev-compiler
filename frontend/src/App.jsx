@@ -11,6 +11,7 @@ export default function App() {
   const getCode = () => {
     return editorRef.current ? editorRef.current.getValue() : (sourceRef.current || "");
   };
+  
   const openFile = () => fileInputRef.current?.click();
   const onFilePicked = async (e) => {
     const file = e.target.files?.[0];
