@@ -1,5 +1,12 @@
 from backend.tokens import TOKEN_DISPLAY_NAMES
 
+def _pos_line_col(pos):
+    if pos is None:
+        return "?", "?"
+    ln = getattr(pos, "ln", "?")
+    col = getattr(pos, "col", "?")
+    return ln, col
+
 class LexicalError(Exception):
     def __init__(self, pos, details: str, hint: str | None = None):
         super().__init__(details)
@@ -20,7 +27,6 @@ class LexicalError(Exception):
 class ParserError(Exception):
     def __init__(self, token, expected, details=None):
         self.token = token
-        # store as list for stable printing
         if expected is None:
             self.expected = []
         elif isinstance(expected, (set, tuple)):
@@ -49,16 +55,15 @@ class ParserError(Exception):
         return msg
     
 class SemanticError(Exception):
-    def __init__(self, pos, details: str | None = None):
-        # Allow both: SemanticError(pos, "msg")  and SemanticError("msg", pos)
-        if isinstance(pos, str) and (details is None or not isinstance(details, str)):
-            pos, details = details, pos
-
+    def __init__(self, node_or_token, details: str):
         super().__init__(details)
-        self.pos = pos
+        self.node_or_token = node_or_token
         self.details = details
 
     def as_string(self) -> str:
-        ln = getattr(self.pos, "ln", "?")
-        col = getattr(self.pos, "col", "?")
-        return f"Ln {ln}, Col {col} Semantic Error: {self.details}"
+        pos = getattr(self.node_or_token, "pos", None)
+        ln = getattr(pos, "ln", "?")
+        col = getattr(pos, "col", "?")
+        details = self.details
+        details = details.replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r")
+        return f"Ln {ln}, Col {col} Semantic Error: {details}"
