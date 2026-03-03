@@ -61,9 +61,15 @@ class SemanticError(Exception):
         self.details = details
 
     def as_string(self) -> str:
-        pos = getattr(self.node_or_token, "pos", None)
+        x = self.node_or_token
+
+        if x is not None and hasattr(x, "ln") and hasattr(x, "col"):
+            pos = x
+        else:
+            pos = getattr(x, "pos", None)
+
         ln = getattr(pos, "ln", "?")
         col = getattr(pos, "col", "?")
-        details = self.details
-        details = details.replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r")
+
+        details = self.details.replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r")
         return f"Ln {ln}, Col {col} Semantic Error: {details}"
