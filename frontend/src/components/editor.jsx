@@ -41,6 +41,7 @@ export default function BrevEditor({ initialValue, onChange, editorRef, onReady 
         detectIndentation: false,
         scrollBeyondLastLine: false,
         padding: { top: 6, bottom: 6 },
+        fixedOverflowWidgets: true,
       }}
     />
   );

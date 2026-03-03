@@ -1,58 +1,73 @@
 /* eslint-disable react-hooks/incompatible-library */
-
-import React, { useRef } from "react";
+import React, { useMemo, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import TokenRow from "./TokenRow.jsx";
 
 export default function TokenPanel({ tokens = [] }) {
-  const safeTokens = Array.isArray(tokens) ? tokens : [];
-  const parentRef = useRef(null);
+    const safeTokens = useMemo(() => (
+        Array.isArray(tokens) ? tokens : []
+    ), [tokens]);
 
-  const rowVirtualizer = useVirtualizer({
-    count: safeTokens.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 36,
-    overscan: 8,
-  });
+    const parentRef = useRef(null);
 
-  return (
-    <div className="tokens-panel">
-      <div className="tokens-head">
-        <div className="tokens-title">Tokens</div>
-        <div className="tokens-count">{safeTokens.length} rows</div>
-      </div>
+    const rowVirtualizer = useVirtualizer({
+        count: safeTokens.length,
+        getScrollElement: () => parentRef.current,
+        estimateSize: () => 44,
+        overscan: 10,
+        measureElement: (el) => el.getBoundingClientRect().height
+    });
 
-      <div className="token-header">
-        <div className="token-hcell">LEXEME</div>
-        <div className="token-hcell">TOKEN</div>
-        <div className="token-hcell">TYPE</div>
-      </div>
+    const items = rowVirtualizer.getVirtualItems();
 
-      <div className="tokens-list-wrap tanstack" ref={parentRef}>
-        <div
-          style={{
-            height: rowVirtualizer.getTotalSize(),
-            width: "100%",
-            position: "relative",
-          }}
-        >
-          {rowVirtualizer.getVirtualItems().map((v) => (
-            <div
-              key={v.key}
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
-                height: v.size,
-                transform: `translateY(${v.start}px)`,
-              }}
-            >
-              <TokenRow index={v.index} token={safeTokens[v.index]} style={{ height: "100%" }} />
+    const paddingTop = items.length > 0 ? items[0].start : 0;
+    const paddingBottom = items.length > 0
+        ? rowVirtualizer.getTotalSize() - items[items.length - 1].end
+        : 0;
+
+    return (
+        <div className="tokens-panel">
+            <div className="tokens-head">
+                <div className="tokens-title">Tokens</div>
+                <div className="tokens-count">{safeTokens.length} rows</div>
             </div>
-          ))}
+
+            <div ref={parentRef} className="tokens-list-wrap tanstack">
+                <table className="tokens-table">
+                    <thead className="token-thead">
+                        <tr>
+                            <th className="token-hcell">LEXEME</th>
+                            <th className="token-hcell">TOKEN</th>
+                            <th className="token-hcell">TYPE</th>
+                        </tr>
+                    </thead>
+
+                    <tbody className="token-tbody">
+                        {paddingTop > 0 && (
+                            <tr aria-hidden="true">
+                                <td colSpan={3} style={{ height: paddingTop }} />
+                            </tr>
+                        )}
+
+                        {items.map((v) => (
+                            <tr
+                                key={v.key}
+                                data-index={v.index}
+                                ref={rowVirtualizer.measureElement}
+                                className={`token-row ${v.index % 2 === 0 ? "even" : "odd"}`}
+                            >
+                                <TokenRow token={safeTokens[v.index]} />
+                            </tr>
+                        ))}
+
+                        {paddingBottom > 0 && (
+                            <tr aria-hidden="true">
+                                <td colSpan={3} style={{ height: paddingBottom }} />
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 }
