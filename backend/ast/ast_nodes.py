@@ -22,19 +22,18 @@ class Program(Node):
 @dataclass
 class RiteDecl(Node):
     name: str = ""
-    return_type: str = ""   # tally/divine/.../hollow or custom identifier type
+    return_type: str = ""
     params: List["Param"] = field(default_factory=list)
 
-    local_decls: List[Node] = field(default_factory=list)   # local decl items (same shape as global items)
-    body: List["Statement"] = field(default_factory=list)   # statement_list nodes
-    dismiss: Optional["DismissStmt"] = None                 # dismiss_opt (may be None)
+    local_decls: List[Node] = field(default_factory=list)
+    body: List["Statement"] = field(default_factory=list)
+    dismiss: Optional["DismissStmt"] = None
 
 @dataclass
 class Param(Node):
     type_name: str = ""
     name: str = ""
     array_dims: int = 0
-
 
 # Global / Local Decls
 @dataclass
@@ -74,7 +73,6 @@ class OrderMember(Node):
 class OrdainDecl(Node):
     name: str = ""
     items: List["OrdainItem"] = field(default_factory=list)
-
 
 @dataclass
 class OrdainItem(Node):
@@ -173,7 +171,6 @@ class DiscernStmt(CondStmt):
     expr: "Expr" = None
     verses: List["VerseCase"] = field(default_factory=list)
     grace: Optional["GraceDefault"] = None
-
 
 @dataclass
 class VerseCase(Node):
