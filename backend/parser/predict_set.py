@@ -951,6 +951,7 @@ PREDICT = {
         TK_OP_DIV:       [EPSILON],
         TK_OP_MOD:       [EPSILON],
         TK_OP_POW:       [EPSILON],
+        TK_OP_CONCAT:    [EPSILON],
 
         TK_SYM_CLSPAREN: [EPSILON],
         TK_SYM_SEMICOL:  [EPSILON],
@@ -994,6 +995,7 @@ PREDICT = {
         TK_OP_DIV:       [EPSILON],
         TK_OP_MOD:       [EPSILON],
         TK_OP_POW:       [EPSILON],
+        TK_OP_CONCAT:    [EPSILON],
 
         TK_SYM_CLSPAREN: [EPSILON],
         TK_SYM_SEMICOL:  [EPSILON],
@@ -1384,6 +1386,8 @@ PREDICT = {
 
     "<id_primary_tail>": {
         TK_SYM_OPPAREN: [TK_SYM_OPPAREN, "<arg_list_opt>", TK_SYM_CLSPAREN, "<access_chain_opt>"],
+        TK_OP_INC: [EPSILON],
+        TK_OP_DEC: [EPSILON],
 
         TK_SYM_OPBRACK: ["<access_chain_opt>"],
         TK_SYM_DOT:     ["<access_chain_opt>"],
