@@ -1,5 +1,12 @@
-import { useRef, useState } from "react";
-import BrevEditor from "../src/components/editor.jsx";
+import React, { useEffect, useRef, useState } from "react";
+import BrevEditor from "./components/editor.jsx";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
+import TokenPanel from "./components/TokenPanel.jsx";
+import Toolbar from "./components/Toolbar.jsx";
+import OutputPanel from "./components/OutputPanel.jsx";
+
+import useTerminal from "./hooks/useTerminal.js";
+import { runLexical, runSyntax, runSemantic } from "./api/brevApi.js";
 
 export default function App() {
     const fileInputRef = useRef(null);
@@ -8,12 +15,12 @@ export default function App() {
 
     const [initialCode, setInitialCode] = useState("");
     const [tokens, setTokens] = useState([]);
-    const [terminal, setTerminal] = useState("");
+    const [tokensOpen, setTokensOpen] = useState(false);
+
+    const { terminalLines, log, setTerminal } = useTerminal(800);
 
     const getCode = () => {
-        return editorRef.current
-            ? editorRef.current.getValue()
-            : (sourceRef.current || "");
+        return editorRef.current ? editorRef.current.getValue() : sourceRef.current || "";
     };
 
     const openFile = () => fileInputRef.current?.click();
@@ -27,7 +34,6 @@ export default function App() {
         sourceRef.current = text;
 
         if (editorRef.current) editorRef.current.setValue(text);
-
         setTerminal(`Loaded: ${file.name}`);
     };
 
@@ -42,237 +48,144 @@ export default function App() {
         URL.revokeObjectURL(a.href);
     };
 
-    const clearAll = () => {
-        sourceRef.current = "";
-        setInitialCode("");
-        setTokens([]);
-        setTerminal("");
+    // const openHelp = () => {
+    //     log("Help: Run Lexical → Run Syntax → Run Semantics. Use Tokens to toggle the token table.");
+    // };
 
-        if (editorRef.current) editorRef.current.setValue("");
-    };
+    // const openSettings = () => {
+    //     log("Settings: (Coming soon)");
+    // };
+
+    useEffect(() => {
+        const layout = () => editorRef.current?.layout?.();
+        requestAnimationFrame(layout);
+        const t1 = setTimeout(layout, 80);
+        const t2 = setTimeout(layout, 380);
+        return () => {
+            clearTimeout(t1);
+            clearTimeout(t2);
+        };
+    }, [tokensOpen]);
 
     const runLex = async () => {
         const sourceCode = getCode();
-        setTerminal("Running lexical analysis...\n");
+        setTerminal("Running lexical analysis...");
 
         try {
-            const res = await fetch("/api/lex", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ source_code: sourceCode }),
-            });
-
-            const data = await res.json();
+            const { res, data } = await runLexical(sourceCode);
 
             if (!res.ok) {
-                setTerminal(
-                    (prev) =>
-                        prev +
-                        `Lex API error (HTTP ${res.status}): ${
-                            data.error || "Unknown error"
-                        }\n`
-                );
+                log(`Lex API error (HTTP ${res.status}): ${data.error || "Unknown error"}`);
                 return;
             }
 
             const toks = Array.isArray(data.tokens) ? data.tokens : [];
             const errs = Array.isArray(data.errors) ? data.errors : [];
 
-            setTokens(toks.filter((t) => !t.hidden));
+            const filtered = toks.filter((t) => !t.hidden);
+            setTokens(filtered);
 
             if (errs.length) {
-                setTerminal(
-                    (prev) =>
-                        prev +
-                        "Lexical analysis failed:\n" +
-                        errs.join("\n") +
-                        "\n"
-                );
+                log("Lexical analysis failed:");
+                errs.forEach((e) => log(e));
             } else {
-                setTerminal((prev) => prev + "Lexical analysis successful!\n");
+                log("Lexical analysis successful!");
             }
+
+            if (filtered.length > 0) setTokensOpen(true);
         } catch (e) {
-            setTerminal((prev) => prev + `Network error: ${e.message}\n`);
+            log(`Network error: ${e.message}`);
         }
     };
 
     const runSyn = async () => {
         const sourceCode = getCode();
-        setTerminal("Running syntax analysis...\n");
+        setTerminal("Running syntax analysis...");
 
         try {
-            const res = await fetch("/api/syntax", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ source_code: sourceCode }),
-            });
-
-            const data = await res.json();
+            const { res, data } = await runSyntax(sourceCode);
 
             if (!res.ok) {
-                setTerminal(
-                    (prev) =>
-                        prev +
-                        `Syntax API error (HTTP ${res.status}): ${
-                            data.error || "Unknown error"
-                        }\n`
-                );
+                log(`Syntax API error (HTTP ${res.status}): ${data.error || "Unknown error"}`);
                 return;
             }
 
             const errs = Array.isArray(data.errors) ? data.errors : [];
-
             if (errs.length) {
-                setTerminal(
-                    (prev) =>
-                        prev +
-                        "Syntax analysis failed:\n" +
-                        errs.join("\n") +
-                        "\n"
-                );
+                log("Syntax analysis failed:");
+                errs.forEach((e) => log(e));
             } else {
-                setTerminal((prev) => prev + "Syntax analysis successful!\n");
+                log("Syntax analysis successful!");
             }
         } catch (e) {
-            setTerminal((prev) => prev + `Network error: ${e.message}\n`);
+            log(`Network error: ${e.message}`);
         }
     };
 
     const runSem = async () => {
         const sourceCode = getCode();
-        setTerminal("Running semantic analysis...\n");
+        setTerminal("Running semantic analysis...");
 
         try {
-            const res = await fetch("/api/sem", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ source_code: sourceCode }),
-            });
-
-            const data = await res.json();
+            const { res, data } = await runSemantic(sourceCode);
 
             if (!res.ok) {
-                setTerminal(
-                    (prev) =>
-                        prev +
-                        `Semantic API error (HTTP ${res.status}): ${
-                            data.error || "Unknown error"
-                        }\n`
-                );
+                log(`Semantic API error (HTTP ${res.status}): ${data.error || "Unknown error"}`);
                 return;
             }
 
             const errs = Array.isArray(data.errors) ? data.errors : [];
-
             if (data.semantic_valid && errs.length === 0) {
-                setTerminal((prev) => prev + "Semantic analysis successful!\n");
+                log("Semantic analysis successful!");
             } else {
-                // keep stage info but match the same "failed:" format
                 const stage = data.stage ? ` (${data.stage})` : "";
-                setTerminal(
-                    (prev) =>
-                        prev +
-                        `Semantic analysis failed${stage}:\n` +
-                        (errs.length ? errs.join("\n") : "Unknown semantic error") +
-                        "\n"
-                );
+                log(`Semantic analysis failed${stage}:`);
+                if (errs.length) errs.forEach((e) => log(e));
+                else log("Unknown semantic error");
             }
         } catch (e) {
-            setTerminal((prev) => prev + `Network error: ${e.message}\n`);
+            log(`Network error: ${e.message}`);
         }
-    };
-
-    const renderLexeme = (v) => {
-        if (v === null || v === undefined) return "";
-        if (v === " ") return " ";
-        if (v === "\n") return "\\n";
-        if (v === "\t") return "\\t";
-        return String(v);
     };
 
     return (
         <>
-            <div id="brev-background"></div>
+            <main id = "brev-container">
+                <section id = "brev-inner-container">
+                    <Toolbar
+                        fileInputRef = {fileInputRef}
+                        onFilePicked = {onFilePicked}
+                        openFile = {openFile}
+                        saveFile = {saveFile}
+                        // openHelp = {openHelp}
+                        // openSettings = {openSettings}
+                        runLex = {runLex}
+                        runSyn = {runSyn}
+                        runSem = {runSem}
+                        tokensOpen = {tokensOpen}
+                        toggleTokens = {() => setTokensOpen((v) => !v)}
+                    />
 
-            <main id="brev-container">
-                <section id="brev-inner-container">
-                    <header id="header-row">
-                        <div className="header-left">
-                            <button onClick={openFile} className="command-btn">
-                                Open
-                            </button>
-                            <input
-                                ref={fileInputRef}
-                                type="file"
-                                style={{ display: "none" }}
-                                onChange={onFilePicked}
-                            />
-                            <button onClick={saveFile} className="command-btn">
-                                Save
-                            </button>
-                        </div>
-
-                        <div className="header-title-box">
-                            <h2 className="header-title-text">Brev Compiler</h2>
-                        </div>
-
-                        <div className="header-right">
-                            <button onClick={runLex} className="command-btn">
-                                Run Lexical
-                            </button>
-                            <button onClick={runSyn} className="command-btn">
-                                Run Syntax
-                            </button>
-                            <button onClick={runSem} className="command-btn">
-                                Run Semantics
-                            </button>
-                            <button onClick={clearAll} className="command-btn">
-                                Clear
-                            </button>
-                        </div>
-                    </header>
-
-                    <div id="brev-inner-content">
-                        <div id="brev-pane">
-                            <BrevEditor
-                                initialValue={initialCode}
-                                editorRef={editorRef}
-                                onChange={(v) => {
-                                    sourceRef.current = v;
-                                }}
-                            />
-                        </div>
-
-                        <div id="table-terminal">
-                            <div className="panel">
-                                <h3 className="panel-title">Tokens</h3>
-                                <table id="tokenTable">
-                                    <thead>
-                                        <tr>
-                                            <th>Lexeme</th>
-                                            <th>Token</th>
-                                            <th>Type</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {tokens.map((t, idx) => (
-                                            <tr key={idx}>
-                                                <td style={{ whiteSpace: "pre" }}>
-                                                    {renderLexeme(t.value)}
-                                                </td>
-                                                <td>{t.token}</td>
-                                                <td>{t.type}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                    <div id = "brev-dock" className = {tokensOpen ? "tokens-open" : ""}>
+                        <div id = "brev-workspace">
+                            <div id = "brev-pane">
+                                <BrevEditor
+                                    initialValue = {initialCode}
+                                    editorRef = {editorRef}
+                                    onChange = {(v) => {
+                                        sourceRef.current = v;
+                                    }}
+                                />
                             </div>
 
-                            <div className="panel">
-                                <h3 className="panel-title">Output</h3>
-                                <pre id="terminal">{terminal}</pre>
-                            </div>
+                            <OutputPanel terminalLines = {terminalLines} />
                         </div>
+
+                        <aside className = "tokens-dock" aria-hidden = {!tokensOpen}>
+                            <ErrorBoundary>
+                                <TokenPanel tokens = {tokens} />
+                            </ErrorBoundary>
+                        </aside>
                     </div>
                 </section>
             </main>

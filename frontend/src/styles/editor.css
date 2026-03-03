@@ -1,0 +1,24 @@
+#brev-pane{
+    flex: 1 1 auto;
+    height: clamp(500px, 22vh, 260px);
+    display: flex;
+    background: var(--ink);
+    overflow: hidden;
+    min-width: 0;
+
+    border: var(--panel-frame) solid transparent;
+    border-image: var(--border-img) 8.4% round;
+    border-radius: var(--radius);
+
+    box-shadow: inset 0 0 0 1px rgba(255,215,0,0.10);
+}
+#editor{
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    background: transparent;
+    color: #fff;
+    border: none;
+    outline: none;
+}

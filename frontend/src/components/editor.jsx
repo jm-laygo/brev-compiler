@@ -4,7 +4,7 @@ import { useRef } from "react";
 
 let brevInstalled = false;
 
-export default function BrevEditor({ initialValue, onChange, editorRef }) {
+export default function BrevEditor({ initialValue, onChange, editorRef, onReady }) {
   const localEditorRef = useRef(null);
 
   return (
@@ -22,17 +22,15 @@ export default function BrevEditor({ initialValue, onChange, editorRef }) {
         monaco.languages.setMonarchTokensProvider("brev", brevLanguage);
         monaco.editor.defineTheme("brevTheme", brevTheme);
       }}
-
-      onMount={(editor) => {
+      onMount={(editor, monaco) => {
         localEditorRef.current = editor;
         if (editorRef) editorRef.current = editor;
+
+        onReady?.({ editor, monaco });
       }}
-
       onChange={(v) => onChange?.(v ?? "")}
-
       saveViewState={true}
       keepCurrentModel={true}
-
       options={{
         automaticLayout: true,
         minimap: { enabled: false },
@@ -41,6 +39,8 @@ export default function BrevEditor({ initialValue, onChange, editorRef }) {
         tabSize: 4,
         insertSpaces: false,
         detectIndentation: false,
+        scrollBeyondLastLine: false,
+        padding: { top: 6, bottom: 6 },
       }}
     />
   );
