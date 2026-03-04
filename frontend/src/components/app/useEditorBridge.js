@@ -130,10 +130,22 @@ export default function useEditorBridge({
             const sp = sel?.getStartPosition?.();
             const ep = sel?.getEndPosition?.();
 
+            let eLn = ep?.lineNumber ?? 1;
+            let eCol = ep?.column ?? 1;
+
+            const isEmpty = typeof sel?.isEmpty === "function" ? sel.isEmpty() : true;
+
+            if (!isEmpty) {
+                if (eCol > 1) {
+                    eCol = eCol - 1;
+                } else if (eLn > 1) {
+                    eLn = eLn - 1;
+                    eCol = 1;
+                }
+            }
+
             const sLn = sp?.lineNumber ?? 1;
             const sCol = sp?.column ?? 1;
-            const eLn = ep?.lineNumber ?? 1;
-            const eCol = ep?.column ?? 1;
 
             const safeTokens = Array.isArray(tokens) ? tokens : [];
 
