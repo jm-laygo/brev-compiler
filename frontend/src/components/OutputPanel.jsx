@@ -34,6 +34,33 @@ function splitLineClickableParts(lineObj) {
     };
 }
 
+function renderExpectedDelims(text) {
+    const s = String(text ?? "");
+
+    const m = s.match(/(Expected:\s*)(.*)$/i);
+    if (!m) return s;
+
+    const prefix = s.slice(0, m.index ?? 0) + m[1];
+    const list = m[2];
+
+    const parts = list.split(/(\s*,\s*)/);
+
+    return (
+        <>
+            <span>{prefix}</span>
+            {parts.map((p, i) => {
+                const isComma = /^\s*,\s*$/.test(p);
+                if (isComma) return <span key={i}>{p}</span>;
+                return (
+                    <span key={i} className="term-delim">
+                        {p}
+                    </span>
+                );
+            })}
+        </>
+    );
+}
+
 export default function OutputPanel({
     terminalLines = [],
     outputOpen,
@@ -75,24 +102,30 @@ export default function OutputPanel({
             </div>
 
             <div id="terminal" role="log" aria-live="polite">
-                {rendered.map(({ lineObj, parts }) => (
-                    <div key={lineObj.id} className={`term-line ${lineObj.level || "info"}`}>
-                        <span>{parts.before}</span>
+                {rendered.map(({ lineObj, parts }) => {
+                    const lvl = lineObj.level || "info";
+                    const afterNode =
+                        lvl === "error" ? renderExpectedDelims(parts.after) : parts.after;
 
-                        {parts.link && (
-                            <button
-                                type="button"
-                                className="term-loc-link"
-                                onClick={() => onJumpToPosition?.(parts.link.line, parts.link.col)}
-                                title="Jump to this location"
-                            >
-                                {parts.link.label}
-                            </button>
-                        )}
+                    return (
+                        <div key={lineObj.id} className={`term-line ${lvl}`}>
+                            <span>{parts.before}</span>
 
-                        <span>{parts.after}</span>
-                    </div>
-                ))}
+                            {parts.link && (
+                                <button
+                                    type="button"
+                                    className="term-loc-link"
+                                    onClick={() => onJumpToPosition?.(parts.link.line, parts.link.col)}
+                                    title="Jump to this location"
+                                >
+                                    {parts.link.label}
+                                </button>
+                            )}
+
+                            <span>{afterNode}</span>
+                        </div>
+                    );
+                })}
                 <div ref={bottomRef} />
             </div>
         </div>

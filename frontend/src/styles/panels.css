@@ -157,3 +157,8 @@
     color: #ffffff;
     text-shadow: 0 0 10px rgba(76,201,240,0.55);
 }
+
+.term-line.error .term-delim{
+    color: gold;
+    font-weight: 800;
+}
