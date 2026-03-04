@@ -313,8 +313,8 @@ def parse_grace_opt(self: Parser) -> Optional[GraceDefault]:
     tok = self.expect(TK_CF_GRACE)
     self.expect(TK_SYM_COLON)
     body = self.parse_case_statement_list()
-    return GraceDefault(pos=_tok_pos(tok), body=body)
-
+    end = self.parse_verse_end_opt()
+    return GraceDefault(pos=_tok_pos(tok), body=body, end=end)
 
 # --------------------------
 # LOOPS
