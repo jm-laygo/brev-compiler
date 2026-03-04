@@ -6,7 +6,11 @@ async function postJson(url, body) {
     });
 
     const data = await res.json().catch(() => ({}));
-    return { res, data };
+
+    const errors = Array.isArray(data.errors) ? data.errors : [];
+    const fatal = typeof data.error === "string" ? [data.error] : [];
+
+    return { res, data, errors: [...fatal, ...errors] };
 }
 
 export async function runLexical(source_code) {

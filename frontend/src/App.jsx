@@ -7,10 +7,12 @@ import OutputPanel from "./components/OutputPanel.jsx";
 
 import useTerminal from "./hooks/useTerminal.js";
 import { runLexical, runSyntax, runSemantic } from "./api/brevApi.js";
+import { applyMarkers, clearMarkers, jumpToFirstError } from "./utils/monacoMarkers.js";
 
 export default function App() {
     const fileInputRef = useRef(null);
     const editorRef = useRef(null);
+    const editorApiRef = useRef(null);
     const sourceRef = useRef("");
 
     const [initialCode, setInitialCode] = useState("");
@@ -48,14 +50,6 @@ export default function App() {
         URL.revokeObjectURL(a.href);
     };
 
-    // const openHelp = () => {
-    //     log("Help: Run Lexical → Run Syntax → Run Semantics. Use Tokens to toggle the token table.");
-    // };
-
-    // const openSettings = () => {
-    //     log("Settings: (Coming soon)");
-    // };
-
     useEffect(() => {
         const layout = () => editorRef.current?.layout?.();
         requestAnimationFrame(layout);
@@ -67,15 +61,35 @@ export default function App() {
         };
     }, [tokensOpen]);
 
+    const onEditorReady = ({ editor, monaco }) => {
+        editorApiRef.current = { editor, monaco };
+    };
+
+    const clearAllEditorMarkers = () => {
+        const api = editorApiRef.current;
+        if (!api?.editor || !api?.monaco) return;
+        clearMarkers(api.editor, api.monaco, "brev");
+    };
+
+    const markErrorsAndJump = (errors) => {
+        const api = editorApiRef.current;
+        if (!api?.editor || !api?.monaco) return;
+        applyMarkers(api.editor, api.monaco, errors, "brev");
+        jumpToFirstError(api.editor, errors);
+    };
+
     const runLex = async () => {
         const sourceCode = getCode();
         setTerminal("Running lexical analysis...");
+        clearAllEditorMarkers();
 
         try {
             const { res, data } = await runLexical(sourceCode);
 
             if (!res.ok) {
-                log(`Lex API error (HTTP ${res.status}): ${data.error || "Unknown error"}`);
+                const msg = `Lex API error (HTTP ${res.status}): ${data.error || "Unknown error"}`;
+                log(msg);
+                markErrorsAndJump([msg]);
                 return;
             }
 
@@ -88,25 +102,31 @@ export default function App() {
             if (errs.length) {
                 log("Lexical analysis failed:");
                 errs.forEach((e) => log(e));
+                markErrorsAndJump(errs);
             } else {
                 log("Lexical analysis successful!");
             }
 
             if (filtered.length > 0) setTokensOpen(true);
         } catch (e) {
-            log(`Network error: ${e.message}`);
+            const msg = `Network error: ${e.message}`;
+            log(msg);
+            markErrorsAndJump([msg]);
         }
     };
 
     const runSyn = async () => {
         const sourceCode = getCode();
         setTerminal("Running syntax analysis...");
+        clearAllEditorMarkers();
 
         try {
             const { res, data } = await runSyntax(sourceCode);
 
             if (!res.ok) {
-                log(`Syntax API error (HTTP ${res.status}): ${data.error || "Unknown error"}`);
+                const msg = `Syntax API error (HTTP ${res.status}): ${data.error || "Unknown error"}`;
+                log(msg);
+                markErrorsAndJump([msg]);
                 return;
             }
 
@@ -114,23 +134,29 @@ export default function App() {
             if (errs.length) {
                 log("Syntax analysis failed:");
                 errs.forEach((e) => log(e));
+                markErrorsAndJump(errs);
             } else {
                 log("Syntax analysis successful!");
             }
         } catch (e) {
-            log(`Network error: ${e.message}`);
+            const msg = `Network error: ${e.message}`;
+            log(msg);
+            markErrorsAndJump([msg]);
         }
     };
 
     const runSem = async () => {
         const sourceCode = getCode();
         setTerminal("Running semantic analysis...");
+        clearAllEditorMarkers();
 
         try {
             const { res, data } = await runSemantic(sourceCode);
 
             if (!res.ok) {
-                log(`Semantic API error (HTTP ${res.status}): ${data.error || "Unknown error"}`);
+                const msg = `Semantic API error (HTTP ${res.status}): ${data.error || "Unknown error"}`;
+                log(msg);
+                markErrorsAndJump([msg]);
                 return;
             }
 
@@ -142,48 +168,50 @@ export default function App() {
                 log(`Semantic analysis failed${stage}:`);
                 if (errs.length) errs.forEach((e) => log(e));
                 else log("Unknown semantic error");
+                if (errs.length) markErrorsAndJump(errs);
             }
         } catch (e) {
-            log(`Network error: ${e.message}`);
+            const msg = `Network error: ${e.message}`;
+            log(msg);
+            markErrorsAndJump([msg]);
         }
     };
 
     return (
         <>
-            <main id = "brev-container">
-                <section id = "brev-inner-container">
+            <main id="brev-container">
+                <section id="brev-inner-container">
                     <Toolbar
-                        fileInputRef = {fileInputRef}
-                        onFilePicked = {onFilePicked}
-                        openFile = {openFile}
-                        saveFile = {saveFile}
-                        // openHelp = {openHelp}
-                        // openSettings = {openSettings}
-                        runLex = {runLex}
-                        runSyn = {runSyn}
-                        runSem = {runSem}
-                        tokensOpen = {tokensOpen}
-                        toggleTokens = {() => setTokensOpen((v) => !v)}
+                        fileInputRef={fileInputRef}
+                        onFilePicked={onFilePicked}
+                        openFile={openFile}
+                        saveFile={saveFile}
+                        runLex={runLex}
+                        runSyn={runSyn}
+                        runSem={runSem}
+                        tokensOpen={tokensOpen}
+                        toggleTokens={() => setTokensOpen((v) => !v)}
                     />
 
-                    <div id = "brev-dock" className = {tokensOpen ? "tokens-open" : ""}>
-                        <div id = "brev-workspace">
-                            <div id = "brev-pane">
+                    <div id="brev-dock" className={tokensOpen ? "tokens-open" : ""}>
+                        <div id="brev-workspace">
+                            <div id="brev-pane">
                                 <BrevEditor
-                                    initialValue = {initialCode}
-                                    editorRef = {editorRef}
-                                    onChange = {(v) => {
+                                    initialValue={initialCode}
+                                    editorRef={editorRef}
+                                    onReady={onEditorReady}
+                                    onChange={(v) => {
                                         sourceRef.current = v;
                                     }}
                                 />
                             </div>
 
-                            <OutputPanel terminalLines = {terminalLines} />
+                            <OutputPanel terminalLines={terminalLines} />
                         </div>
 
-                        <aside className = "tokens-dock" aria-hidden = {!tokensOpen}>
+                        <aside className="tokens-dock" aria-hidden={!tokensOpen}>
                             <ErrorBoundary>
-                                <TokenPanel tokens = {tokens} />
+                                <TokenPanel tokens={tokens} />
                             </ErrorBoundary>
                         </aside>
                     </div>
