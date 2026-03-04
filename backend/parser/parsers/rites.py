@@ -1,19 +1,12 @@
 from __future__ import annotations
-
 from typing import Any, List, Optional, Tuple
-
 from backend.tokens import *
 from backend.parser.predict_set import PREDICT, EPSILON
 from backend.ast.ast_nodes import *
 from backend.errors import ParserError
-
 from backend.parser.parser import Parser, _tok_lexeme, _tok_pos
 
-
-# --------------------------
 # RITES / FUNCTIONS
-# <rite_seq> -> rite <return_type_any> <rite_after_type>
-# --------------------------
 def parse_rite_seq(self: Parser) -> Tuple[Optional[RiteDecl], List[RiteDecl]]:
     self.choose_prod("<rite_seq>")
     self.expect(TK_CF_RITE)
@@ -84,7 +77,6 @@ def parse_rite_seq(self: Parser) -> Tuple[Optional[RiteDecl], List[RiteDecl]]:
     tok = self.peek(0) or self.peek(-1)
     raise ParserError(tok, expected=list(PREDICT["<rite_after_type>"].keys()), details="Invalid <rite_after_type>")
 
-
 def parse_return_type_any(self: Parser) -> str:
     self.choose_prod("<return_type_any>")
     if self.la(0) == TK_DTYPE_HOLLOW:
@@ -93,9 +85,7 @@ def parse_return_type_any(self: Parser) -> str:
     return self.parse_data_type_id()
 
 
-# --------------------------
 # PARAMS
-# --------------------------
 def parse_param_list_opt(self: Parser) -> List[Param]:
     prod = self.choose_prod("<param_list_opt>")
     if prod == [EPSILON]:
@@ -135,10 +125,7 @@ def parse_param_array_tail(self: Parser) -> int:
         dims += 1
     return dims
 
-
-# --------------------------
 # LOCAL DECLS (func / main)
-# --------------------------
 def parse_func_local_dec_opt(self: Parser) -> List[Any]:
     prod = self.choose_prod("<func_local_dec_opt>")
     if prod == [EPSILON]:
@@ -187,22 +174,17 @@ def parse_main_dec_item(self: Parser) -> Any:
     self.choose_prod("<main_dec_item>")
     return self.parse_func_local_item()
 
-
-# ---- attach ----
 Parser.parse_rite_seq = parse_rite_seq
 Parser.parse_return_type_any = parse_return_type_any
-
 Parser.parse_param_list_opt = parse_param_list_opt
 Parser.parse_param_list = parse_param_list
 Parser.parse_param_list_tail = parse_param_list_tail
 Parser.parse_param = parse_param
 Parser.parse_param_array_tail = parse_param_array_tail
-
 Parser.parse_func_local_dec_opt = parse_func_local_dec_opt
 Parser.parse_func_local_dec = parse_func_local_dec
 Parser.parse_func_local_dec_tail = parse_func_local_dec_tail
 Parser.parse_func_local_item = parse_func_local_item
-
 Parser.parse_main_local_dec_opt = parse_main_local_dec_opt
 Parser.parse_main_local_dec = parse_main_local_dec
 Parser.parse_main_local_dec_tail = parse_main_local_dec_tail

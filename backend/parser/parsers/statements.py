@@ -4,12 +4,9 @@ from backend.tokens import *
 from backend.errors import ParserError
 from backend.parser.predict_set import PREDICT, EPSILON
 from backend.ast.ast_nodes import *
-
 from backend.parser.parser import Parser, _tok_lexeme, _tok_pos
 
-# --------------------------
 # STATEMENTS
-# --------------------------
 def parse_statement_list(self: Parser) -> List[Statement]:
     prod = self.choose_prod("<statement_list>")
     if prod == [EPSILON]:
@@ -74,7 +71,6 @@ def parse_statement(self: Parser) -> Statement:
 
     tok = self.peek(0) or self.peek(-1)
     raise ParserError(tok, expected=list(PREDICT["<statement>"].keys()), details="Invalid start of <statement>")
-
 
 def parse_prefix_incdec_stmt(self: Parser) -> IncDecStmt:
     self.choose_prod("<prefix_incdec_stmt>")
@@ -145,10 +141,7 @@ def _assign_op_string(self: Parser, ttype: Any) -> str:
         TK_OP_POW_EQ: "^=",
     }.get(ttype, str(ttype))
 
-
-# --------------------------
 # IO
-# --------------------------
 def parse_io_stmt(self: Parser) -> Statement:
     self.choose_prod("<io_stmt>")
     if self.la(0) == TK_IO_RECEIVE:
@@ -187,10 +180,7 @@ def parse_output_tail(self: Parser) -> List[Expr]:
     args.extend(self.parse_output_tail())
     return args
 
-
-# --------------------------
 # CONDITIONS
-# --------------------------
 def parse_cond_stmt(self: Parser) -> Statement:
     self.choose_prod("<cond_stmt>")
     if self.la(0) == TK_CF_DECREE:
@@ -316,9 +306,7 @@ def parse_grace_opt(self: Parser) -> Optional[GraceDefault]:
     end = self.parse_verse_end_opt()
     return GraceDefault(pos=_tok_pos(tok), body=body, end=end)
 
-# --------------------------
 # LOOPS
-# --------------------------
 def parse_loop_stmt(self: Parser) -> Statement:
     self.choose_prod("<loop_stmt>")
     if self.la(0) == TK_CF_PROCESSION:
@@ -447,10 +435,7 @@ def parse_ritual_stmt(self: Parser) -> RitualStmt:
     self.expect(TK_SYM_SEMICOL)
     return RitualStmt(pos=_tok_pos(tok), body=body, condition=cond)
 
-
-# --------------------------
 # JUMPS + DISMISS OPT
-# --------------------------
 def parse_jump_stmt(self: Parser) -> Statement:
     self.choose_prod("<jump_stmt>")
     la = self.la(0)
@@ -492,20 +477,16 @@ def parse_dismiss_tail(self: Parser, dismiss_tok: Any) -> Optional[Expr]:
     self.expect(TK_SYM_SEMICOL)
     return expr
 
-
-# ---- attach ----
 Parser.parse_statement_list = parse_statement_list
 Parser.parse_statement = parse_statement
 Parser.parse_prefix_incdec_stmt = parse_prefix_incdec_stmt
 Parser.parse_paren_postfix_incdec_stmt = parse_paren_postfix_incdec_stmt
 Parser.parse_stmt_id_tail = parse_stmt_id_tail
 Parser._assign_op_string = _assign_op_string
-
 Parser.parse_io_stmt = parse_io_stmt
 Parser.parse_output_list_opt = parse_output_list_opt
 Parser.parse_output_list = parse_output_list
 Parser.parse_output_tail = parse_output_tail
-
 Parser.parse_cond_stmt = parse_cond_stmt
 Parser.parse_decree_chain = parse_decree_chain
 Parser.parse_edict_list_opt = parse_edict_list_opt
@@ -518,7 +499,6 @@ Parser.parse_literal_or_identifier = parse_literal_or_identifier
 Parser.parse_verse_end_opt = parse_verse_end_opt
 Parser.parse_verse_end = parse_verse_end
 Parser.parse_grace_opt = parse_grace_opt
-
 Parser.parse_loop_stmt = parse_loop_stmt
 Parser.parse_procession_stmt = parse_procession_stmt
 Parser.parse_init_opt = parse_init_opt
@@ -528,7 +508,6 @@ Parser.parse_update_expr = parse_update_expr
 Parser.parse_update_tail = parse_update_tail
 Parser.parse_endure_stmt = parse_endure_stmt
 Parser.parse_ritual_stmt = parse_ritual_stmt
-
 Parser.parse_jump_stmt = parse_jump_stmt
 Parser.parse_dismiss_opt = parse_dismiss_opt
 Parser.parse_dismiss_tail = parse_dismiss_tail

@@ -1,18 +1,12 @@
 from __future__ import annotations
-
 from typing import Any, List, Optional, Union
-
 from backend.tokens import *
 from backend.errors import ParserError
 from backend.parser.predict_set import PREDICT, EPSILON
 from backend.ast.ast_nodes import *
-
 from backend.parser.parser import Parser, _tok_lexeme, _tok_pos
 
-
-# --------------------------
 # GLOBAL DECLS
-# --------------------------
 def parse_global_dec_opt(self: Parser) -> List[Any]:
     prod = self.choose_prod("<global_dec_opt>")
     if prod == [EPSILON]:
@@ -75,10 +69,7 @@ def parse_global_dec_item(self: Parser) -> Any:
     tok = self.peek(0) or self.peek(-1)
     raise ParserError(tok, expected=list(PREDICT["<global_dec_item>"].keys()), details="Unhandled <global_dec_item> alternative")
 
-
-# --------------------------
 # ORDER MEMBERS
-# --------------------------
 def parse_member_list_opt(self: Parser) -> List[OrderMember]:
     prod = self.choose_prod("<member_list_opt>")
     if prod == [EPSILON]:
@@ -121,10 +112,7 @@ def parse_member_init_val(self: Parser) -> Expr:
         return self.parse_array_init()
     return self.parse_expr()
 
-
-# --------------------------
 # SACRED INIT LIST
-# --------------------------
 def parse_sacred_init_list(self: Parser) -> List[SacredItem]:
     self.choose_prod("<sacred_init_list>")
     items = [self.parse_sacred_init()]
@@ -153,10 +141,7 @@ def parse_sacred_assign_opt(self: Parser) -> Optional[Expr]:
     self.expect(TK_OP_ASSIGN)
     return self.parse_const_expr()
 
-
-# --------------------------
 # VAR DECL GROUP
-# --------------------------
 def parse_var_decl_group(self: Parser) -> List[VarItem]:
     self.choose_prod("<var_decl_group>")
     items = [self.parse_var_decl_item()]
@@ -193,9 +178,7 @@ def parse_var_after_eq(self: Parser) -> Expr:
     return self.parse_expr()
 
 
-# --------------------------
 # ARRAYS
-# --------------------------
 def parse_array_dims_tail(self: Parser) -> List[Expr]:
     prod = self.choose_prod("<array_dims_tail>")
     if prod == [EPSILON]:
@@ -243,10 +226,7 @@ def parse_array_val(self: Parser) -> Expr:
         return ArrayInit(pos=_tok_pos(lb), items=items)
     return self.parse_expr()
 
-
-# --------------------------
 # DATA TYPES
-# --------------------------
 def parse_data_type(self: Parser) -> str:
     self.choose_prod("<data_type>")
     t = self.advance()
@@ -258,10 +238,7 @@ def parse_data_type_id(self: Parser) -> str:
         return _tok_lexeme(self.expect(TK_IDENTIFIER))
     return self.parse_data_type()
 
-
-# --------------------------
-# ORDain list (used by decl and stmt)
-# --------------------------
+# Ordain List
 def parse_ordain_dec_list(self: Parser) -> List[OrdainItem]:
     self.choose_prod("<ordain_dec_list>")
     items = [self.parse_ordain_dec()]
@@ -291,52 +268,40 @@ def parse_ordain_init_opt(self: Parser) -> Optional[Expr]:
     self.expect(TK_OP_ASSIGN)
     return self.parse_expr()
 
-
-# --------------------------
 # CONST EXPR
-# --------------------------
 def parse_const_expr(self: Parser) -> Expr:
     self.choose_prod("<const_expr>")
     return self.parse_expr()
 
-
-# ---- attach ----
 Parser.parse_global_dec_opt = parse_global_dec_opt
 Parser.parse_global_dec_list = parse_global_dec_list
 Parser.parse_global_dec_list_tail = parse_global_dec_list_tail
 Parser.parse_global_dec_item = parse_global_dec_item
-
 Parser.parse_member_list_opt = parse_member_list_opt
 Parser.parse_member_list = parse_member_list
 Parser.parse_member_list_tail = parse_member_list_tail
 Parser.parse_member = parse_member
 Parser.parse_member_init_opt = parse_member_init_opt
 Parser.parse_member_init_val = parse_member_init_val
-
 Parser.parse_sacred_init_list = parse_sacred_init_list
 Parser.parse_sacred_init_tail = parse_sacred_init_tail
 Parser.parse_sacred_init = parse_sacred_init
 Parser.parse_sacred_assign_opt = parse_sacred_assign_opt
-
 Parser.parse_var_decl_group = parse_var_decl_group
 Parser.parse_var_decl_tail = parse_var_decl_tail
 Parser.parse_var_decl_item = parse_var_decl_item
 Parser.parse_var_decl_item_tail = parse_var_decl_item_tail
 Parser.parse_var_after_eq = parse_var_after_eq
-
 Parser.parse_array_dims_tail = parse_array_dims_tail
 Parser.parse_array_init = parse_array_init
 Parser.parse_array_vals_opt = parse_array_vals_opt
 Parser.parse_array_vals = parse_array_vals
 Parser.parse_array_vals_tail = parse_array_vals_tail
 Parser.parse_array_val = parse_array_val
-
 Parser.parse_data_type = parse_data_type
 Parser.parse_data_type_id = parse_data_type_id
-
 Parser.parse_ordain_dec_list = parse_ordain_dec_list
 Parser.parse_ordain_dec_tail = parse_ordain_dec_tail
 Parser.parse_ordain_dec = parse_ordain_dec
 Parser.parse_ordain_init_opt = parse_ordain_init_opt
-
 Parser.parse_const_expr = parse_const_expr

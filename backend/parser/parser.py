@@ -66,12 +66,30 @@ class Parser:
         return self.parse_program()
 
     def parse_program(self) -> Program:
-        self.choose_prod("<program>")
+        if self.la(0) != TK_EOF:
+            self.choose_prod("<program>")
+
         prog = Program(pos=_tok_pos(self.peek(0)))
-        prog.globals = self.parse_global_dec_opt()
-        entry, funcs = self.parse_rite_seq()
-        prog.entry = entry
-        prog.functions = funcs
+        prog.globals = []
+        prog.functions = []
+        prog.entry = None
+
+        while self.la(0) != TK_EOF:
+            la = self.la(0)
+
+            if la == TK_CF_RITE:
+                entry, funcs = self.parse_rite_seq()
+
+                if entry is not None:
+                    if prog.entry is not None:
+                        raise ParserError(self.peek(-1), expected=[], details="Multiple genesis() rites are not allowed")
+                    prog.entry = entry
+
+                prog.functions.extend(funcs)
+                continue
+
+            prog.globals.append(self.parse_global_dec_item())
+
         return prog
 
 import backend.parser.parsers.globals as _globals

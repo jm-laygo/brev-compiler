@@ -1,18 +1,13 @@
 from __future__ import annotations
-
 from typing import Any, List, Union
-
 from backend.tokens import *
 from backend.errors import ParserError
 from backend.parser.predict_set import PREDICT, EPSILON
 from backend.ast.ast_nodes import *
-
 from backend.parser.parser import Parser, _tok_lexeme, _tok_pos
 
 
-# --------------------------
 # ARG LIST (also used in call expr)
-# --------------------------
 def parse_arg_list_opt(self: Parser) -> List[Expr]:
     prod = self.choose_prod("<arg_list_opt>")
     if prod == [EPSILON]:
@@ -34,10 +29,7 @@ def parse_arg_list_tail(self: Parser) -> List[Expr]:
     args.extend(self.parse_arg_list_tail())
     return args
 
-
-# --------------------------
 # EXPRESSIONS
-# --------------------------
 def parse_expr(self: Parser) -> Expr:
     self.choose_prod("<expr>")
     return self.parse_logic_or()
@@ -234,12 +226,9 @@ def parse_literal_expr(self: Parser) -> LiteralExpr:
 
     raise ParserError(tok, expected=[TK_LIT_INT, TK_LIT_DECIMAL, TK_LIT_CHAR, TK_LIT_STRING, TK_LIT_BOOL], details="Not a literal token")
 
-
-# ---- attach ----
 Parser.parse_arg_list_opt = parse_arg_list_opt
 Parser.parse_arg_list = parse_arg_list
 Parser.parse_arg_list_tail = parse_arg_list_tail
-
 Parser.parse_expr = parse_expr
 Parser.parse_logic_or = parse_logic_or
 Parser.parse_logic_and = parse_logic_and

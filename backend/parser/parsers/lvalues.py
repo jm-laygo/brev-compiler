@@ -1,17 +1,11 @@
 from __future__ import annotations
-
 from typing import Optional
-
 from backend.tokens import *
 from backend.parser.predict_set import EPSILON
 from backend.ast.ast_nodes import *
-
 from backend.parser.parser import Parser, _tok_lexeme, _tok_pos
 
-
-# --------------------------
 # LVALUES / ACCESS
-# --------------------------
 def parse_lvalue(self: Parser) -> LValue:
     self.choose_prod("<lvalue>")
     id_tok = self.expect(TK_IDENTIFIER)
@@ -55,8 +49,6 @@ def parse_access_step(self: Parser, base: LValue) -> LValue:
     mem_tok = self.expect(TK_IDENTIFIER)
     return MemberRef(pos=_tok_pos(dot), base=base, member=_tok_lexeme(mem_tok))
 
-
-# ---- attach ----
 Parser.parse_lvalue = parse_lvalue
 Parser.parse_lvalue_core = parse_lvalue_core
 Parser.parse_access_chain_opt = parse_access_chain_opt
