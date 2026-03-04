@@ -90,7 +90,6 @@ def is_char(t: Type) -> bool:
     return t.is_base(BaseType.SIGIL)
 
 def promote_numeric(a: Type, b: Type) -> Type:
-    # divine dominates tally
     if a.is_base(BaseType.DIVINE) or b.is_base(BaseType.DIVINE):
         return Type.base_t(BaseType.DIVINE)
     return Type.base_t(BaseType.TALLY)
@@ -99,21 +98,15 @@ def same_type(a: Type, b: Type) -> bool:
     return str(a) == str(b)
 
 def can_assign(dst: Type, src: Type) -> bool:
-    # error propagates
     if dst.base == BaseType.ERROR or src.base == BaseType.ERROR:
         return True
 
-    # same types
     if same_type(dst, src):
         return True
 
-    # numeric widening: tally <- divine? usually NO (narrowing)
-    # divine <- tally YES (widening)
     if dst.is_base(BaseType.DIVINE) and src.is_base(BaseType.TALLY):
         return True
 
-    # optional coercions (you can change these rules later)
-    # scripture <- sigil (char to string)
     if dst.is_base(BaseType.SCRIPTURE) and src.is_base(BaseType.SIGIL):
         return True
     

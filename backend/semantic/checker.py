@@ -452,8 +452,8 @@ class SemanticChecker:
             return
 
         if k == "AbsolveStmt":
-            if self.in_discern <= 0:
-                self._error(s, "absolve used outside discern.")
+            if self.in_loop <= 0 and self.in_discern <= 0:
+                self._error(s, "absolve used outside loop/discern.")
             return
 
         if k == "DismissStmt":
@@ -587,10 +587,16 @@ class SemanticChecker:
         if k == "IndexRef":
             base = getattr(lv, "base", None)
             idx = getattr(lv, "index", None)
+
             bt = self._lvalue_type(base)
             it = self._expr_type(idx)
+
             if not is_numeric(it):
                 self._error(lv, f"Array index must be numeric, got {it}.")
+
+            if bt.is_base(BaseType.SCRIPTURE):
+                return Type.base_t(BaseType.SIGIL)
+
             if not bt.is_array():
                 self._error(lv, f"Cannot index non-array type {bt}.")
                 return Type.error()
