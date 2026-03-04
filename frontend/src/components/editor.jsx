@@ -12,14 +12,14 @@ export default function BrevEditor({ initialValue, onChange, editorRef, onReady 
             height="100%"
             language="brev"
             theme="brevTheme"
-            defaultValue={initialValue || ""}
+            value={initialValue ?? ""}
             path="main.brev"
             beforeMount={(monaco) => {
-                if (brevInstalled) return;
-                brevInstalled = true;
-
-                monaco.languages.register({ id: "brev" });
-                monaco.languages.setMonarchTokensProvider("brev", brevLanguage);
+                if (!brevInstalled) {
+                    brevInstalled = true;
+                    monaco.languages.register({ id: "brev" });
+                    monaco.languages.setMonarchTokensProvider("brev", brevLanguage);
+                }
                 monaco.editor.defineTheme("brevTheme", brevTheme);
             }}
             onMount={(editor, monaco) => {

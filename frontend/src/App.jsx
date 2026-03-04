@@ -7,7 +7,7 @@ import OutputPanel from "./components/OutputPanel.jsx";
 
 import useTerminal from "./hooks/useTerminal.js";
 import { runLexical, runSyntax, runSemantic } from "./api/brevApi.js";
-import { applyMarkers, clearMarkers, jumpToFirstError } from "./utils/monacoMarkers.js";
+import { applyMarkers, clearMarkers } from "./utils/monacoMarkers.js";
 
 export default function App() {
     const fileInputRef = useRef(null);
@@ -19,10 +19,37 @@ export default function App() {
     const [tokens, setTokens] = useState([]);
     const [tokensOpen, setTokensOpen] = useState(false);
 
+    const [isRunning, setIsRunning] = useState(false);
+    const [runningPhase, setRunningPhase] = useState("");
+
+    const liveAbortRef = useRef(null);
+    const liveReqIdRef = useRef(0);
+    const liveDebounceRef = useRef(null);
+
     const { terminalLines, log, setTerminal } = useTerminal(800);
 
     const getCode = () => {
         return editorRef.current ? editorRef.current.getValue() : sourceRef.current || "";
+    };
+
+    const onEditorReady = ({ editor, monaco }) => {
+        editorApiRef.current = { editor, monaco };
+    };
+
+    const clearAllEditorMarkers = () => {
+        const api = editorApiRef.current;
+        if (!api?.editor || !api?.monaco) return;
+        clearMarkers(api.editor, api.monaco, "brev");
+    };
+
+    const setMarkersFromErrors = (errors) => {
+        const api = editorApiRef.current;
+        if (!api?.editor || !api?.monaco) return;
+
+        clearMarkers(api.editor, api.monaco, "brev");
+
+        const errs = Array.isArray(errors) ? errors : [];
+        if (errs.length) applyMarkers(api.editor, api.monaco, errs, "brev");
     };
 
     const openFile = () => fileInputRef.current?.click();
@@ -37,6 +64,10 @@ export default function App() {
 
         if (editorRef.current) editorRef.current.setValue(text);
         setTerminal(`Loaded: ${file.name}`);
+
+        if (isRunning && runningPhase) {
+            runLiveOnce(runningPhase, text, false);
+        }
     };
 
     const saveFile = () => {
@@ -61,120 +92,185 @@ export default function App() {
         };
     }, [tokensOpen]);
 
-    const onEditorReady = ({ editor, monaco }) => {
-        editorApiRef.current = { editor, monaco };
+    useEffect(() => {
+        return () => {
+            if (liveDebounceRef.current) clearTimeout(liveDebounceRef.current);
+            if (liveAbortRef.current) liveAbortRef.current.abort();
+        };
+    }, []);
+
+    const stopLive = () => {
+        if (liveDebounceRef.current) {
+            clearTimeout(liveDebounceRef.current);
+            liveDebounceRef.current = null;
+        }
+
+        if (liveAbortRef.current) {
+            liveAbortRef.current.abort();
+            liveAbortRef.current = null;
+        }
+
+        liveReqIdRef.current += 1;
+
+        setIsRunning(false);
+        setRunningPhase("");
+        log("Stopped.");
     };
 
-    const clearAllEditorMarkers = () => {
-        const api = editorApiRef.current;
-        if (!api?.editor || !api?.monaco) return;
-        clearMarkers(api.editor, api.monaco, "brev");
+    const startLive = (phase) => {
+        if (isRunning && runningPhase === phase) return;
+
+        stopLive();
+
+        setIsRunning(true);
+        setRunningPhase(phase);
+
+        const code = getCode();
+        runLiveOnce(phase, code, true);
     };
 
-    const markErrorsAndJump = (errors) => {
-        const api = editorApiRef.current;
-        if (!api?.editor || !api?.monaco) return;
-        applyMarkers(api.editor, api.monaco, errors, "brev");
-        jumpToFirstError(api.editor, errors);
+    const toggleLiveLex = () => {
+        if (isRunning && runningPhase === "lex") {
+            stopLive();
+            return;
+        }
+        startLive("lex");
     };
 
-    const runLex = async () => {
-        const sourceCode = getCode();
-        setTerminal("Running lexical analysis...");
-        clearAllEditorMarkers();
+    const toggleLiveSyn = () => {
+        if (isRunning && runningPhase === "syn") {
+            stopLive();
+            return;
+        }
+        startLive("syn");
+    };
+
+    const toggleLiveSem = () => {
+        if (isRunning && runningPhase === "sem") {
+            stopLive();
+            return;
+        }
+        startLive("sem");
+    };
+
+    const runLiveOnce = async (phase, sourceCode, openTokens) => {
+        if (liveAbortRef.current) liveAbortRef.current.abort();
+        const controller = new AbortController();
+        liveAbortRef.current = controller;
+
+        const reqId = ++liveReqIdRef.current;
 
         try {
-            const { res, data } = await runLexical(sourceCode);
+            clearAllEditorMarkers();
 
-            if (!res.ok) {
-                const msg = `Lex API error (HTTP ${res.status}): ${data.error || "Unknown error"}`;
-                log(msg);
-                markErrorsAndJump([msg]);
+            if (phase === "lex") {
+                setTerminal("Running lexical analysis...");
+
+                const { res, data } = await runLexical(sourceCode, controller.signal);
+                if (reqId !== liveReqIdRef.current) return;
+
+                if (!res.ok) {
+                    const msg = `Lex API error (HTTP ${res.status}): ${data.error || "Unknown error"}`;
+                    setTerminal("Lexical analysis failed:");
+                    log(msg);
+                    setMarkersFromErrors([msg]);
+                    return;
+                }
+
+                const toks = Array.isArray(data.tokens) ? data.tokens : [];
+                const errs = Array.isArray(data.errors) ? data.errors : [];
+
+                const filtered = toks.filter((t) => !t.hidden);
+                setTokens(filtered);
+
+                if (errs.length) {
+                    setTerminal("Lexical analysis failed:");
+                    errs.forEach((e) => log(e));
+                    setMarkersFromErrors(errs);
+                } else {
+                    setTerminal("Lexical analysis successful!");
+                    setMarkersFromErrors([]);
+                }
+
+                if (openTokens && filtered.length > 0) setTokensOpen(true);
                 return;
             }
 
-            const toks = Array.isArray(data.tokens) ? data.tokens : [];
-            const errs = Array.isArray(data.errors) ? data.errors : [];
+            if (phase === "syn") {
+                setTerminal("Running syntax analysis...");
 
-            const filtered = toks.filter((t) => !t.hidden);
-            setTokens(filtered);
+                const { res, data } = await runSyntax(sourceCode, controller.signal);
+                if (reqId !== liveReqIdRef.current) return;
 
-            if (errs.length) {
-                log("Lexical analysis failed:");
-                errs.forEach((e) => log(e));
-                markErrorsAndJump(errs);
-            } else {
-                log("Lexical analysis successful!");
-            }
+                if (!res.ok) {
+                    const msg = `Syntax API error (HTTP ${res.status}): ${data.error || "Unknown error"}`;
+                    setTerminal("Syntax analysis failed:");
+                    log(msg);
+                    setMarkersFromErrors([msg]);
+                    return;
+                }
 
-            if (filtered.length > 0) setTokensOpen(true);
-        } catch (e) {
-            const msg = `Network error: ${e.message}`;
-            log(msg);
-            markErrorsAndJump([msg]);
-        }
-    };
+                const errs = Array.isArray(data.errors) ? data.errors : [];
 
-    const runSyn = async () => {
-        const sourceCode = getCode();
-        setTerminal("Running syntax analysis...");
-        clearAllEditorMarkers();
+                if (errs.length) {
+                    setTerminal("Syntax analysis failed:");
+                    errs.forEach((e) => log(e));
+                    setMarkersFromErrors(errs);
+                } else {
+                    setTerminal("Syntax analysis successful!");
+                    setMarkersFromErrors([]);
+                }
 
-        try {
-            const { res, data } = await runSyntax(sourceCode);
-
-            if (!res.ok) {
-                const msg = `Syntax API error (HTTP ${res.status}): ${data.error || "Unknown error"}`;
-                log(msg);
-                markErrorsAndJump([msg]);
                 return;
             }
 
-            const errs = Array.isArray(data.errors) ? data.errors : [];
-            if (errs.length) {
-                log("Syntax analysis failed:");
-                errs.forEach((e) => log(e));
-                markErrorsAndJump(errs);
-            } else {
-                log("Syntax analysis successful!");
+            if (phase === "sem") {
+                setTerminal("Running semantic analysis...");
+
+                const { res, data } = await runSemantic(sourceCode, controller.signal);
+                if (reqId !== liveReqIdRef.current) return;
+
+                if (!res.ok) {
+                    const msg = `Semantic API error (HTTP ${res.status}): ${data.error || "Unknown error"}`;
+                    setTerminal("Semantic analysis failed:");
+                    log(msg);
+                    setMarkersFromErrors([msg]);
+                    return;
+                }
+
+                const errs = Array.isArray(data.errors) ? data.errors : [];
+
+                if (data.semantic_valid && errs.length === 0) {
+                    setTerminal("Semantic analysis successful!");
+                    setMarkersFromErrors([]);
+                } else {
+                    setTerminal("Semantic analysis failed:");
+                    if (errs.length) errs.forEach((e) => log(e));
+                    else log("Unknown semantic error");
+                    if (errs.length) setMarkersFromErrors(errs);
+                }
+
+                return;
             }
         } catch (e) {
+            if (e?.name === "AbortError") return;
             const msg = `Network error: ${e.message}`;
+            setTerminal("Run failed:");
             log(msg);
-            markErrorsAndJump([msg]);
+            setMarkersFromErrors([msg]);
         }
     };
 
-    const runSem = async () => {
-        const sourceCode = getCode();
-        setTerminal("Running semantic analysis...");
-        clearAllEditorMarkers();
+    const onEditorChange = (v) => {
+        sourceRef.current = v;
 
-        try {
-            const { res, data } = await runSemantic(sourceCode);
+        if (!isRunning || !runningPhase) return;
 
-            if (!res.ok) {
-                const msg = `Semantic API error (HTTP ${res.status}): ${data.error || "Unknown error"}`;
-                log(msg);
-                markErrorsAndJump([msg]);
-                return;
-            }
+        if (liveDebounceRef.current) clearTimeout(liveDebounceRef.current);
 
-            const errs = Array.isArray(data.errors) ? data.errors : [];
-            if (data.semantic_valid && errs.length === 0) {
-                log("Semantic analysis successful!");
-            } else {
-                const stage = data.stage ? ` (${data.stage})` : "";
-                log(`Semantic analysis failed${stage}:`);
-                if (errs.length) errs.forEach((e) => log(e));
-                else log("Unknown semantic error");
-                if (errs.length) markErrorsAndJump(errs);
-            }
-        } catch (e) {
-            const msg = `Network error: ${e.message}`;
-            log(msg);
-            markErrorsAndJump([msg]);
-        }
+        liveDebounceRef.current = setTimeout(() => {
+            runLiveOnce(runningPhase, v, false);
+        }, 600);
     };
 
     return (
@@ -186,11 +282,13 @@ export default function App() {
                         onFilePicked={onFilePicked}
                         openFile={openFile}
                         saveFile={saveFile}
-                        runLex={runLex}
-                        runSyn={runSyn}
-                        runSem={runSem}
+                        toggleLiveLex={toggleLiveLex}
+                        toggleLiveSyn={toggleLiveSyn}
+                        toggleLiveSem={toggleLiveSem}
+                        isRunning={isRunning}
+                        runningPhase={runningPhase}
                         tokensOpen={tokensOpen}
-                        toggleTokens={() => setTokensOpen((v) => !v)}
+                        toggleTokens={() => setTokensOpen((x) => !x)}
                     />
 
                     <div id="brev-dock" className={tokensOpen ? "tokens-open" : ""}>
@@ -200,9 +298,7 @@ export default function App() {
                                     initialValue={initialCode}
                                     editorRef={editorRef}
                                     onReady={onEditorReady}
-                                    onChange={(v) => {
-                                        sourceRef.current = v;
-                                    }}
+                                    onChange={onEditorChange}
                                 />
                             </div>
 

@@ -1,7 +1,7 @@
-import React, { memo } from "react";
+import React from "react";
 import renderLexeme from "../utils/renderLexeme.js";
 
-const TokenRow = memo(function TokenRow({ token }) {
+export default function TokenRow({ token }) {
     if (!token) return null;
 
     const lex = renderLexeme(token.value);
@@ -10,11 +10,9 @@ const TokenRow = memo(function TokenRow({ token }) {
 
     return (
         <>
-            <td className="token-cell lexeme" title={lex}>{lex}</td>
-            <td className="token-cell token" title={tok}>{tok}</td>
-            <td className="token-cell type" title={type}>{type}</td>
+            <div className="token-cell lexeme" role="cell" title={lex}>{lex}</div>
+            <div className="token-cell token" role="cell" title={tok}>{tok}</div>
+            <div className="token-cell type" role="cell" title={type}>{type}</div>
         </>
     );
-});
-
-export default TokenRow;
+}

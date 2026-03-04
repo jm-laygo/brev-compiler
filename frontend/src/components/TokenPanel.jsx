@@ -4,9 +4,9 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import TokenRow from "./TokenRow.jsx";
 
 export default function TokenPanel({ tokens = [] }) {
-    const safeTokens = useMemo(() => (
-        Array.isArray(tokens) ? tokens : []
-    ), [tokens]);
+    const safeTokens = useMemo(() => {
+        return Array.isArray(tokens) ? tokens : [];
+    }, [tokens]);
 
     const parentRef = useRef(null);
 
@@ -15,15 +15,15 @@ export default function TokenPanel({ tokens = [] }) {
         getScrollElement: () => parentRef.current,
         estimateSize: () => 44,
         overscan: 10,
-        measureElement: (el) => el.getBoundingClientRect().height
+        measureElement: (el) => el.getBoundingClientRect().height,
+        getItemKey: (index) => {
+            const t = safeTokens[index];
+            if (!t) return `row-${index}`;
+            return `${index}-${t.type ?? ""}-${t.token ?? ""}-${t.value ?? ""}`;
+        },
     });
 
     const items = rowVirtualizer.getVirtualItems();
-
-    const paddingTop = items.length > 0 ? items[0].start : 0;
-    const paddingBottom = items.length > 0
-        ? rowVirtualizer.getTotalSize() - items[items.length - 1].end
-        : 0;
 
     return (
         <div className="tokens-panel">
@@ -32,41 +32,42 @@ export default function TokenPanel({ tokens = [] }) {
                 <div className="tokens-count">{safeTokens.length} rows</div>
             </div>
 
-            <div ref={parentRef} className="tokens-list-wrap tanstack">
-                <table className="tokens-table">
-                    <thead className="token-thead">
-                        <tr>
-                            <th className="token-hcell">LEXEME</th>
-                            <th className="token-hcell">TOKEN</th>
-                            <th className="token-hcell">TYPE</th>
-                        </tr>
-                    </thead>
+            <div className="tokens-table" role="table" aria-label="Tokens table">
+                <div className="token-thead" role="rowgroup">
+                    <div className="token-header-row" role="row">
+                        <div className="token-hcell" role="columnheader">LEXEME</div>
+                        <div className="token-hcell" role="columnheader">TOKEN</div>
+                        <div className="token-hcell" role="columnheader">TYPE</div>
+                    </div>
+                </div>
 
-                    <tbody className="token-tbody">
-                        {paddingTop > 0 && (
-                            <tr aria-hidden="true">
-                                <td colSpan={3} style={{ height: paddingTop }} />
-                            </tr>
-                        )}
-
+                <div ref={parentRef} className="tokens-list-wrap" role="rowgroup">
+                    <div
+                        style={{
+                            height: rowVirtualizer.getTotalSize(),
+                            position: "relative",
+                        }}
+                    >
                         {items.map((v) => (
-                            <tr
+                            <div
                                 key={v.key}
-                                data-index={v.index}
                                 ref={rowVirtualizer.measureElement}
+                                data-index={v.index}
                                 className={`token-row ${v.index % 2 === 0 ? "even" : "odd"}`}
+                                role="row"
+                                style={{
+                                    position: "absolute",
+                                    top: 0,
+                                    left: 0,
+                                    width: "100%",
+                                    transform: `translateY(${v.start}px)`,
+                                }}
                             >
                                 <TokenRow token={safeTokens[v.index]} />
-                            </tr>
+                            </div>
                         ))}
-
-                        {paddingBottom > 0 && (
-                            <tr aria-hidden="true">
-                                <td colSpan={3} style={{ height: paddingBottom }} />
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                    </div>
+                </div>
             </div>
         </div>
     );

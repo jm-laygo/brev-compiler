@@ -45,3 +45,23 @@
     background: rgba(255,215,0,0.75);
     border-radius: 999px;
 }
+
+.command-btn.active-btn{
+    color: #fff;
+    box-shadow: 0 0 18px rgba(255,215,0,0.80);
+    background: rgba(30, 18, 0, 0.92);
+    filter: brightness(1.12);
+}
+
+.command-btn:disabled{
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.command-btn:disabled:hover{
+    transform: none;
+    box-shadow: none;
+    color: var(--gold);
+}
