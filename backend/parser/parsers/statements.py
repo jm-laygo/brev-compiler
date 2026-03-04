@@ -1,14 +1,11 @@
 from __future__ import annotations
-
 from typing import Any, List, Optional, Tuple, Union
-
 from backend.tokens import *
 from backend.errors import ParserError
 from backend.parser.predict_set import PREDICT, EPSILON
 from backend.ast.ast_nodes import *
 
 from backend.parser.parser import Parser, _tok_lexeme, _tok_pos
-
 
 # --------------------------
 # STATEMENTS
