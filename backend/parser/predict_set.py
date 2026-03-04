@@ -774,7 +774,7 @@ PREDICT = {
         TK_OP_DEC:          ["<statement>", "<case_statement_list>"],
         TK_SYM_OPPAREN:     ["<statement>", "<case_statement_list>"],
 
-        TK_CF_ABSOLVE:   [EPSILON],
+        TK_CF_ABSOLVE:    [EPSILON],
         TK_CF_FALL:      [EPSILON],
         TK_CF_VERSE:     [EPSILON],
         TK_CF_GRACE:     [EPSILON],
@@ -804,10 +804,10 @@ PREDICT = {
     },
 
     "<grace_opt>": {
-        TK_CF_GRACE:     [TK_CF_GRACE, TK_SYM_COLON, "<case_statement_list>"],
+        TK_CF_GRACE:     [TK_CF_GRACE, TK_SYM_COLON, "<case_statement_list>", "<verse_end_opt>"],
         TK_SYM_CLSBRACE: [EPSILON],
     },
-
+    
     # 13) LOOPS
     "<loop_stmt>": {
         TK_CF_PROCESSION: ["<procession_stmt>"],
