@@ -32,9 +32,7 @@ def scan_operator(lexer, tokens, errors):
         lexer.advance()
         return accept_operator(
             lexer, tokens, errors,
-            TK_OP_TILDE, "~", pos,
-            {space, newline, tab} | set(ALPHA_DIG)
-        )
+            TK_OP_TILDE, "~", pos, delim3)
 
     # ASSIGN / EQUALITY
     if ch == "=":
