@@ -7,7 +7,7 @@ from typing import Any, List, Optional, Union
 class Node:
     pos: Any = None
 
-# Program / Functions (Rites)
+# Program / Functions
 @dataclass
 class Program(Node):
     # global_dec_list (sacred / var / order / ordain)
