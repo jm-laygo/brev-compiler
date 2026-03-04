@@ -123,3 +123,32 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+.token-row.selected{
+    background: rgba(255,215,0,0.16);
+    box-shadow: inset 0 0 0 2px rgba(65, 63, 52, 0.95);
+    position: relative;
+}
+
+.token-row.selected::before{
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: rgba(0,255,153,0.9);
+}
+
+.token-row.selected:hover{
+    background: rgba(255,215,0,0.20);
+    box-shadow: inset 0 0 0 2px rgba(255,215,0,0.95);
+}
+
+.token-row.selected .token-cell{
+    color: #fff3b0;
+}
+
+.token-row.selected .token-cell.lexeme{
+    color: #d9ffd9;
+}

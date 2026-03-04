@@ -18,6 +18,7 @@ export default function App() {
     const [tokens, setTokens] = useState([]);
     const [tokensOpen, setTokensOpen] = useState(false);
     const [outputOpen, setOutputOpen] = useState(true);
+    const [activeTokenRange, setActiveTokenRange] = useState({ start: -1, end: -1 });
 
     const {
         editorRef,
@@ -28,7 +29,10 @@ export default function App() {
         setMarkersFromErrors,
         jumpToToken,
         jumpToPosition,
-    } = useEditorBridge();
+    } = useEditorBridge({
+        tokens,
+        onActiveTokenRangeChange: setActiveTokenRange,
+    });
 
     const {
         isRunning,
@@ -114,6 +118,7 @@ export default function App() {
                                 <TokenPanel
                                     tokens={tokens}
                                     onTokenClick={jumpToToken}
+                                    selectedRange={activeTokenRange}
                                 />
                             </ErrorBoundary>
                         </aside>
