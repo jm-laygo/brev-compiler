@@ -64,7 +64,7 @@ class Type:
 
     def __str__(self) -> str:
         if self.base == BaseType.ERROR:
-            return "<error>"
+            return "type-error"
         if self.is_array():
             # count dims
             dims = 0
