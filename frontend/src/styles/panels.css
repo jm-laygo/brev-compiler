@@ -19,6 +19,7 @@
     justify-content: space-between;
     gap: 10px;
     padding: 10px 14px 0 14px;
+    flex: 0 0 auto;
 }
 
 .panel-title{
@@ -35,17 +36,74 @@
 
 /* Output Panel */
 .output-panel{
-    flex: 0 0 auto;
-    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
 
+    transition: height 260ms cubic-bezier(.2,.9,.2,1), min-height 1260ms cubic-bezier(.2,.9,.2,1);
+    will-change: height;
+}
+
+.output-panel.open{
     min-height: 160px;
     max-height: 260px;
     height: clamp(60px, 22vh, 260px);
+}
 
-    overflow: hidden;
+.output-panel.closed{
+    min-height: 82px;
+    max-height: 82px;
+    height: 82px;
+}
+
+.output-panel.closed #terminal{
+    display: none;
+}
+.output-right{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.output-toggle-btn{
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    color: var(--gold);
+    cursor: pointer;
+
+    border: 8px solid transparent;
+    border-image: var(--border-img) 8.4% round;
+    background: rgba(10,10,10,0.92);
+
+    border-radius: 12px;
+    line-height: 1;
+    font-size: 18px;
+    user-select: none;
+
+    transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+}
+
+.output-toggle-btn:hover{
+    color: #fff;
+    box-shadow: 0 0 14px rgba(255,215,0,0.55);
+    transform: translateY(-1px);
+}
+
+.output-toggle-btn:active{
+    transform: translateY(0px);
+    box-shadow: 0 0 10px rgba(255,215,0,0.35);
 }
 
 #terminal{
+    flex: 1 1 auto;
+    min-height: 0;
+
     background: transparent;
     color: gold;
     white-space: pre-wrap;
@@ -55,6 +113,47 @@
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
     font-size: 0.92rem;
 
-    max-height: 100%;
     overflow: auto;
+}
+
+#terminal .term-line{
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    margin-bottom: 6px;
+}
+
+#terminal .term-line.info{
+    color: gold;
+}
+
+#terminal .term-line.success{
+    color: #00ff66;
+}
+
+#terminal .term-line.error{
+    color: #ff4d4d;
+}
+
+#terminal .term-line.warn{
+    color: #f2c14e;
+}
+
+.term-loc-link{
+    display: inline;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+
+    font: inherit;
+    color: #4CC9F0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.term-loc-link:hover{
+    color: #ffffff;
+    text-shadow: 0 0 10px rgba(76,201,240,0.55);
 }

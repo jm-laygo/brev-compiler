@@ -1,13 +1,100 @@
-import React from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 
-export default function OutputPanel({ terminalLines }) {
+function parseLnColFromText(text) {
+    const s = String(text ?? "");
+    const m = s.match(/Ln\s*(\d+)\s*,\s*Col\s*(\d+)/i);
+    if (!m) return null;
+
+    return {
+        line: Number(m[1]),
+        col: Number(m[2]),
+        matchText: m[0],
+        matchIndex: m.index ?? -1,
+    };
+}
+
+function splitLineClickableParts(lineObj) {
+    const text = String(lineObj?.text ?? "");
+    const pos = parseLnColFromText(text);
+    if (!pos || pos.matchIndex < 0) {
+        return { before: text, link: null, after: "" };
+    }
+
+    const start = pos.matchIndex;
+    const end = start + pos.matchText.length;
+
+    return {
+        before: text.slice(0, start),
+        link: {
+            label: text.slice(start, end),
+            line: pos.line,
+            col: pos.col,
+        },
+        after: text.slice(end),
+    };
+}
+
+export default function OutputPanel({
+    terminalLines = [],
+    outputOpen,
+    toggleOutput,
+    onJumpToPosition,
+}) {
+    const bottomRef = useRef(null);
+
+    useEffect(() => {
+        if (!outputOpen) return;
+        bottomRef.current?.scrollIntoView({ block: "end" });
+    }, [terminalLines, outputOpen]);
+
+    const rendered = useMemo(() => {
+        return (Array.isArray(terminalLines) ? terminalLines : []).map((l) => {
+            const parts = splitLineClickableParts(l);
+            return { lineObj: l, parts };
+        });
+    }, [terminalLines]);
+
     return (
-        <div className = "panel output-panel">
-            <div className = "panel-head">
-                <h3 className = "panel-title">Output</h3>
-                <div className = "panel-hint">Logs</div>
+        <div className={`panel output-panel ${outputOpen ? "open" : "closed"}`}>
+            <div className="panel-head">
+                <h3 className="panel-title">Output</h3>
+
+                <div className="output-right">
+                    <div className="panel-hint">{terminalLines.length} lines</div>
+
+                    <button
+                        type="button"
+                        className="output-toggle-btn"
+                        onClick={toggleOutput}
+                        aria-label={outputOpen ? "Collapse output" : "Expand output"}
+                        title={outputOpen ? "Collapse output" : "Expand output"}
+                    >
+                        {outputOpen ? "×" : "▲"}
+                    </button>
+                </div>
             </div>
-            <pre id = "terminal">{terminalLines.join("\n")}</pre>
+
+            <div id="terminal" role="log" aria-live="polite">
+                {rendered.map(({ lineObj, parts }) => (
+                    <div key={lineObj.id} className={`term-line ${lineObj.level || "info"}`}>
+                        <span>{parts.before}</span>
+
+                        {parts.link && (
+                            <button
+                                type="button"
+                                className="term-loc-link"
+                                onClick={() => onJumpToPosition?.(parts.link.line, parts.link.col)}
+                                title="Jump to this location"
+                            >
+                                {parts.link.label}
+                            </button>
+                        )}
+
+                        <span>{parts.after}</span>
+                    </div>
+                ))}
+                <div ref={bottomRef} />
+            </div>
         </div>
     );
 }

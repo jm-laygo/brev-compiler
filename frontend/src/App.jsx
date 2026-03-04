@@ -19,6 +19,8 @@ export default function App() {
     const [tokens, setTokens] = useState([]);
     const [tokensOpen, setTokensOpen] = useState(false);
 
+    const [outputOpen, setOutputOpen] = useState(true);
+
     const [isRunning, setIsRunning] = useState(false);
     const [runningPhase, setRunningPhase] = useState("");
 
@@ -26,7 +28,7 @@ export default function App() {
     const liveReqIdRef = useRef(0);
     const liveDebounceRef = useRef(null);
 
-    const { terminalLines, log, setTerminal } = useTerminal(800);
+    const { terminalLines, logError, logWarn, setTerminal } = useTerminal(800);
 
     const getCode = () => {
         return editorRef.current ? editorRef.current.getValue() : sourceRef.current || "";
@@ -63,7 +65,7 @@ export default function App() {
         sourceRef.current = text;
 
         if (editorRef.current) editorRef.current.setValue(text);
-        setTerminal(`Loaded: ${file.name}`);
+        setTerminal(`Loaded: ${file.name}`, "info");
 
         if (isRunning && runningPhase) {
             runLiveOnce(runningPhase, text, false);
@@ -114,7 +116,7 @@ export default function App() {
 
         setIsRunning(false);
         setRunningPhase("");
-        log("Stopped.");
+        logWarn("Stopped.");
     };
 
     const startLive = (phase) => {
@@ -164,15 +166,15 @@ export default function App() {
             clearAllEditorMarkers();
 
             if (phase === "lex") {
-                setTerminal("Running lexical analysis...");
+                setTerminal("Running lexical analysis...", "info");
 
                 const { res, data } = await runLexical(sourceCode, controller.signal);
                 if (reqId !== liveReqIdRef.current) return;
 
                 if (!res.ok) {
                     const msg = `Lex API error (HTTP ${res.status}): ${data.error || "Unknown error"}`;
-                    setTerminal("Lexical analysis failed:");
-                    log(msg);
+                    setTerminal("Lexical analysis failed:", "error");
+                    logError(msg);
                     setMarkersFromErrors([msg]);
                     return;
                 }
@@ -184,11 +186,11 @@ export default function App() {
                 setTokens(filtered);
 
                 if (errs.length) {
-                    setTerminal("Lexical analysis failed:");
-                    errs.forEach((e) => log(e));
+                    setTerminal("Lexical analysis failed:", "error");
+                    errs.forEach((e) => logError(e));
                     setMarkersFromErrors(errs);
                 } else {
-                    setTerminal("Lexical analysis successful!");
+                    setTerminal("Lexical analysis successful!", "success");
                     setMarkersFromErrors([]);
                 }
 
@@ -197,15 +199,15 @@ export default function App() {
             }
 
             if (phase === "syn") {
-                setTerminal("Running syntax analysis...");
+                setTerminal("Running syntax analysis...", "info");
 
                 const { res, data } = await runSyntax(sourceCode, controller.signal);
                 if (reqId !== liveReqIdRef.current) return;
 
                 if (!res.ok) {
                     const msg = `Syntax API error (HTTP ${res.status}): ${data.error || "Unknown error"}`;
-                    setTerminal("Syntax analysis failed:");
-                    log(msg);
+                    setTerminal("Syntax analysis failed:", "error");
+                    logError(msg);
                     setMarkersFromErrors([msg]);
                     return;
                 }
@@ -213,11 +215,11 @@ export default function App() {
                 const errs = Array.isArray(data.errors) ? data.errors : [];
 
                 if (errs.length) {
-                    setTerminal("Syntax analysis failed:");
-                    errs.forEach((e) => log(e));
+                    setTerminal("Syntax analysis failed:", "error");
+                    errs.forEach((e) => logError(e));
                     setMarkersFromErrors(errs);
                 } else {
-                    setTerminal("Syntax analysis successful!");
+                    setTerminal("Syntax analysis successful!", "success");
                     setMarkersFromErrors([]);
                 }
 
@@ -225,15 +227,15 @@ export default function App() {
             }
 
             if (phase === "sem") {
-                setTerminal("Running semantic analysis...");
+                setTerminal("Running semantic analysis...", "info");
 
                 const { res, data } = await runSemantic(sourceCode, controller.signal);
                 if (reqId !== liveReqIdRef.current) return;
 
                 if (!res.ok) {
                     const msg = `Semantic API error (HTTP ${res.status}): ${data.error || "Unknown error"}`;
-                    setTerminal("Semantic analysis failed:");
-                    log(msg);
+                    setTerminal("Semantic analysis failed:", "error");
+                    logError(msg);
                     setMarkersFromErrors([msg]);
                     return;
                 }
@@ -241,12 +243,12 @@ export default function App() {
                 const errs = Array.isArray(data.errors) ? data.errors : [];
 
                 if (data.semantic_valid && errs.length === 0) {
-                    setTerminal("Semantic analysis successful!");
+                    setTerminal("Semantic analysis successful!", "success");
                     setMarkersFromErrors([]);
                 } else {
-                    setTerminal("Semantic analysis failed:");
-                    if (errs.length) errs.forEach((e) => log(e));
-                    else log("Unknown semantic error");
+                    setTerminal("Semantic analysis failed:", "error");
+                    if (errs.length) errs.forEach((e) => logError(e));
+                    else logError("Unknown semantic error");
                     if (errs.length) setMarkersFromErrors(errs);
                 }
 
@@ -255,10 +257,22 @@ export default function App() {
         } catch (e) {
             if (e?.name === "AbortError") return;
             const msg = `Network error: ${e.message}`;
-            setTerminal("Run failed:");
-            log(msg);
+            setTerminal("Run failed:", "error");
+            logError(msg);
             setMarkersFromErrors([msg]);
         }
+    };
+
+    const jumpToPosition = (line, col) => {
+        const api = editorApiRef.current;
+        if (!api?.editor) return;
+
+        const lineNumber = Math.max(1, Number(line) || 1);
+        const column = Math.max(1, Number(col) || 1);
+
+        api.editor.revealPositionInCenter({ lineNumber, column });
+        api.editor.setPosition({ lineNumber, column });
+        api.editor.focus();
     };
 
     const onEditorChange = (v) => {
@@ -302,7 +316,12 @@ export default function App() {
                                 />
                             </div>
 
-                            <OutputPanel terminalLines={terminalLines} />
+                            <OutputPanel
+                                terminalLines={terminalLines}
+                                outputOpen={outputOpen}
+                                toggleOutput={() => setOutputOpen((v) => !v)}
+                                onJumpToPosition={jumpToPosition}
+                            />
                         </div>
 
                         <aside className="tokens-dock" aria-hidden={!tokensOpen}>
