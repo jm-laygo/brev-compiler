@@ -47,7 +47,7 @@
 .token-header-row,
 .token-row{
     display: grid;
-    grid-template-columns: 90px 1fr 1fr 1fr;
+    grid-template-columns: 70px 1fr 1fr 1fr;
     align-items: start;
 }
 
