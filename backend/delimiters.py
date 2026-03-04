@@ -28,9 +28,9 @@ op_delim    = {'+', '-', '*', '/', '%', '!', '&', '|', '=', '>', '<'}
 els_delim   = {space, newline, op_bra}
 bool_delim  = {space, cl_par, semicolon, comma, colon, cl_bra} | op_delim
 
-int_decdelim = {space, semicolon, colon, comma, cl_bra, cl_par, cl_brc} | op_delim
-chr_delim    = {space, semicolon, comma, colon, cl_bra, cl_par, '&'}
-str_delim    = {comma, semicolon, space, colon, cl_par, cl_bra, '&'}
+int_decdelim = {space, semicolon, newline, colon, comma, cl_bra, cl_par, cl_brc} | op_delim
+chr_delim    = {space, semicolon, newline, comma, colon, cl_bra, cl_par, '&'}
+str_delim    = {comma, semicolon, newline, space, colon, cl_par, cl_bra, '&'}
 
 idnt_delim = {
     space, semicolon, colon, comma, period,
