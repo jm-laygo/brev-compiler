@@ -76,7 +76,7 @@ class ExpressionsMixin:
         if k == "VerseOfExpr":
             inner = getattr(e, "expr", None)
             _ = self._expr_type(inner)
-            return Type.base_t(BaseType.SCRIPTURE)
+            return Type.base_t(BaseType.TALLY)
 
         if k == "UnaryExpr":
             op = getattr(e, "op", "") or ""
