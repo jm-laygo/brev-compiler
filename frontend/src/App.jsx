@@ -18,7 +18,6 @@ export default function App() {
     const [initialCode, setInitialCode] = useState("");
     const [tokens, setTokens] = useState([]);
     const [tokensOpen, setTokensOpen] = useState(false);
-
     const [outputOpen, setOutputOpen] = useState(true);
 
     const [isRunning, setIsRunning] = useState(false);
@@ -81,6 +80,29 @@ export default function App() {
         a.download = "brev.txt";
         a.click();
         URL.revokeObjectURL(a.href);
+    };
+
+    const clearEditor = () => {
+        const editor = editorRef.current;
+        if (!editor) return;
+
+        const model = editor.getModel();
+        if (!model) return;
+
+        editor.pushUndoStop();
+
+        const fullRange = model.getFullModelRange();
+
+        editor.executeEdits("brev-clear", [
+            {
+                range: fullRange,
+                text: "",
+                forceMoveMarkers: true,
+            },
+        ]);
+
+        editor.pushUndoStop();
+        editor.focus();
     };
 
     useEffect(() => {
@@ -296,6 +318,7 @@ export default function App() {
                         onFilePicked={onFilePicked}
                         openFile={openFile}
                         saveFile={saveFile}
+                        clearEditor={clearEditor}
                         toggleLiveLex={toggleLiveLex}
                         toggleLiveSyn={toggleLiveSyn}
                         toggleLiveSem={toggleLiveSem}

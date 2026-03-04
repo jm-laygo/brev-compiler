@@ -5,6 +5,7 @@ export default function Toolbar({
     onFilePicked,
     openFile,
     saveFile,
+    clearEditor,
     toggleLiveLex,
     toggleLiveSyn,
     toggleLiveSem,
@@ -34,6 +35,7 @@ export default function Toolbar({
                 <button onClick={saveFile} className="command-btn">
                     Save
                 </button>
+                <button onClick={clearEditor} className="command-btn">Clear</button>
             </div>
 
             <div className="header-title-box">
