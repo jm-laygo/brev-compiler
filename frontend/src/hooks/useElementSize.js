@@ -1,27 +1,22 @@
-import React, { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 
-export default function OutputPanel({ terminalLines = [] }) {
-    const bottomRef = useRef(null);
+export default function useElementSize(ref) {
+    const [size, setSize] = useState({ width: 0, height: 0 });
 
     useEffect(() => {
-        bottomRef.current?.scrollIntoView({ block: "end" });
-    }, [terminalLines]);
+        if (!ref.current) return;
 
-    return (
-        <section className="output-panel">
-            <div className="output-head">
-                <div className="output-title">Output</div>
-                <div className="output-count">{terminalLines.length} lines</div>
-            </div>
+        const ro = new ResizeObserver(() => {
+            const r = ref.current.getBoundingClientRect();
+            setSize({
+                width: Math.max(0, Math.floor(r.width)),
+                height: Math.max(0, Math.floor(r.height)),
+            });
+        });
 
-            <div className="output-body" role="log" aria-live="polite">
-                {terminalLines.map((l) => (
-                    <div key={l.id} className={`term-line ${l.level || "info"}`}>
-                        {l.text}
-                    </div>
-                ))}
-                <div ref={bottomRef} />
-            </div>
-        </section>
-    );
+        ro.observe(ref.current);
+        return () => ro.disconnect();
+    }, [ref]);
+
+    return size;
 }

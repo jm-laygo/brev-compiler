@@ -47,7 +47,7 @@
 .token-header-row,
 .token-row{
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 90px 1fr 1fr 1fr;
     align-items: start;
 }
 
@@ -108,8 +108,18 @@
 
 .token-cell + .token-cell{
     border-left: 2px solid yellow;
+    min-height: 100%;
 }
 
 .token-cell.lexeme{
     color: #b7ffb7;
+}
+
+.token-hcell.pos,
+.token-cell.pos{
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }

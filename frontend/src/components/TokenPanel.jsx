@@ -35,6 +35,7 @@ export default function TokenPanel({ tokens = [], onTokenClick }) {
             <div className="tokens-table" role="table" aria-label="Tokens table">
                 <div className="token-thead" role="rowgroup">
                     <div className="token-header-row" role="row">
+                        <div className="token-hcell pos" role="columnheader">Ln, Col</div>
                         <div className="token-hcell" role="columnheader">LEXEME</div>
                         <div className="token-hcell" role="columnheader">TOKEN</div>
                         <div className="token-hcell" role="columnheader">TYPE</div>
