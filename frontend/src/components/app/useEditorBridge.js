@@ -27,7 +27,6 @@ function pickTokenIndexFromCursor(tokens, cursorLn, cursorCol) {
         if (start.ln <= 0 || start.col <= 0) continue;
 
         const c = comparePos(start, cursor);
-
         if (c > 0) continue;
 
         const dist = (cursor.ln - start.ln) * 100000 + (cursor.col - start.col);
@@ -40,9 +39,24 @@ function pickTokenIndexFromCursor(tokens, cursorLn, cursorCol) {
     return bestIdx;
 }
 
+function adjustExclusivePosition(ln, col) {
+    let outLn = Number(ln) || 1;
+    let outCol = Number(col) || 1;
+
+    if (outCol > 1) {
+        outCol -= 1;
+    } else if (outLn > 1) {
+        outLn -= 1;
+        outCol = 1;
+    }
+
+    return { ln: outLn, col: outCol };
+}
+
 export default function useEditorBridge({
     tokens = [],
     onActiveTokenRangeChange,
+    onActiveTokenHeadIndexChange,
 } = {}) {
     const editorRef = useRef(null);
     const editorApiRef = useRef(null);
@@ -125,54 +139,55 @@ export default function useEditorBridge({
 
         const editor = api.editor;
 
-        const sub = editor.onDidChangeCursorSelection((e) => {
-            const sel = e?.selection;
-            const sp = sel?.getStartPosition?.();
-            const ep = sel?.getEndPosition?.();
+        const sub = editor.onDidChangeCursorSelection((evt) => {
+            const sel = evt?.selection ?? editor.getSelection?.();
+            if (!sel) return;
 
-            let eLn = ep?.lineNumber ?? 1;
-            let eCol = ep?.column ?? 1;
-
-            const isEmpty = typeof sel?.isEmpty === "function" ? sel.isEmpty() : true;
-
-            if (!isEmpty) {
-                if (eCol > 1) {
-                    eCol = eCol - 1;
-                } else if (eLn > 1) {
-                    eLn = eLn - 1;
-                    eCol = 1;
-                }
-            }
+            const sp = sel.getStartPosition?.();
+            const ep = sel.getEndPosition?.();
+            const hp = sel.getPosition?.();
 
             const sLn = sp?.lineNumber ?? 1;
             const sCol = sp?.column ?? 1;
 
+            const eLn = ep?.lineNumber ?? 1;
+            const eCol = ep?.column ?? 1;
+
+            let hLn = hp?.lineNumber ?? eLn;
+            let hCol = hp?.column ?? eCol;
+
+            const isEmpty = typeof sel.isEmpty === "function" ? sel.isEmpty() : true;
+
+            if (!isEmpty) {
+                const adjusted = adjustExclusivePosition(hLn, hCol);
+                hLn = adjusted.ln;
+                hCol = adjusted.col;
+            }
+
             const safeTokens = Array.isArray(tokens) ? tokens : [];
 
-            const startIdx = pickTokenIndexFromCursor(safeTokens, sLn, sCol);
-            const endIdx = pickTokenIndexFromCursor(safeTokens, eLn, eCol);
+            const startIdxRaw = pickTokenIndexFromCursor(safeTokens, sLn, sCol);
+            const endIdxRaw = pickTokenIndexFromCursor(safeTokens, eLn, eCol);
+            const headIdx = pickTokenIndexFromCursor(safeTokens, hLn, hCol);
 
-            if (typeof onActiveTokenRangeChange !== "function") return;
-
-            if (startIdx < 0 && endIdx < 0) {
-                onActiveTokenRangeChange({ start: -1, end: -1 });
-                return;
+            if (typeof onActiveTokenRangeChange === "function") {
+                if (startIdxRaw < 0 && endIdxRaw < 0) {
+                    onActiveTokenRangeChange({ start: -1, end: -1 });
+                } else if (startIdxRaw < 0) {
+                    onActiveTokenRangeChange({ start: endIdxRaw, end: endIdxRaw });
+                } else if (endIdxRaw < 0) {
+                    onActiveTokenRangeChange({ start: startIdxRaw, end: startIdxRaw });
+                } else {
+                    onActiveTokenRangeChange({
+                        start: Math.min(startIdxRaw, endIdxRaw),
+                        end: Math.max(startIdxRaw, endIdxRaw),
+                    });
+                }
             }
 
-            if (startIdx < 0) {
-                onActiveTokenRangeChange({ start: endIdx, end: endIdx });
-                return;
+            if (typeof onActiveTokenHeadIndexChange === "function") {
+                onActiveTokenHeadIndexChange(headIdx);
             }
-
-            if (endIdx < 0) {
-                onActiveTokenRangeChange({ start: startIdx, end: startIdx });
-                return;
-            }
-
-            onActiveTokenRangeChange({
-                start: Math.min(startIdx, endIdx),
-                end: Math.max(startIdx, endIdx),
-            });
         });
 
         return () => {
@@ -182,7 +197,7 @@ export default function useEditorBridge({
                 // ignore
             }
         };
-    }, [tokens, onActiveTokenRangeChange]);
+    }, [tokens, onActiveTokenRangeChange, onActiveTokenHeadIndexChange]);
 
     return {
         editorRef,

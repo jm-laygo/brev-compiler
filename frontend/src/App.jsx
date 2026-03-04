@@ -19,6 +19,7 @@ export default function App() {
     const [tokensOpen, setTokensOpen] = useState(false);
     const [outputOpen, setOutputOpen] = useState(true);
     const [activeTokenRange, setActiveTokenRange] = useState({ start: -1, end: -1 });
+    const [activeTokenHeadIndex, setActiveTokenHeadIndex] = useState(-1);
 
     const {
         editorRef,
@@ -32,6 +33,7 @@ export default function App() {
     } = useEditorBridge({
         tokens,
         onActiveTokenRangeChange: setActiveTokenRange,
+        onActiveTokenHeadIndexChange: setActiveTokenHeadIndex,
     });
 
     const {
@@ -119,6 +121,7 @@ export default function App() {
                                     tokens={tokens}
                                     onTokenClick={jumpToToken}
                                     selectedRange={activeTokenRange}
+                                    activeHeadIndex={activeTokenHeadIndex}
                                 />
                             </ErrorBoundary>
                         </aside>

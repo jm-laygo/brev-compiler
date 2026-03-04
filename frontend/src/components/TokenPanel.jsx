@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import TokenRow from "./TokenRow.jsx";
 
-export default function TokenPanel({ tokens = [], onTokenClick, selectedRange = { start: -1, end: -1 } }) {
+export default function TokenPanel({ tokens = [], onTokenClick, selectedRange, activeHeadIndex = -1 }) {
     const safeTokens = useMemo(() => {
         return Array.isArray(tokens) ? tokens : [];
     }, [tokens]);
@@ -27,10 +27,11 @@ export default function TokenPanel({ tokens = [], onTokenClick, selectedRange = 
     const end = Number(selectedRange?.end ?? -1);
 
     useEffect(() => {
-        if (start < 0) return;
-        if (start >= safeTokens.length) return;
-        rowVirtualizer.scrollToIndex(start, { align: "center" });
-    }, [rowVirtualizer, safeTokens.length, start]);
+        const idx = Number(activeHeadIndex);
+        if (idx < 0) return;
+        if (idx >= safeTokens.length) return;
+        rowVirtualizer.scrollToIndex(activeHeadIndex, { align: "center" });
+    }, [rowVirtualizer, safeTokens.length, activeHeadIndex]);
 
     const items = rowVirtualizer.getVirtualItems();
 
