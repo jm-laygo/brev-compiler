@@ -185,6 +185,7 @@ class VerseEnd(Node):
 @dataclass
 class GraceDefault(Node):
     body: List[Statement] = field(default_factory=list)
+    end: Optional["VerseEnd"] = None
 
 @dataclass
 class FallStmt(JumpStmt):
