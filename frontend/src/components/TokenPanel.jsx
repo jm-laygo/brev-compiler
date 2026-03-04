@@ -3,7 +3,7 @@ import React, { useMemo, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import TokenRow from "./TokenRow.jsx";
 
-export default function TokenPanel({ tokens = [] }) {
+export default function TokenPanel({ tokens = [], onTokenClick }) {
     const safeTokens = useMemo(() => {
         return Array.isArray(tokens) ? tokens : [];
     }, [tokens]);
@@ -55,6 +55,14 @@ export default function TokenPanel({ tokens = [] }) {
                                 data-index={v.index}
                                 className={`token-row ${v.index % 2 === 0 ? "even" : "odd"}`}
                                 role="row"
+                                tabIndex={0}
+                                onClick={() => onTokenClick?.(safeTokens[v.index])}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        onTokenClick?.(safeTokens[v.index]);
+                                    }
+                                }}
                                 style={{
                                     position: "absolute",
                                     top: 0,

@@ -177,6 +177,37 @@ export default function App() {
         startLive("sem");
     };
 
+    const jumpToToken = (token) => {
+        const api = editorApiRef.current;
+        if (!api?.editor || !api?.monaco) return;
+        if (!token) return;
+
+        const editor = api.editor;
+        const monaco = api.monaco;
+
+        const pos = token.pos ?? token.position ?? null;
+
+        const lineNumber = Math.max(1, Number(pos?.ln ?? pos?.line ?? token.ln ?? token.line ?? 1));
+        const column = Math.max(1, Number(pos?.col ?? pos?.column ?? token.col ?? token.column ?? 1));
+
+        const model = editor.getModel();
+        if (!model) return;
+
+        const lineText = model.getLineContent(lineNumber);
+
+        let endColumn = column + 1;
+
+        const rest = lineText.slice(Math.max(0, column - 1));
+        const m = rest.match(/^[A-Za-z_]\w*/);
+        if (m && m[0]) endColumn = column + m[0].length;
+
+        const range = new monaco.Range(lineNumber, column, lineNumber, endColumn);
+
+        editor.setSelection(range);
+        editor.revealRangeInCenter(range);
+        editor.focus();
+    };
+    
     const runLiveOnce = async (phase, sourceCode, openTokens) => {
         if (liveAbortRef.current) liveAbortRef.current.abort();
         const controller = new AbortController();
@@ -349,7 +380,10 @@ export default function App() {
 
                         <aside className="tokens-dock" aria-hidden={!tokensOpen}>
                             <ErrorBoundary>
-                                <TokenPanel tokens={tokens} />
+                                <TokenPanel
+                                    tokens={tokens}
+                                    onTokenClick={jumpToToken}
+                                />
                             </ErrorBoundary>
                         </aside>
                     </div>
