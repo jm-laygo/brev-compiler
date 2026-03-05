@@ -53,20 +53,20 @@ class ProgramFlowMixin:
             elif _class(d) == "OrderDecl":
                 self._error(d, "Order declarations are not allowed inside functions (if intended, implement it).")
 
-        for s in getattr(f, "body", []) or []:
+        body = getattr(f, "body", []) or []
+        for s in body:
             self._check_stmt(s)
 
         dismiss_stmt = getattr(f, "dismiss", None)
         if dismiss_stmt is not None:
             self._check_stmt(dismiss_stmt)
 
-        # Require dismiss for non-hollow functions
-        if fs is not None and not fs.return_type.is_base(BaseType.HOLLOW):
-            if dismiss_stmt is None:
-                self._error(f, f"Function '{fname}' must dismiss a value of type {fs.return_type}.")
+        has_dismiss_in_body = any(_class(st) == "DismissStmt" for st in body)
+        has_any_dismiss = (dismiss_stmt is not None) or has_dismiss_in_body
 
-        self.scope = old_scope
-        self.current_func = None
+        if fs is not None and not fs.return_type.is_base(BaseType.HOLLOW):
+            if not has_any_dismiss:
+                self._error(f, f"Function '{fname}' must dismiss a value of type {fs.return_type}.")
 
         self.scope = old_scope
         self.current_func = None
