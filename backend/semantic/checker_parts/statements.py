@@ -37,6 +37,12 @@ class StatementsMixin:
             value  = getattr(s, "value", None)
             op     = getattr(s, "op", "=")
 
+            from backend.semantic.symbols import VarSymbol
+            sym = self._lvalue_root_symbol(target)
+            if isinstance(sym, VarSymbol) and getattr(sym, "is_const", False):
+                self._error(target if target is not None else s, f"Cannot modify sacred constant '{sym.name}'.")                
+                return
+
             t_target = self._lvalue_type(target)
             t_val    = self._expr_type(value)
 
@@ -59,6 +65,13 @@ class StatementsMixin:
 
         if k == "IncDecStmt":
             target = getattr(s, "target", None)
+
+            sym = self._lvalue_symbol(target)
+            sym = self._lvalue_root_symbol(target)
+            if isinstance(sym, VarSymbol) and getattr(sym, "is_const", False):
+                self._error(s, f"Cannot increment/decrement sacred constant '{sym.name}'.")
+                return
+
             t = self._lvalue_type(target)
             if not is_numeric(t):
                 self._error(s, f"++/-- requires numeric lvalue, got {t}.")
@@ -72,6 +85,13 @@ class StatementsMixin:
 
         if k == "ReceiveStmt":
             target = getattr(s, "target", None)
+
+            sym = self._lvalue_symbol(target)
+            sym = self._lvalue_root_symbol(target)
+            if isinstance(sym, VarSymbol) and getattr(sym, "is_const", False):
+                self._error(s, f"Cannot store input into sacred constant '{sym.name}'.")
+                return
+
             _ = self._lvalue_type(target)
             return
 

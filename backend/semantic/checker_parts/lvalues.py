@@ -8,6 +8,26 @@ from backend.semantic.typesys import (
 from .helpers import _class
 
 class LValuesMixin:
+    def _lvalue_root_symbol(self, lv: Any):
+        if lv is None:
+            return None
+
+        k = _class(lv)
+
+        if k == "NameRef":
+            name = getattr(lv, "name", None)
+            return self.scope.resolve(name) if name else None
+
+        if k == "IndexRef":
+            base = getattr(lv, "base", None)
+            return self._lvalue_root_symbol(base)
+
+        if k == "MemberRef":
+            base = getattr(lv, "base", None)
+            return self._lvalue_root_symbol(base)
+
+        return None
+
     def _lvalue_type(self, lv: Any) -> Type:
         if lv is None:
             return Type.unknown()
@@ -17,7 +37,7 @@ class LValuesMixin:
         if k == "NameRef":
             name = getattr(lv, "name", None)
             sym = self.scope.resolve(name) if name else None
-            from backend.semantic.symbols import VarSymbol  # local import avoids cycles
+            from backend.semantic.symbols import VarSymbol
 
             if isinstance(sym, VarSymbol):
                 return sym.typ
@@ -77,5 +97,4 @@ class LValuesMixin:
 
             return ms.typ
 
-        # fallback: treat other lvalue-like nodes as expressions
         return self._expr_type(lv)
