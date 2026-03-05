@@ -10,8 +10,8 @@ class BaseType(str, Enum):
     SCRIPTURE = "scripture"
     VERITY = "verity"
     HOLLOW = "hollow"
-    UNKNOWN = "<unknown>"
-    ERROR = "<error>"
+    UNKNOWN = "unknown"
+    ERROR = "error"
 
 @dataclass(frozen=True)
 class Type:
@@ -159,6 +159,8 @@ def result_of_binary(op: str, left: Type, right: Type) -> Type:
 
     if op in (">", "<", ">=", "<="):
         if is_numeric(left) and is_numeric(right):
+            return Type.base_t(BaseType.VERITY)
+        if left.is_base(BaseType.SIGIL) and right.is_base(BaseType.SIGIL):
             return Type.base_t(BaseType.VERITY)
         return Type.error()
 
