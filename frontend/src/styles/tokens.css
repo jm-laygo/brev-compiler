@@ -73,6 +73,7 @@
 .token-row{
     border-bottom: 1px solid rgba(255,215,0,0.15);
     cursor: pointer;
+    align-items: center;
 }
 
 .token-row:focus{
@@ -104,6 +105,9 @@
     word-break: break-word;
     overflow-wrap: anywhere;
     line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .token-cell + .token-cell{

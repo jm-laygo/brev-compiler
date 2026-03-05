@@ -11,20 +11,16 @@ export default function TokenPanel({ tokens = [], onTokenClick, selectedRange, a
     const parentRef = useRef(null);
 
     const rowVirtualizer = useVirtualizer({
-        count: safeTokens.length,
-        getScrollElement: () => parentRef.current,
-        estimateSize: () => 44,
-        overscan: 10,
-        measureElement: (el) => el.getBoundingClientRect().height,
-        getItemKey: (index) => {
-            const t = safeTokens[index];
-            if (!t) return `row-${index}`;
-            return `${index}-${t.type ?? ""}-${t.token ?? ""}-${t.value ?? ""}`;
-        },
+    count: safeTokens.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 60,
+    overscan: 10,
     });
 
     const start = Number(selectedRange?.start ?? -1);
     const end = Number(selectedRange?.end ?? -1);
+    const lo = Math.min(start, end);
+    const hi = Math.max(start, end);
 
     useEffect(() => {
         const idx = Number(activeHeadIndex);
@@ -60,7 +56,10 @@ export default function TokenPanel({ tokens = [], onTokenClick, selectedRange, a
                         }}
                     >
                         {items.map((v) => {
-                            const isSelected = start >= 0 && end >= 0 && v.index >= start && v.index <= end;
+                            const isSelected =
+                                activeHeadIndex >= 0
+                                    ? v.index === activeHeadIndex
+                                    : (lo >= 0 && hi >= 0 && v.index >= lo && v.index <= hi);
 
                             return (
                                 <div
