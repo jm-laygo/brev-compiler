@@ -11,6 +11,7 @@ class Symbol:
 
 @dataclass
 class VarSymbol(Symbol):
+    array_sizes: Optional[List[int]] = None
     is_const: bool = False
 @dataclass
 class FuncSymbol(Symbol):

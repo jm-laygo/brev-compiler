@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, List
+from typing import Any, List, Optional
 from backend.semantic.typesys import BaseType, Type
 from backend.semantic.symbols import VarSymbol, FuncSymbol, OrderSymbol, MemberSymbol
 from .helpers import _class, _pos
@@ -16,6 +16,30 @@ class DeclarationsMixin:
                 continue
             else:
                 continue
+
+    def _const_int(self, e: Any) -> Optional[int]:
+        # expects LiteralExpr int
+        if e is None:
+            return None
+        if _class(e) == "LiteralExpr" and (getattr(e, "literal_type", "") or "").lower() == "int":
+            try:
+                return int(getattr(e, "value"))
+            except Exception:
+                return None
+        return None
+
+    def _extract_array_sizes(self, dims: list[Any], owner_node: Any) -> Optional[list[int]]:
+        sizes: list[int] = []
+        for d in dims:
+            v = self._const_int(d)
+            if v is None:
+                self._error(owner_node, "Array size must be a constant integer literal (tally).")
+                return None
+            if v <= 0:
+                self._error(owner_node, f"Array size must be > 0, got {v}.")
+                return None
+            sizes.append(v)
+        return sizes
 
     def _declare_orders(self, program: Any) -> None:
         for g in getattr(program, "globals", []) or []:
@@ -93,6 +117,7 @@ class DeclarationsMixin:
                 continue
 
             dims = getattr(it, "dims", []) or []
+            sizes = self._extract_array_sizes(dims, it) if len(dims) > 0 else None
             var_type = Type.array(decl_type, len(dims)) if len(dims) > 0 else decl_type
 
             if self.scope.resolve_local(name):
@@ -118,13 +143,20 @@ class DeclarationsMixin:
                 self._error(it, "ordain item missing name.")
                 continue
 
-            dims = getattr(it, "dims", []) or []
-            vtype = Type.array(order_type, len(dims)) if len(dims) > 0 else order_type
+        dims = getattr(it, "dims", []) or []
+        sizes = self._extract_array_sizes(dims, it) if len(dims) > 0 else None
 
-            if self.scope.resolve_local(vname):
-                self._error(it, f"Redeclaration of '{vname}' in the same scope.")
-                continue
+        vtype = Type.array(order_type, len(dims)) if len(dims) > 0 else order_type
 
-            self.scope.define(
-                VarSymbol(name=vname, typ=vtype, pos=_pos(it), is_const=False)
+        if self.scope.resolve_local(vname):
+            self._error(it, f"Redeclaration of '{vname}' in the same scope.")
+
+        self.scope.define(
+            VarSymbol(
+                name=vname,
+                typ=vtype,
+                pos=_pos(it),
+                is_const=False,
+                array_sizes=sizes,
             )
+        )
