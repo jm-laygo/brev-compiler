@@ -39,20 +39,6 @@ function pickTokenIndexFromCursor(tokens, cursorLn, cursorCol) {
     return bestIdx;
 }
 
-function adjustExclusivePosition(ln, col) {
-    let outLn = Number(ln) || 1;
-    let outCol = Number(col) || 1;
-
-    if (outCol > 1) {
-        outCol -= 1;
-    } else if (outLn > 1) {
-        outLn -= 1;
-        outCol = 1;
-    }
-
-    return { ln: outLn, col: outCol };
-}
-
 export default function useEditorBridge({
     tokens = [],
     onActiveTokenRangeChange,
@@ -112,8 +98,14 @@ export default function useEditorBridge({
 
         const pos = token.pos ?? token.position ?? null;
 
-        const lineNumber = Math.max(1, Number(pos?.ln ?? pos?.line ?? token.ln ?? token.line ?? 1));
-        const column = Math.max(1, Number(pos?.col ?? pos?.column ?? token.col ?? token.column ?? 1));
+        const lineNumber = Math.max(
+            1,
+            Number(pos?.ln ?? pos?.line ?? token.ln ?? token.line ?? 1)
+        );
+        const column = Math.max(
+            1,
+            Number(pos?.col ?? pos?.column ?? token.col ?? token.column ?? 1)
+        );
 
         const model = editor.getModel();
         if (!model) return;
@@ -121,7 +113,6 @@ export default function useEditorBridge({
         const lineText = model.getLineContent(lineNumber);
 
         let endColumn = column + 1;
-
         const rest = lineText.slice(Math.max(0, column - 1));
         const m = rest.match(/^[A-Za-z_]\w*/);
         if (m && m[0]) endColumn = column + m[0].length;
@@ -135,36 +126,78 @@ export default function useEditorBridge({
 
     useEffect(() => {
         const api = editorApiRef.current;
-        if (!api?.editor) return;
+        if (!api?.editor || !api?.monaco) return;
 
         const editor = api.editor;
+        const monaco = api.monaco;
+
+        const RTL = monaco?.SelectionDirection?.RTL;
+
+        function adjustExclusivePosition(ln, col) {
+            let outLn = Number(ln) || 1;
+            let outCol = Number(col) || 1;
+
+            if (outCol <= 1) {
+                if (outLn > 1) {
+                    outLn -= 1;
+
+                    try {
+                        const model = editor.getModel?.();
+                        if (model) {
+                            const lineLen = model.getLineLength(outLn);
+                            return { ln: outLn, col: Math.max(1, lineLen + 1) };
+                        }
+                    } catch {
+                        // ignore
+                    }
+
+                    return { ln: outLn, col: 1_000_000 };
+                }
+                return { ln: 1, col: 1 };
+            }
+
+            return { ln: outLn, col: outCol - 1 };
+        }
 
         const sub = editor.onDidChangeCursorSelection((evt) => {
             const sel = evt?.selection ?? editor.getSelection?.();
             if (!sel) return;
 
+            const safeTokens = Array.isArray(tokens) ? tokens : [];
+
             const sp = sel.getStartPosition?.();
             const ep = sel.getEndPosition?.();
-            const hp = sel.getPosition?.();
-
-            const sLn = sp?.lineNumber ?? 1;
-            const sCol = sp?.column ?? 1;
-
-            const eLn = ep?.lineNumber ?? 1;
-            const eCol = ep?.column ?? 1;
-
-            let hLn = hp?.lineNumber ?? eLn;
-            let hCol = hp?.column ?? eCol;
+            if (!sp || !ep) return;
 
             const isEmpty = typeof sel.isEmpty === "function" ? sel.isEmpty() : true;
 
-            if (!isEmpty) {
-                const adjusted = adjustExclusivePosition(hLn, hCol);
-                hLn = adjusted.ln;
-                hCol = adjusted.col;
-            }
+            const dir = typeof sel.getDirection === "function" ? sel.getDirection() : null;
+            const isRTL = dir === RTL;
 
-            const safeTokens = Array.isArray(tokens) ? tokens : [];
+            const activeRaw =
+                (typeof sel.getPosition === "function" ? sel.getPosition() : null) ||
+                (isRTL ? sp : ep);
+
+            const sLn = sp.lineNumber;
+            const sCol = sp.column;
+
+            let eLn = ep.lineNumber;
+            let eCol = ep.column;
+
+            let hLn = activeRaw.lineNumber;
+            let hCol = activeRaw.column;
+
+            if (!isEmpty) {
+                const endAdj = adjustExclusivePosition(eLn, eCol);
+                eLn = endAdj.ln;
+                eCol = endAdj.col;
+
+                if (!isRTL) {
+                    const headAdj = adjustExclusivePosition(hLn, hCol);
+                    hLn = headAdj.ln;
+                    hCol = headAdj.col;
+                }
+            }
 
             const startIdxRaw = pickTokenIndexFromCursor(safeTokens, sLn, sCol);
             const endIdxRaw = pickTokenIndexFromCursor(safeTokens, eLn, eCol);

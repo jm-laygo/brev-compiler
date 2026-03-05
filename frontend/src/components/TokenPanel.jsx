@@ -1,9 +1,14 @@
 /* eslint-disable react-hooks/incompatible-library */
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import TokenRow from "./TokenRow.jsx";
 
-export default function TokenPanel({ tokens = [], onTokenClick, selectedRange, activeHeadIndex = -1 }) {
+export default function TokenPanel({
+    tokens = [],
+    onTokenClick,
+    selectedRange,
+    activeHeadIndex = -1,
+}) {
     const safeTokens = useMemo(() => {
         return Array.isArray(tokens) ? tokens : [];
     }, [tokens]);
@@ -11,23 +16,55 @@ export default function TokenPanel({ tokens = [], onTokenClick, selectedRange, a
     const parentRef = useRef(null);
 
     const rowVirtualizer = useVirtualizer({
-    count: safeTokens.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 60,
-    overscan: 10,
+        count: safeTokens.length,
+        getScrollElement: () => parentRef.current,
+        estimateSize: () => 60,
+        overscan: 12,
+        getItemKey: (index) => {
+            const t = safeTokens[index];
+            const p = t?.pos ?? t?.position ?? {};
+            return `${index}-${t?.type ?? ""}-${t?.value ?? ""}-${p?.ln ?? ""}:${p?.col ?? ""}`;
+        },
     });
 
     const start = Number(selectedRange?.start ?? -1);
     const end = Number(selectedRange?.end ?? -1);
-    const lo = Math.min(start, end);
-    const hi = Math.max(start, end);
+    const lo = start >= 0 && end >= 0 ? Math.min(start, end) : -1;
+    const hi = start >= 0 && end >= 0 ? Math.max(start, end) : -1;
+
+    useLayoutEffect(() => {
+        const head = Number(activeHeadIndex);
+
+        const target =
+            head >= 0 && head < safeTokens.length
+                ? head
+                : end >= 0 && end < safeTokens.length
+                    ? end
+                    : -1;
+
+        if (target < 0) return;
+
+        const vis = rowVirtualizer.getVirtualItems();
+        const first = vis?.[0]?.index ?? 0;
+        const last = vis?.[vis.length - 1]?.index ?? 0;
+
+        const align = target < first ? "start" : target > last ? "end" : "center";
+
+        rowVirtualizer.scrollToIndex(target, { align, behavior: "auto" });
+
+        requestAnimationFrame(() => {
+            const vis2 = rowVirtualizer.getVirtualItems();
+            const first2 = vis2?.[0]?.index ?? 0;
+            const last2 = vis2?.[vis2.length - 1]?.index ?? 0;
+            const align2 = target < first2 ? "start" : target > last2 ? "end" : "center";
+
+            rowVirtualizer.scrollToIndex(target, { align: align2, behavior: "auto" });
+        });
+    }, [activeHeadIndex, end, safeTokens.length, rowVirtualizer]);
 
     useEffect(() => {
-        const idx = Number(activeHeadIndex);
-        if (idx < 0) return;
-        if (idx >= safeTokens.length) return;
-        rowVirtualizer.scrollToIndex(activeHeadIndex, { align: "center" });
-    }, [rowVirtualizer, safeTokens.length, activeHeadIndex]);
+        rowVirtualizer.measure();
+    }, [safeTokens.length, rowVirtualizer]);
 
     const items = rowVirtualizer.getVirtualItems();
 
@@ -53,13 +90,12 @@ export default function TokenPanel({ tokens = [], onTokenClick, selectedRange, a
                         style={{
                             height: rowVirtualizer.getTotalSize(),
                             position: "relative",
+                            width: "100%",
                         }}
                     >
                         {items.map((v) => {
-                            const isSelected =
-                                activeHeadIndex >= 0
-                                    ? v.index === activeHeadIndex
-                                    : (lo >= 0 && hi >= 0 && v.index >= lo && v.index <= hi);
+                            const hasRange = lo >= 0 && hi >= 0 && lo <= hi;
+                            const isSelected = hasRange ? v.index >= lo && v.index <= hi : false;
 
                             return (
                                 <div
