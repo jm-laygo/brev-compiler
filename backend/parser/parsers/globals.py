@@ -229,8 +229,22 @@ def parse_array_val(self: Parser) -> Expr:
 # DATA TYPES
 def parse_data_type(self: Parser) -> str:
     self.choose_prod("<data_type>")
-    t = self.advance()
-    return _tok_lexeme(t) if _tok_lexeme(t) else str(getattr(t, "type", ""))
+    la = self.la(0)
+
+    if la == TK_DTYPE_TALLY:
+        self.expect(TK_DTYPE_TALLY); return "tally"
+    if la == TK_DTYPE_DIVINE:
+        self.expect(TK_DTYPE_DIVINE); return "divine"
+    if la == TK_DTYPE_SIGIL:
+        self.expect(TK_DTYPE_SIGIL); return "sigil"
+    if la == TK_DTYPE_SCRIPTURE:
+        self.expect(TK_DTYPE_SCRIPTURE); return "scripture"
+    if la == TK_DTYPE_VERITY:
+        self.expect(TK_DTYPE_VERITY); return "verity"
+
+    tok = self.peek(0) or self.peek(-1)
+    raise ParserError(tok, expected=[TK_DTYPE_TALLY, TK_DTYPE_DIVINE, TK_DTYPE_SIGIL, TK_DTYPE_SCRIPTURE, TK_DTYPE_VERITY],
+                      details="Expected a data type keyword")
 
 def parse_data_type_id(self: Parser) -> str:
     self.choose_prod("<data_type_id>")
