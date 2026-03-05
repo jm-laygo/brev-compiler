@@ -66,7 +66,7 @@ class StatementsMixin:
         if k == "IncDecStmt":
             target = getattr(s, "target", None)
 
-            sym = self._lvalue_symbol(target)
+            from backend.semantic.symbols import VarSymbol
             sym = self._lvalue_root_symbol(target)
             if isinstance(sym, VarSymbol) and getattr(sym, "is_const", False):
                 self._error(s, f"Cannot increment/decrement sacred constant '{sym.name}'.")
@@ -86,7 +86,7 @@ class StatementsMixin:
         if k == "ReceiveStmt":
             target = getattr(s, "target", None)
 
-            sym = self._lvalue_symbol(target)
+            from backend.semantic.symbols import VarSymbol
             sym = self._lvalue_root_symbol(target)
             if isinstance(sym, VarSymbol) and getattr(sym, "is_const", False):
                 self._error(s, f"Cannot store input into sacred constant '{sym.name}'.")
@@ -218,8 +218,10 @@ class StatementsMixin:
         if k == "DismissStmt":
             if self.current_func is None:
                 return
+
             ret_t = self.current_func.return_type
             val = getattr(s, "value", None)
+
             if ret_t.is_base(BaseType.HOLLOW):
                 if val is not None:
                     self._error(s, "hollow function cannot dismiss a value.")

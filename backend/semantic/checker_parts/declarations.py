@@ -134,6 +134,10 @@ class DeclarationsMixin:
             self._error(decl, "ordain declaration missing order name.")
             return
 
+        if order_name not in self.orders:
+            self._error(decl, f"Unknown order type '{order_name}'.")
+            # keep going so you still declare symbols to avoid cascading errors
+
         order_type = Type.order(order_name)
 
         items = getattr(decl, "items", []) or []
@@ -143,20 +147,20 @@ class DeclarationsMixin:
                 self._error(it, "ordain item missing name.")
                 continue
 
-        dims = getattr(it, "dims", []) or []
-        sizes = self._extract_array_sizes(dims, it) if len(dims) > 0 else None
+            dims = getattr(it, "dims", []) or []
+            sizes = self._extract_array_sizes(dims, it) if len(dims) > 0 else None
+            vtype = Type.array(order_type, len(dims)) if len(dims) > 0 else order_type
 
-        vtype = Type.array(order_type, len(dims)) if len(dims) > 0 else order_type
+            if self.scope.resolve_local(vname):
+                self._error(it, f"Redeclaration of '{vname}' in the same scope.")
+                continue
 
-        if self.scope.resolve_local(vname):
-            self._error(it, f"Redeclaration of '{vname}' in the same scope.")
-
-        self.scope.define(
-            VarSymbol(
-                name=vname,
-                typ=vtype,
-                pos=_pos(it),
-                is_const=False,
-                array_sizes=sizes,
+            self.scope.define(
+                VarSymbol(
+                    name=vname,
+                    typ=vtype,
+                    pos=_pos(it),
+                    is_const=False,
+                    array_sizes=sizes,
+                )
             )
-        )

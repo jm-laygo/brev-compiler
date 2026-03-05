@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Any
 from backend.semantic.symbols import Scope
 from .helpers import _class
+from backend.semantic.typesys import BaseType
 
 class ProgramFlowMixin:
     def _check_program(self, program: Any) -> None:
@@ -58,6 +59,14 @@ class ProgramFlowMixin:
         dismiss_stmt = getattr(f, "dismiss", None)
         if dismiss_stmt is not None:
             self._check_stmt(dismiss_stmt)
+
+        # Require dismiss for non-hollow functions
+        if fs is not None and not fs.return_type.is_base(BaseType.HOLLOW):
+            if dismiss_stmt is None:
+                self._error(f, f"Function '{fname}' must dismiss a value of type {fs.return_type}.")
+
+        self.scope = old_scope
+        self.current_func = None
 
         self.scope = old_scope
         self.current_func = None
