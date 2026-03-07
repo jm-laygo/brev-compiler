@@ -73,3 +73,43 @@ class SemanticError(Exception):
 
         details = self.details.replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r")
         return f"Ln {ln}, Col {col} Semantic Error: {details}"
+    
+
+class RuntimeErrorBase(Exception):
+    def __init__(self, node_or_pos=None, details: str = "Runtime error"):
+        super().__init__(details)
+        self.node_or_pos = node_or_pos
+        self.details = details
+
+    def as_string(self) -> str:
+        x = self.node_or_pos
+        if x is not None and hasattr(x, "ln") and hasattr(x, "col"):
+            pos = x
+        else:
+            pos = getattr(x, "pos", None)
+
+        ln = getattr(pos, "ln", "?")
+        col = getattr(pos, "col", "?")
+        details = self.details.replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r")
+        return f"Ln {ln}, Col {col} Runtime Error: {details}"
+
+class RuntimeNameError(RuntimeErrorBase):
+    pass
+
+class RuntimeTypeError(RuntimeErrorBase):
+    pass
+
+class DivisionByZeroRuntimeError(RuntimeErrorBase):
+    pass
+
+class IndexOutOfBoundsRuntimeError(RuntimeErrorBase):
+    pass
+
+class ConstAssignmentRuntimeError(RuntimeErrorBase):
+    pass
+
+class InvalidMemberAccessRuntimeError(RuntimeErrorBase):
+    pass
+
+class InputConversionRuntimeError(RuntimeErrorBase):
+    pass
