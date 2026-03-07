@@ -4,7 +4,6 @@ from backend.delimiters import idnt_delim, format_expected_delims, ALPHABET, ALP
 
 MAX_IDENTIFIER_LENGTH = 48
 
-
 def scan_identifier(lexer, tokens, errors):
     if lexer.current_char is None:
         return False
