@@ -104,7 +104,7 @@ def can_assign(dst: Type, src: Type) -> bool:
     if same_type(dst, src):
         return True
 
-    if dst.is_base(BaseType.DIVINE) and src.is_base(BaseType.TALLY):
+    if is_numeric(dst) and is_numeric(src):
         return True
 
     if dst.is_base(BaseType.SCRIPTURE) and src.is_base(BaseType.SIGIL):
