@@ -9,6 +9,7 @@ export default function Toolbar({
     toggleLiveLex,
     toggleLiveSyn,
     toggleLiveSem,
+    toggleExecute,
     isRunning,
     runningPhase,
     tokensOpen,
@@ -17,32 +18,11 @@ export default function Toolbar({
     const isLexRunning = isRunning && runningPhase === "lex";
     const isSynRunning = isRunning && runningPhase === "syn";
     const isSemRunning = isRunning && runningPhase === "sem";
+    const isExecRunning = isRunning && runningPhase === "run";
 
     return (
         <header id="header-row">
             <div className="toolbar-left">
-                <button onClick={openFile} className="command-btn">
-                    Open
-                </button>
-
-                <input
-                    ref={fileInputRef}
-                    type="file"
-                    style={{ display: "none" }}
-                    onChange={onFilePicked}
-                />
-
-                <button onClick={saveFile} className="command-btn">
-                    Save
-                </button>
-                <button onClick={clearEditor} className="command-btn">Clear</button>
-            </div>
-
-            <div className="header-title-box">
-                <h2 className="header-title-text">Brev Compiler</h2>
-            </div>
-
-            <div className="toolbar-right">
                 <button
                     onClick={toggleLiveLex}
                     className={`command-btn ${isLexRunning ? "active-btn" : ""}`}
@@ -64,6 +44,37 @@ export default function Toolbar({
                     {isSemRunning ? "Stop Running" : "Run Semantics"}
                 </button>
 
+                <button
+                    onClick={toggleExecute}
+                    className={`command-btn ${isExecRunning ? "active-btn" : ""}`}
+                >
+                    {isExecRunning ? "Stop Running" : "Run Execute"}
+                </button>
+            </div>
+
+            <div className="header-title-box">
+                <h2 className="header-title-text">Brev Compiler</h2>
+            </div>
+
+            <div className="toolbar-right">
+                <button onClick={openFile} className="command-btn">
+                    Open
+                </button>
+
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    style={{ display: "none" }}
+                    onChange={onFilePicked}
+                />
+
+                <button onClick={saveFile} className="command-btn">
+                    Save
+                </button>
+
+                <button onClick={clearEditor} className="command-btn">
+                    Clear
+                </button>
                 <button
                     onClick={toggleTokens}
                     className={`command-btn ${tokensOpen ? "active-btn" : ""}`}

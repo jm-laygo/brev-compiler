@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { runLexical, runSyntax, runSemantic } from "../../api/brevApi.js";
+import { runLexical, runSyntax, runSemantic, runExecute } from "../../api/brevApi.js";
 
 export default function useLiveRunner({
     getCode,
@@ -46,6 +46,7 @@ export default function useLiveRunner({
     const runLiveOnce = useCallback(
         async (phase, sourceCode, openTokens) => {
             if (liveAbortRef.current) liveAbortRef.current.abort();
+
             const controller = new AbortController();
             liveAbortRef.current = controller;
 
@@ -143,6 +144,44 @@ export default function useLiveRunner({
 
                     return;
                 }
+
+                if (phase === "run") {
+                    setTerminal("Running execution...", "info");
+
+                    const { res, data } = await runExecute(sourceCode, controller.signal);
+                    if (reqId !== liveReqIdRef.current) return;
+
+                    if (!res.ok) {
+                        const msg = `Execute API error (HTTP ${res.status}): ${data.error || "Unknown error"}`;
+                        setTerminal("Execution failed:", "error");
+                        logError(msg);
+                        setMarkersFromErrors([msg]);
+                        return;
+                    }
+
+                    const errs = Array.isArray(data.errors) ? data.errors : [];
+                    const output = Array.isArray(data.output) ? data.output : [];
+
+                    if (data.ran && errs.length === 0) {
+                        if (output.length > 0) {
+                            setTerminal("Execution successful!", "success");
+                            output.forEach((line) => {
+                                if (line === "" || line == null) logWarn("");
+                                else logWarn(String(line));
+                            });
+                        } else {
+                            setTerminal("Execution successful! No output.", "success");
+                        }
+                        setMarkersFromErrors([]);
+                    } else {
+                        setTerminal("Execution failed:", "error");
+                        if (errs.length) errs.forEach((e) => logError(e));
+                        else logError("Unknown runtime error");
+                        if (errs.length) setMarkersFromErrors(errs);
+                    }
+
+                    return;
+                }
             } catch (e) {
                 if (e?.name === "AbortError") return;
                 const msg = `Network error: ${e.message}`;
@@ -154,6 +193,7 @@ export default function useLiveRunner({
         [
             clearAllEditorMarkers,
             logError,
+            logWarn,
             setMarkersFromErrors,
             setTerminal,
             setTokens,
@@ -200,6 +240,14 @@ export default function useLiveRunner({
         startLive("sem");
     }, [isRunning, runningPhase, startLive, stopLive]);
 
+    const toggleExecute = useCallback(() => {
+        if (isRunning && runningPhase === "run") {
+            stopLive();
+            return;
+        }
+        startLive("run");
+    }, [isRunning, runningPhase, startLive, stopLive]);
+
     const onEditorChange = useCallback(
         (v) => {
             if (!isRunning || !runningPhase) return;
@@ -222,6 +270,7 @@ export default function useLiveRunner({
         toggleLiveLex,
         toggleLiveSyn,
         toggleLiveSem,
+        toggleExecute,
         onEditorChange,
     };
 }

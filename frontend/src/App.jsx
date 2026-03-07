@@ -43,6 +43,7 @@ export default function App() {
         toggleLiveLex,
         toggleLiveSyn,
         toggleLiveSem,
+        toggleExecute,
         onEditorChange,
     } = useLiveRunner({
         getCode,
@@ -87,6 +88,7 @@ export default function App() {
                         toggleLiveLex={toggleLiveLex}
                         toggleLiveSyn={toggleLiveSyn}
                         toggleLiveSem={toggleLiveSem}
+                        toggleExecute={toggleExecute}
                         isRunning={isRunning}
                         runningPhase={runningPhase}
                         tokensOpen={tokensOpen}
