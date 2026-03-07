@@ -183,7 +183,7 @@ def parse_arith_expr(self: Parser) -> Expr:
         operator_lexeme = _tok_lexeme(operator_token) or {
             TK_OP_PLUS: "+",
             TK_OP_MINUS: "-",
-            TK_OP_CONCAT: "++",
+            TK_OP_CONCAT: "&",
         }.get(operator_token.type, str(operator_token.type))
 
         left_expr = BinaryExpr(
@@ -411,10 +411,33 @@ def parse_literal_expr(self: Parser) -> LiteralExpr:
         return LiteralExpr(pos=_tok_pos(literal_token), value=literal_value, literal_type="decimal")
 
     if lookahead_type == TK_LIT_CHAR:
-        return LiteralExpr(pos=_tok_pos(literal_token), value=literal_lexeme, literal_type="char")
+        char_value = literal_lexeme
+
+        if not isinstance(char_value, str):
+            self.error_expected([TK_LIT_CHAR], "Invalid sigil literal.")
+
+        if len(char_value) == 3 and char_value[0] == "'" and char_value[2] == "'":
+            char_value = char_value[1]
+        else:
+            self.error_expected([TK_LIT_CHAR], "Invalid sigil literal format.")
+
+        return LiteralExpr(
+            pos=_tok_pos(literal_token),
+            value=char_value,
+            literal_type="char",
+        )
 
     if lookahead_type == TK_LIT_STRING:
-        return LiteralExpr(pos=_tok_pos(literal_token), value=literal_lexeme, literal_type="string")
+        string_value = literal_lexeme
+
+        if isinstance(string_value, str) and len(string_value) >= 2 and string_value[0] == '"' and string_value[-1] == '"':
+            string_value = string_value[1:-1]
+
+        return LiteralExpr(
+            pos=_tok_pos(literal_token),
+            value=string_value,
+            literal_type="string",
+        )
 
     if lookahead_type == TK_LIT_BOOL:
         normalized_bool_lexeme = (

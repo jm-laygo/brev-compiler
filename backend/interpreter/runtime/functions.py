@@ -2,7 +2,12 @@ from __future__ import annotations
 from typing import Any, List
 from backend.ast.ast_nodes import OrderDecl, OrdainDecl, SacredDecl, VarDecl
 from backend.interpreter.environment import Environment
-from backend.interpreter.control import DismissSignal
+from backend.interpreter.control import (
+    DismissSignal,
+    ProceedSignal,
+    FallSignal,
+    AbsolveSignal,
+)
 from backend.errors import RuntimeErrorBase, RuntimeNameError
 
 def _call_rite(self, rite_name: str, argument_values: List[Any], *, call_node=None):
@@ -43,6 +48,12 @@ def _call_rite(self, rite_name: str, argument_values: List[Any], *, call_node=No
 
     except DismissSignal as dismiss_signal:
         return dismiss_signal.value
+    except ProceedSignal:
+        raise RuntimeErrorBase(call_node or rite_node, "'proceed' may only be used inside loops.")
+    except FallSignal:
+        raise RuntimeErrorBase(call_node or rite_node, "'fall' may only be used inside loops or valid discern flow.")
+    except AbsolveSignal:
+        raise RuntimeErrorBase(call_node or rite_node, "'absolve' may only be used inside discern statements.")
 
     return None
 

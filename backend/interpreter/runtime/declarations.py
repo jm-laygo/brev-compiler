@@ -13,11 +13,18 @@ def _exec_var_decl(self, declaration_node: VarDecl, current_environment: Environ
             declared_item,
             current_environment,
         )
-        coerced_value = self._coerce_value_to_type(
-            declared_type_name,
-            materialized_value,
-            declared_item,
-        )
+
+        dimension_nodes = getattr(declared_item, "dims", None) or []
+
+        if dimension_nodes:
+            coerced_value = materialized_value
+        else:
+            coerced_value = self._coerce_value_to_type(
+                declared_type_name,
+                materialized_value,
+                declared_item,
+            )
+
         current_environment.declare(declared_item.name, coerced_value, is_const=False)
 
 def _exec_sacred_decl(self, declaration_node: SacredDecl, current_environment: Environment):

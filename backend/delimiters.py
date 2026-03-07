@@ -30,7 +30,7 @@ bool_delim = {space, cl_par, cl_brc, semicolon, comma, colon, cl_bra} | op_delim
 
 int_decdelim = {space, semicolon, newline, colon, comma, cl_bra, cl_par, cl_brc} | op_delim
 chr_delim    = {space, semicolon, newline, comma, colon, cl_bra, cl_par, '&'}
-str_delim    = {comma, semicolon, newline, space, colon, cl_par, cl_bra, '&'}
+str_delim    = {comma, semicolon, newline, space, colon, cl_par, cl_brc, cl_bra, '&'}
 
 idnt_delim = {
     space, semicolon, colon, comma, period,

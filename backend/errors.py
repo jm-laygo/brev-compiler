@@ -74,7 +74,6 @@ class SemanticError(Exception):
         details = self.details.replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r")
         return f"Ln {ln}, Col {col} Semantic Error: {details}"
     
-
 class RuntimeErrorBase(Exception):
     def __init__(self, node_or_pos=None, details: str = "Runtime error"):
         super().__init__(details)
@@ -92,6 +91,9 @@ class RuntimeErrorBase(Exception):
         col = getattr(pos, "col", "?")
         details = self.details.replace("\n", "\\n").replace("\t", "\\t").replace("\r", "\\r")
         return f"Ln {ln}, Col {col} Runtime Error: {details}"
+
+    def __str__(self) -> str:
+        return self.as_string()
 
 class RuntimeNameError(RuntimeErrorBase):
     pass

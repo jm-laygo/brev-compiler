@@ -32,8 +32,13 @@ def _coerce_value_to_type(self, declared_type_name: str, value, node=None):
 
     if lowered_type_name == "sigil":
         string_form = str(value)
+
         if len(string_form) == 1:
             return string_form
+
+        if len(string_form) == 3 and string_form[0] == "'" and string_form[2] == "'":
+            return string_form[1]
+
         raise RuntimeTypeError(node, "Value cannot be converted to sigil.")
 
     return value
