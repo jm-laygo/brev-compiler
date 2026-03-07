@@ -3,46 +3,46 @@ from typing import Any
 
 from backend.semantic.typesys import BaseType, Type
 
-def _fmt_type(t: Type) -> str:
-    if t is None:
+def _fmt_type(type_value: Type) -> str:
+    if type_value is None:
         return "<unknown>"
-    if getattr(t, "base", None) == BaseType.ERROR:
+    if getattr(type_value, "base", None) == BaseType.ERROR:
         return "<invalid>"
-    if getattr(t, "base", None) == BaseType.UNKNOWN:
+    if getattr(type_value, "base", None) == BaseType.UNKNOWN:
         return "<unknown>"
-    return str(t)
+    return str(type_value)
 
-def _is_bad(t: Type) -> bool:
-    if t is None:
+def _is_bad(type_value: Type) -> bool:
+    if type_value is None:
         return True
-    return t.base in (BaseType.ERROR,)
+    return type_value.base in (BaseType.ERROR,)
 
-def _fmt_type_for_msg(t: Type) -> str:
-    if t is None:
+def _fmt_type_for_msg(type_value: Type) -> str:
+    if type_value is None:
         return "unknown"
-    if getattr(t, "base", None) == BaseType.ERROR:
+    if getattr(type_value, "base", None) == BaseType.ERROR:
         return "an invalid expression"
-    if getattr(t, "base", None) == BaseType.UNKNOWN:
+    if getattr(type_value, "base", None) == BaseType.UNKNOWN:
         return "unknown"
-    return str(t)
+    return str(type_value)
 
-def _binop_error_msg(op: str, lt: Type, rt: Type) -> str:
-    l = _fmt_type_for_msg(lt)
-    r = _fmt_type_for_msg(rt)
+def _binop_error_msg(operator_text: str, left_type: Type, right_type: Type) -> str:
+    left_type_name = _fmt_type_for_msg(left_type)
+    right_type_name = _fmt_type_for_msg(right_type)
 
-    if lt.base == BaseType.ERROR and rt.base != BaseType.ERROR:
-        return f"Invalid '{op}' because the left operand is an invalid expression and the right operand is {r}."
-    if rt.base == BaseType.ERROR and lt.base != BaseType.ERROR:
-        return f"Invalid '{op}' because the left operand is {l} and the right operand is an invalid expression."
-    if lt.base == BaseType.ERROR and rt.base == BaseType.ERROR:
-        return f"Invalid '{op}' because both operands are invalid expressions."
+    if left_type.base == BaseType.ERROR and right_type.base != BaseType.ERROR:
+        return f"Invalid '{operator_text}' because the left operand is an invalid expression and the right operand is {right_type_name}."
+    if right_type.base == BaseType.ERROR and left_type.base != BaseType.ERROR:
+        return f"Invalid '{operator_text}' because the left operand is {left_type_name} and the right operand is an invalid expression."
+    if left_type.base == BaseType.ERROR and right_type.base == BaseType.ERROR:
+        return f"Invalid '{operator_text}' because both operands are invalid expressions."
 
-    return f"Invalid binary op '{op}' for operands {l} and {r}."
+    return f"Invalid binary op '{operator_text}' for operands {left_type_name} and {right_type_name}."
 
-def _has_type_error(t: Type) -> bool:
-    return getattr(t, "base", None) == BaseType.ERROR
+def _has_type_error(type_value: Type) -> bool:
+    return getattr(type_value, "base", None) == BaseType.ERROR
 
-def _tname(t: Type) -> str:
-    if _has_type_error(t):
+def _tname(type_value: Type) -> str:
+    if _has_type_error(type_value):
         return "<previous type error>"
-    return str(t)
+    return str(type_value)

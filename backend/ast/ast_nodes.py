@@ -259,12 +259,6 @@ class BinaryExpr(Expr):
     right: Expr = None
 
 @dataclass
-class TernaryExpr(Expr):
-    condition: Expr = None
-    true_expr: Expr = None
-    false_expr: Expr = None
-
-@dataclass
 class GroupExpr(Expr):
     expr: Expr = None
 

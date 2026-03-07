@@ -49,7 +49,7 @@ class ParserError(Exception):
         found_type = getattr(self.token, "type", None)
         found_str = friendly(found_type) if found_type else "<?>"
 
-        msg = f"Ln {line}, Col {col} Syntax Error: Expected {expected_str} but found '{found_str}'"
+        msg = f"Ln {line}, Col {col} Syntax Error: Expected {expected_str} but found '{found_str}'."
         if self.details:
             msg += f" ({self.details})"
         return msg

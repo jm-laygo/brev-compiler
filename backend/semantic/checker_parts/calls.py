@@ -5,32 +5,40 @@ from backend.semantic.typesys import Type, BaseType, can_assign
 
 
 class CallsMixin:
-    def _check_call(self, callee: str, args: List[Any], node: Any) -> Type:
-        if not callee:
-            self._error(node, "Call missing callee.")
+    def _check_call(self, function_name: str, argument_nodes: List[Any], call_node: Any) -> Type:
+        if not function_name:
+            self._error(call_node, "Call missing function name.")
             return Type.error()
 
-        fs = self.funcs.get(callee)
-        if fs is None:
-            hint = self._did_you_mean_from(callee, list(self.funcs.keys()))
-            self._error(node, f"Call to undeclared function '{callee}'.{hint}")
+        function_symbol = self.funcs.get(function_name)
+        if function_symbol is None:
+            suggestion_text = self._did_you_mean_from(function_name, list(self.funcs.keys()))
+            self._error(call_node, f"Call to undeclared function '{function_name}'.{suggestion_text}")
             return Type.error()
 
-        if len(args) != len(fs.params):
-            self._error(node, f"Function '{callee}' expects {len(fs.params)} args, got {len(args)}.")
+        expected_argument_count = len(function_symbol.params)
+        actual_argument_count = len(argument_nodes)
 
-        n = min(len(args), len(fs.params))
-        for i in range(n):
-            at = self._expr_type(args[i])
-            pt = fs.params[i].typ
+        if actual_argument_count != expected_argument_count:
+            self._error(
+                call_node,
+                f"Function '{function_name}' expects {expected_argument_count} args, got {actual_argument_count}."
+            )
 
-            if at.base == BaseType.ERROR:
+        arguments_to_check = min(actual_argument_count, expected_argument_count)
+
+        for argument_index in range(arguments_to_check):
+            argument_node = argument_nodes[argument_index]
+            argument_type = self._expr_type(argument_node)
+            parameter_type = function_symbol.params[argument_index].typ
+
+            if argument_type.base == BaseType.ERROR:
                 continue
 
-            if not can_assign(pt, at):
+            if not can_assign(parameter_type, argument_type):
                 self._error(
-                    args[i] if args[i] is not None else node,
-                    f"Arg {i + 1} of '{callee}': cannot pass {self._fmt_type(at)} to {self._fmt_type(pt)}.",
+                    argument_node if argument_node is not None else call_node,
+                    f"Arg {argument_index + 1} of '{function_name}': cannot pass {self._fmt_type(argument_type)} to {self._fmt_type(parameter_type)}."
                 )
 
-        return fs.return_type
+        return function_symbol.return_type

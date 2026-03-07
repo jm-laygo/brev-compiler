@@ -2,7 +2,6 @@ from backend.tokens import Token, TK_LIT_CHAR
 from backend.errors import LexicalError
 from backend.delimiters import chr_delim, format_expected_delims
 
-
 def accept_char(lexer, tokens, errors, start_pos, display_value, allowed_delims):
     ch = lexer.current_char
     expected = format_expected_delims(allowed_delims)
@@ -22,13 +21,11 @@ def accept_char(lexer, tokens, errors, start_pos, display_value, allowed_delims)
     tokens.append(Token(TK_LIT_CHAR, display_value, start_pos))
     return True
 
-
 def recover_char_literal(lexer):
     while lexer.current_char is not None and lexer.current_char not in {"'", "\n"}:
         lexer.advance()
     if lexer.current_char == "'":
         lexer.advance()
-
 
 def scan_char(lexer, tokens, errors):
     if lexer.current_char != "'":

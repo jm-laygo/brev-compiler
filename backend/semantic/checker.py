@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Any, Dict, List, Optional, Tuple
+
 from backend.semantic.typesys import Type
 from backend.semantic.symbols import Scope, FuncSymbol, OrderSymbol
 from backend.errors import SemanticError
@@ -7,11 +8,13 @@ from backend.errors import SemanticError
 from backend.semantic.checker_parts import (
     CheckerConfig,
 
-    # diagnostics helpers
-    _fmt_type, _is_bad, _fmt_type_for_msg,
-    _binop_error_msg, _has_type_error, _tname,
+    _fmt_type,
+    _is_bad,
+    _fmt_type_for_msg,
+    _binop_error_msg,
+    _has_type_error,
+    _tname,
 
-    # mixins
     DeclarationsMixin,
     SuggestionsMixin,
     TypeBuildersMixin,
@@ -22,6 +25,7 @@ from backend.semantic.checker_parts import (
     LValuesMixin,
     CallsMixin,
 )
+
 
 class SemanticChecker(
     DeclarationsMixin,
@@ -34,9 +38,8 @@ class SemanticChecker(
     LValuesMixin,
     CallsMixin,
 ):
-
     def __init__(self, config: Optional[CheckerConfig] = None):
-        self.cfg = config or CheckerConfig()
+        self.config = config or CheckerConfig()
 
         self.global_scope = Scope(None)
         self.orders: Dict[str, OrderSymbol] = {}
@@ -49,35 +52,30 @@ class SemanticChecker(
 
         self.errors: List[SemanticError] = []
 
-    def check(self, program: Any) -> Tuple[Any, List[SemanticError]]:
-        # collect symbols
-        self._declare_globals(program)
-        self._declare_orders(program)
-        self._declare_functions(program)
+    def check(self, program_node: Any) -> Tuple[Any, List[SemanticError]]:
+        self._declare_orders(program_node)
+        self._declare_globals(program_node)
+        self._declare_functions(program_node)
+        self._check_program(program_node)
+        return program_node, self.errors
 
-        # validate program (from ProgramFlowMixin)
-        self._check_program(program)
+    def _error(self, node_or_token: Any, message: str) -> None:
+        self.errors.append(SemanticError(node_or_token, message))
 
-        return program, self.errors
+    def _fmt_type(self, type_value: Type) -> str:
+        return _fmt_type(type_value)
 
-    # error sink used by all mixins
-    def _error(self, node_or_token: Any, msg: str) -> None:
-        self.errors.append(SemanticError(node_or_token, msg))
+    def _is_bad(self, type_value: Type) -> bool:
+        return _is_bad(type_value)
 
-    def _fmt_type(self, t: Type) -> str:
-        return _fmt_type(t)
+    def _fmt_type_for_msg(self, type_value: Type) -> str:
+        return _fmt_type_for_msg(type_value)
 
-    def _is_bad(self, t: Type) -> bool:
-        return _is_bad(t)
+    def _binop_error_msg(self, operator_text: str, left_type: Type, right_type: Type) -> str:
+        return _binop_error_msg(operator_text, left_type, right_type)
 
-    def _fmt_type_for_msg(self, t: Type) -> str:
-        return _fmt_type_for_msg(t)
+    def _has_type_error(self, type_value: Type) -> bool:
+        return _has_type_error(type_value)
 
-    def _binop_error_msg(self, op: str, lt: Type, rt: Type) -> str:
-        return _binop_error_msg(op, lt, rt)
-
-    def _has_type_error(self, t: Type) -> bool:
-        return _has_type_error(t)
-
-    def _tname(self, t: Type) -> str:
-        return _tname(t)
+    def _tname(self, type_value: Type) -> str:
+        return _tname(type_value)

@@ -11,225 +11,270 @@ from backend.semantic.typesys import (
 from .helpers import _class
 
 class StatementsMixin:
-    def _check_stmt(self, s: Any) -> None:
-        k = _class(s)
+    def _check_stmt(self, statement_node: Any) -> None:
+        statement_kind = _class(statement_node)
 
-        if k == "VarDeclStmt":
-            decl = getattr(s, "decl", None)
-            if decl:
-                self._declare_var_decl(decl, is_global=False)
-                self._check_var_decl_init(decl)
+        if statement_kind == "VarDeclStmt":
+            declaration_node = getattr(statement_node, "decl", None)
+            if declaration_node:
+                self._declare_var_decl(declaration_node, is_global=False)
+                self._check_var_decl_init(declaration_node)
             return
 
-        if k == "OrdainStmt":
-            decl = getattr(s, "decl", None)
-            if decl:
-                self._declare_ordain_decl(decl, is_global=False)
-                self._check_ordain_decl_init(decl)
+        if statement_kind == "OrdainStmt":
+            declaration_node = getattr(statement_node, "decl", None)
+            if declaration_node:
+                self._declare_ordain_decl(declaration_node, is_global=False)
+                self._check_ordain_decl_init(declaration_node)
             return
 
-        if k == "OrderStmt":
-            self._error(s, "order statement inside function is not supported in semantics yet.")
+        if statement_kind == "OrderStmt":
+            self._error(statement_node, "order statement inside function is not supported in semantics yet.")
             return
 
-        if k == "AssignStmt":
-            target = getattr(s, "target", None)
-            value  = getattr(s, "value", None)
-            op     = getattr(s, "op", "=")
+        if statement_kind == "AssignStmt":
+            target_reference = getattr(statement_node, "target", None)
+            value_expression = getattr(statement_node, "value", None)
+            operator_text = getattr(statement_node, "op", "=")
 
             from backend.semantic.symbols import VarSymbol
-            sym = self._lvalue_root_symbol(target)
-            if isinstance(sym, VarSymbol) and getattr(sym, "is_const", False):
-                self._error(target if target is not None else s, f"Cannot modify sacred constant '{sym.name}'.")                
-                return
+            root_symbol = self._lvalue_root_symbol(target_reference)
 
-            t_target = self._lvalue_type(target)
-            t_val    = self._expr_type(value)
-
-            if self._has_type_error(t_target) or self._has_type_error(t_val):
-                return
-
-            if op != "=" and not is_numeric(t_target):
+            if isinstance(root_symbol, VarSymbol) and getattr(root_symbol, "is_const", False):
                 self._error(
-                    target if target is not None else s,
-                    f"Type error: '{op}' requires numeric target, got {self._tname(t_target)}."
+                    target_reference if target_reference is not None else statement_node,
+                    f"Cannot modify sacred constant '{root_symbol.name}'."
                 )
                 return
 
-            if not can_assign(t_target, t_val):
+            target_type = self._lvalue_type(target_reference)
+            value_type = self._expr_type(value_expression)
+
+            if self._has_type_error(target_type) or self._has_type_error(value_type):
+                return
+
+            if operator_text != "=" and not is_numeric(target_type):
                 self._error(
-                    value if value is not None else s,
-                    f"Type mismatch: cannot assign {self._tname(t_val)} to {self._tname(t_target)}."
+                    target_reference if target_reference is not None else statement_node,
+                    f"Type error: '{operator_text}' requires numeric target, got {self._tname(target_type)}."
+                )
+                return
+
+            if not can_assign(target_type, value_type):
+                self._error(
+                    value_expression if value_expression is not None else statement_node,
+                    f"Type mismatch: cannot assign {self._tname(value_type)} to {self._tname(target_type)}."
                 )
             return
 
-        if k == "IncDecStmt":
-            target = getattr(s, "target", None)
+        if statement_kind == "IncDecStmt":
+            target_reference = getattr(statement_node, "target", None)
 
             from backend.semantic.symbols import VarSymbol
-            sym = self._lvalue_root_symbol(target)
-            if isinstance(sym, VarSymbol) and getattr(sym, "is_const", False):
-                self._error(s, f"Cannot increment/decrement sacred constant '{sym.name}'.")
+            root_symbol = self._lvalue_root_symbol(target_reference)
+
+            if isinstance(root_symbol, VarSymbol) and getattr(root_symbol, "is_const", False):
+                self._error(statement_node, f"Cannot increment/decrement sacred constant '{root_symbol.name}'.")
                 return
 
-            t = self._lvalue_type(target)
-            if not is_numeric(t):
-                self._error(s, f"++/-- requires numeric lvalue, got {t}.")
+            target_type = self._lvalue_type(target_reference)
+            if not is_numeric(target_type):
+                self._error(statement_node, f"++/-- requires numeric lvalue, got {target_type}.")
             return
 
-        if k == "CallStmt":
-            callee = getattr(s, "callee", None)
-            args = getattr(s, "args", []) or []
-            self._check_call(callee, args, s)
+        if statement_kind == "CallStmt":
+            function_name = getattr(statement_node, "callee", None)
+            argument_nodes = getattr(statement_node, "args", []) or []
+            self._check_call(function_name, argument_nodes, statement_node)
             return
 
-        if k == "ReceiveStmt":
-            target = getattr(s, "target", None)
+        if statement_kind == "ReceiveStmt":
+            target_reference = getattr(statement_node, "target", None)
 
             from backend.semantic.symbols import VarSymbol
-            sym = self._lvalue_root_symbol(target)
-            if isinstance(sym, VarSymbol) and getattr(sym, "is_const", False):
-                self._error(s, f"Cannot store input into sacred constant '{sym.name}'.")
+            root_symbol = self._lvalue_root_symbol(target_reference)
+
+            if isinstance(root_symbol, VarSymbol) and getattr(root_symbol, "is_const", False):
+                self._error(statement_node, f"Cannot store input into sacred constant '{root_symbol.name}'.")
                 return
 
-            _ = self._lvalue_type(target)
+            self._lvalue_type(target_reference)
             return
 
-        if k == "ProclaimStmt":
-            for e in getattr(s, "args", []) or []:
-                _ = self._expr_type(e)
+        if statement_kind == "ProclaimStmt":
+            argument_nodes = getattr(statement_node, "args", []) or []
+            for argument_node in argument_nodes:
+                self._expr_type(argument_node)
             return
 
-        if k == "DecreeStmt":
-            cond = getattr(s, "expr", None)
-            t = self._expr_type(cond)
-            if not is_bool(t):
-                self._error(cond, f"Type error: decree condition must be verity, got {t}.")
-            for st in getattr(s, "body", []) or []:
-                self._check_stmt(st)
-            for ed in getattr(s, "edicts", []) or []:
-                self._check_stmt(ed)
-            ab = getattr(s, "absolution", None)
-            if ab:
-                self._check_stmt(ab)
+        if statement_kind == "DecreeStmt":
+            condition_expression = getattr(statement_node, "expr", None)
+            condition_type = self._expr_type(condition_expression)
+
+            if not is_bool(condition_type):
+                self._error(condition_expression, f"Type error: decree condition must be verity, got {condition_type}.")
+
+            body_statements = getattr(statement_node, "body", []) or []
+            for body_statement in body_statements:
+                self._check_stmt(body_statement)
+
+            edict_nodes = getattr(statement_node, "edicts", []) or []
+            for edict_node in edict_nodes:
+                self._check_stmt(edict_node)
+
+            absolution_node = getattr(statement_node, "absolution", None)
+            if absolution_node:
+                self._check_stmt(absolution_node)
+
             return
 
-        if k == "EdictClause":
-            cond = getattr(s, "expr", None)
-            t = self._expr_type(cond)
-            if not is_bool(t):
-                self._error(s, f"edict condition must be verity, got {t}.")
-            for st in getattr(s, "body", []) or []:
-                self._check_stmt(st)
+        if statement_kind == "EdictClause":
+            condition_expression = getattr(statement_node, "expr", None)
+            condition_type = self._expr_type(condition_expression)
+
+            if not is_bool(condition_type):
+                self._error(statement_node, f"edict condition must be verity, got {condition_type}.")
+
+            body_statements = getattr(statement_node, "body", []) or []
+            for body_statement in body_statements:
+                self._check_stmt(body_statement)
+
             return
 
-        if k == "AbsolutionClause":
-            for st in getattr(s, "body", []) or []:
-                self._check_stmt(st)
+        if statement_kind == "AbsolutionClause":
+            body_statements = getattr(statement_node, "body", []) or []
+            for body_statement in body_statements:
+                self._check_stmt(body_statement)
             return
 
-        if k == "DiscernStmt":
+        if statement_kind == "DiscernStmt":
             self.in_discern += 1
-            expr = getattr(s, "expr", None)
-            _ = self._expr_type(expr)
-            for v in getattr(s, "verses", []) or []:
-                self._check_stmt(v)
-            g = getattr(s, "grace", None)
-            if g:
-                self._check_stmt(g)
+
+            switch_expression = getattr(statement_node, "expr", None)
+            self._expr_type(switch_expression)
+
+            verse_nodes = getattr(statement_node, "verses", []) or []
+            for verse_node in verse_nodes:
+                self._check_stmt(verse_node)
+
+            grace_node = getattr(statement_node, "grace", None)
+            if grace_node:
+                self._check_stmt(grace_node)
+
             self.in_discern -= 1
             return
 
-        if k == "VerseCase":
-            match = getattr(s, "match", None)
-            _ = self._expr_type(match)
-            for st in getattr(s, "body", []) or []:
-                self._check_stmt(st)
-            end = getattr(s, "end", None)
-            if end:
-                self._check_stmt(end)
+        if statement_kind == "VerseCase":
+            match_expression = getattr(statement_node, "match", None)
+            self._expr_type(match_expression)
+
+            body_statements = getattr(statement_node, "body", []) or []
+            for body_statement in body_statements:
+                self._check_stmt(body_statement)
+
+            end_node = getattr(statement_node, "end", None)
+            if end_node:
+                self._check_stmt(end_node)
+
             return
 
-        if k == "VerseEnd":
+        if statement_kind == "VerseEnd":
             if self.in_discern <= 0:
-                self._error(s, "absolve/fall verse-end used outside discern.")
+                self._error(statement_node, "absolve/fall verse-end used outside discern.")
             return
 
-        if k == "GraceDefault":
-            for st in getattr(s, "body", []) or []:
-                self._check_stmt(st)
+        if statement_kind == "GraceDefault":
+            body_statements = getattr(statement_node, "body", []) or []
+            for body_statement in body_statements:
+                self._check_stmt(body_statement)
             return
 
-        if k == "ProcessionStmt":
+        if statement_kind == "ProcessionStmt":
             self.in_loop += 1
-            init = getattr(s, "init", None)
-            if init:
-                self._check_stmt(init)
-            cond = getattr(s, "condition", None)
-            if cond:
-                t = self._expr_type(cond)
-                if not is_bool(t):
-                    self._error(s, f"procession condition must be verity, got {t}.")
-            upd = getattr(s, "update", None)
-            if upd:
-                self._check_stmt(upd)
-            for st in getattr(s, "body", []) or []:
-                self._check_stmt(st)
+
+            init_statement = getattr(statement_node, "init", None)
+            if init_statement:
+                self._check_stmt(init_statement)
+
+            condition_expression = getattr(statement_node, "condition", None)
+            if condition_expression:
+                condition_type = self._expr_type(condition_expression)
+                if not is_bool(condition_type):
+                    self._error(statement_node, f"procession condition must be verity, got {condition_type}.")
+
+            update_statement = getattr(statement_node, "update", None)
+            if update_statement:
+                self._check_stmt(update_statement)
+
+            body_statements = getattr(statement_node, "body", []) or []
+            for body_statement in body_statements:
+                self._check_stmt(body_statement)
+
             self.in_loop -= 1
             return
 
-        if k == "EndureStmt":
+        if statement_kind == "EndureStmt":
             self.in_loop += 1
-            cond = getattr(s, "condition", None)
-            t = self._expr_type(cond)
-            if not is_bool(t):
-                self._error(s, f"endure condition must be verity, got {t}.")
-            for st in getattr(s, "body", []) or []:
-                self._check_stmt(st)
+
+            condition_expression = getattr(statement_node, "condition", None)
+            condition_type = self._expr_type(condition_expression)
+
+            if not is_bool(condition_type):
+                self._error(statement_node, f"endure condition must be verity, got {condition_type}.")
+
+            body_statements = getattr(statement_node, "body", []) or []
+            for body_statement in body_statements:
+                self._check_stmt(body_statement)
+
             self.in_loop -= 1
             return
 
-        if k == "RitualStmt":
+        if statement_kind == "RitualStmt":
             self.in_loop += 1
-            for st in getattr(s, "body", []) or []:
-                self._check_stmt(st)
-            cond = getattr(s, "condition", None)
-            t = self._expr_type(cond)
-            if not is_bool(t):
-                self._error(s, f"ritual endure condition must be verity, got {t}.")
+
+            body_statements = getattr(statement_node, "body", []) or []
+            for body_statement in body_statements:
+                self._check_stmt(body_statement)
+
+            condition_expression = getattr(statement_node, "condition", None)
+            condition_type = self._expr_type(condition_expression)
+
+            if not is_bool(condition_type):
+                self._error(statement_node, f"ritual endure condition must be verity, got {condition_type}.")
+
             self.in_loop -= 1
             return
 
-        if k == "ProceedStmt":
+        if statement_kind == "ProceedStmt":
             if self.in_loop <= 0:
-                self._error(s, "proceed used outside a loop.")
+                self._error(statement_node, "proceed used outside a loop.")
             return
 
-        if k == "FallStmt":
+        if statement_kind == "FallStmt":
             if self.in_loop <= 0 and self.in_discern <= 0:
-                self._error(s, "fall used outside loop/discern.")
+                self._error(statement_node, "fall used outside loop/discern.")
             return
 
-        if k == "AbsolveStmt":
+        if statement_kind == "AbsolveStmt":
             if self.in_loop <= 0 and self.in_discern <= 0:
-                self._error(s, "absolve used outside loop/discern.")
+                self._error(statement_node, "absolve used outside loop/discern.")
             return
 
-        if k == "DismissStmt":
+        if statement_kind == "DismissStmt":
             if self.current_func is None:
                 return
 
-            ret_t = self.current_func.return_type
-            val = getattr(s, "value", None)
+            return_type = self.current_func.return_type
+            return_value = getattr(statement_node, "value", None)
 
-            if ret_t.is_base(BaseType.HOLLOW):
-                if val is not None:
-                    self._error(s, "hollow function cannot dismiss a value.")
+            if return_type.is_base(BaseType.HOLLOW):
+                if return_value is not None:
+                    self._error(statement_node, "hollow function cannot dismiss a value.")
             else:
-                if val is None:
-                    self._error(s, f"Function must dismiss a value of type {ret_t}.")
+                if return_value is None:
+                    self._error(statement_node, f"Function must dismiss a value of type {return_type}.")
                 else:
-                    vt = self._expr_type(val)
-                    if not can_assign(ret_t, vt):
-                        self._error(s, f"Cannot dismiss {vt} from function returning {ret_t}.")
+                    value_type = self._expr_type(return_value)
+                    if not can_assign(return_type, value_type):
+                        self._error(statement_node, f"Cannot dismiss {value_type} from function returning {return_type}.")
             return

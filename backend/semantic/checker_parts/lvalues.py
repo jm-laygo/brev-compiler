@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Any
+
 from backend.semantic.typesys import (
     BaseType,
     Type,
@@ -7,94 +8,96 @@ from backend.semantic.typesys import (
 )
 from .helpers import _class
 
+
 class LValuesMixin:
-    def _lvalue_root_symbol(self, lv: Any):
-        if lv is None:
+    def _lvalue_root_symbol(self, lvalue_node: Any):
+        if lvalue_node is None:
             return None
 
-        k = _class(lv)
+        lvalue_kind = _class(lvalue_node)
 
-        if k == "NameRef":
-            name = getattr(lv, "name", None)
-            return self.scope.resolve(name) if name else None
+        if lvalue_kind == "NameRef":
+            identifier_name = getattr(lvalue_node, "name", None)
+            return self.scope.resolve(identifier_name) if identifier_name else None
 
-        if k == "IndexRef":
-            base = getattr(lv, "base", None)
-            return self._lvalue_root_symbol(base)
+        if lvalue_kind == "IndexRef":
+            base_reference = getattr(lvalue_node, "base", None)
+            return self._lvalue_root_symbol(base_reference)
 
-        if k == "MemberRef":
-            base = getattr(lv, "base", None)
-            return self._lvalue_root_symbol(base)
+        if lvalue_kind == "MemberRef":
+            base_reference = getattr(lvalue_node, "base", None)
+            return self._lvalue_root_symbol(base_reference)
 
         return None
 
-    def _lvalue_type(self, lv: Any) -> Type:
-        if lv is None:
+    def _lvalue_type(self, lvalue_node: Any) -> Type:
+        if lvalue_node is None:
             return Type.unknown()
 
-        k = _class(lv)
+        lvalue_kind = _class(lvalue_node)
 
-        if k == "NameRef":
-            name = getattr(lv, "name", None)
-            sym = self.scope.resolve(name) if name else None
+        if lvalue_kind == "NameRef":
+            identifier_name = getattr(lvalue_node, "name", None)
+            resolved_symbol = self.scope.resolve(identifier_name) if identifier_name else None
+
             from backend.semantic.symbols import VarSymbol
 
-            if isinstance(sym, VarSymbol):
-                return sym.typ
+            if isinstance(resolved_symbol, VarSymbol):
+                return resolved_symbol.typ
 
-            hint = self._did_you_mean(name)
-            self._error(lv, f"Undeclared identifier '{name}'.{hint}")
+            suggestion_text = self._did_you_mean(identifier_name)
+            self._error(lvalue_node, f"Undeclared identifier '{identifier_name}'.{suggestion_text}")
             return Type.error()
 
-        if k == "IndexRef":
-            base = getattr(lv, "base", None)
-            idx = getattr(lv, "index", None)
+        if lvalue_kind == "IndexRef":
+            base_reference = getattr(lvalue_node, "base", None)
+            index_expression = getattr(lvalue_node, "index", None)
 
-            bt = self._lvalue_type(base)
-            it = self._expr_type(idx)
+            base_type = self._lvalue_type(base_reference)
+            index_type = self._expr_type(index_expression)
 
-            if self._has_type_error(bt) or self._has_type_error(it):
+            if self._has_type_error(base_type) or self._has_type_error(index_type):
                 return Type.error()
 
-            if not is_numeric(it):
+            if not is_numeric(index_type):
                 self._error(
-                    idx if idx is not None else lv,
-                    f"Type error: array index must be numeric, got {self._tname(it)}.",
+                    index_expression if index_expression is not None else lvalue_node,
+                    f"Type error: array index must be numeric, got {self._tname(index_type)}.",
                 )
 
             # scripture indexing rule
-            if bt.is_base(BaseType.SCRIPTURE):
+            if base_type.is_base(BaseType.SCRIPTURE):
                 return Type.base_t(BaseType.SIGIL)
 
-            if not bt.is_array():
-                self._error(lv, f"Cannot index non-array type {self._tname(bt)}.")
+            if not base_type.is_array():
+                self._error(lvalue_node, f"Cannot index non-array type {self._tname(base_type)}.")
                 return Type.error()
 
-            return bt.array_of or Type.error()
+            return base_type.array_of or Type.error()
 
-        if k == "MemberRef":
-            base = getattr(lv, "base", None)
-            mem = getattr(lv, "member", None)
+        if lvalue_kind == "MemberRef":
+            base_reference = getattr(lvalue_node, "base", None)
+            member_name = getattr(lvalue_node, "member", None)
 
-            bt = self._lvalue_type(base)
-            if self._has_type_error(bt):
+            base_type = self._lvalue_type(base_reference)
+            if self._has_type_error(base_type):
                 return Type.error()
 
-            if not bt.is_order():
-                self._error(lv, f"Member access '.{mem}' on non-order type {self._tname(bt)}.")
+            if not base_type.is_order():
+                self._error(lvalue_node, f"Member access '.{member_name}' on non-order type {self._tname(base_type)}.")
                 return Type.error()
 
-            order = self.orders.get(bt.order_name or "")
-            if order is None:
-                self._error(lv, f"Unknown order type '{bt.order_name}'.")
+            order_symbol = self.orders.get(base_type.order_name or "")
+            if order_symbol is None:
+                self._error(lvalue_node, f"Unknown order type '{base_type.order_name}'.")
                 return Type.error()
 
-            ms = order.members.get(mem)
-            if ms is None:
-                hint = self._did_you_mean_from(mem, list(order.members.keys()))
-                self._error(lv, f"Order '{order.name}' has no member '{mem}'.{hint}")
+            member_symbol = order_symbol.members.get(member_name)
+            if member_symbol is None:
+                suggestion_text = self._did_you_mean_from(member_name, list(order_symbol.members.keys()))
+                self._error(lvalue_node, f"Order '{order_symbol.name}' has no member '{member_name}'.{suggestion_text}")
                 return Type.error()
 
-            return ms.typ
+            return member_symbol.typ
 
-        return self._expr_type(lv)
+        return self._expr_type(lvalue_node)

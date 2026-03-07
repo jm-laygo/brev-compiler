@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Any, List
+
 from backend.semantic.typesys import (
     BaseType,
     Type,
@@ -11,112 +12,136 @@ from backend.semantic.typesys import (
 from .helpers import _class
 
 class ExpressionsMixin:
-    def _expr_type(self, e: Any) -> Type:
-        if e is None:
+    def _expr_type(self, expression_node: Any) -> Type:
+        if expression_node is None:
             return Type.unknown()
 
-        k = _class(e)
+        expression_kind = _class(expression_node)
 
-        if k == "LiteralExpr":
-            lit_t = (getattr(e, "literal_type", None) or "").lower()
+        if expression_kind == "LiteralExpr":
+            literal_type_name = (getattr(expression_node, "literal_type", None) or "").lower()
 
-            if lit_t == "int":
+            if literal_type_name == "int":
                 return Type.base_t(BaseType.TALLY)
-            if lit_t == "decimal":
+
+            if literal_type_name == "decimal":
                 return Type.base_t(BaseType.DIVINE)
-            if lit_t == "char":
+
+            if literal_type_name == "char":
                 return Type.base_t(BaseType.SIGIL)
-            if lit_t == "string":
+
+            if literal_type_name == "string":
                 return Type.base_t(BaseType.SCRIPTURE)
-            if lit_t == "bool":
+
+            if literal_type_name == "bool":
                 return Type.base_t(BaseType.VERITY)
 
             return Type.unknown()
 
-        if k == "ArrayInit":
-            items = getattr(e, "items", []) or []
-            if not items:
+        if expression_kind == "ArrayInit":
+            item_nodes = getattr(expression_node, "items", []) or []
+
+            if not item_nodes:
                 return Type.unknown()
 
-            elem_types: List[Type] = [self._expr_type(x) for x in items]
+            item_types: List[Type] = []
+            for item_node in item_nodes:
+                item_types.append(self._expr_type(item_node))
 
-            if any(t.base == BaseType.ERROR for t in elem_types):
-                return Type.error()
+            for item_type in item_types:
+                if item_type.base == BaseType.ERROR:
+                    return Type.error()
 
-            first = elem_types[0]
+            first_item_type = item_types[0]
 
-            # numeric promotion: any DIVINE => DIVINE else TALLY
-            if all(is_numeric(t) for t in elem_types):
-                out = Type.base_t(BaseType.TALLY)
-                for t in elem_types:
-                    if t.is_base(BaseType.DIVINE):
-                        out = Type.base_t(BaseType.DIVINE)
+            if all(is_numeric(item_type) for item_type in item_types):
+                resulting_numeric_type = Type.base_t(BaseType.TALLY)
+
+                for item_type in item_types:
+                    if item_type.is_base(BaseType.DIVINE):
+                        resulting_numeric_type = Type.base_t(BaseType.DIVINE)
                         break
-                return Type.array(out, 1)
 
-            if all(str(t) == str(first) for t in elem_types):
-                return Type.array(first, 1)
+                return Type.array(resulting_numeric_type, 1)
 
-            self._error(e, f"Inconsistent array initializer types: {', '.join(str(t) for t in elem_types)}")
+            if all(str(item_type) == str(first_item_type) for item_type in item_types):
+                return Type.array(first_item_type, 1)
+
+            self._error(
+                expression_node,
+                f"Inconsistent array initializer types: {', '.join(str(item_type) for item_type in item_types)}"
+            )
             return Type.error()
 
-        if k == "GroupExpr":
-            inner = getattr(e, "expr", None)
-            return self._expr_type(inner)
+        if expression_kind == "GroupExpr":
+            inner_expression = getattr(expression_node, "expr", None)
+            return self._expr_type(inner_expression)
 
-        if k == "VarExpr":
-            ref = getattr(e, "ref", None)
-            return self._lvalue_type(ref)
+        if expression_kind == "VarExpr":
+            reference_node = getattr(expression_node, "ref", None)
+            return self._lvalue_type(reference_node)
 
-        if k == "CallExpr":
-            callee = getattr(e, "callee", None)
-            args = getattr(e, "args", []) or []
-            return self._check_call(callee, args, e)
+        if expression_kind == "CallExpr":
+            function_name = getattr(expression_node, "callee", None)
+            argument_nodes = getattr(expression_node, "args", []) or []
+            return self._check_call(function_name, argument_nodes, expression_node)
 
-        if k == "VerseOfExpr":
-            inner = getattr(e, "expr", None)
-            _ = self._expr_type(inner)
+        if expression_kind == "VerseOfExpr":
+            inner_expression = getattr(expression_node, "expr", None)
+            self._expr_type(inner_expression)
             return Type.base_t(BaseType.TALLY)
 
-        if k == "UnaryExpr":
-            op = getattr(e, "op", "") or ""
-            operand = getattr(e, "operand", None)
-            t = self._expr_type(operand)
+        if expression_kind == "UnaryExpr":
+            operator_text = getattr(expression_node, "op", "") or ""
+            operand_node = getattr(expression_node, "operand", None)
+            operand_type = self._expr_type(operand_node)
 
-            if self._has_type_error(t):
+            if self._has_type_error(operand_type):
                 return Type.error()
 
-            r = result_of_unary(op, t)
-            if self._has_type_error(r):
-                self._error(e, f"Invalid unary op '{op}' for type {self._tname(t)}.")
-            return r
+            result_type = result_of_unary(operator_text, operand_type)
 
-        if k == "BinaryExpr":
-            op = getattr(e, "op", "") or ""
-            left = getattr(e, "left", None)
-            right = getattr(e, "right", None)
+            if self._has_type_error(result_type):
+                self._error(
+                    expression_node,
+                    f"Invalid unary op '{operator_text}' for type {self._tname(operand_type)}."
+                )
 
-            lt = self._expr_type(left)
-            rt = self._expr_type(right)
+            return result_type
 
-            if self._has_type_error(lt) or self._has_type_error(rt):
+        if expression_kind == "BinaryExpr":
+            operator_text = getattr(expression_node, "op", "") or ""
+            left_expression = getattr(expression_node, "left", None)
+            right_expression = getattr(expression_node, "right", None)
+
+            left_type = self._expr_type(left_expression)
+            right_type = self._expr_type(right_expression)
+
+            if self._has_type_error(left_type) or self._has_type_error(right_type):
                 return Type.error()
 
-            r = result_of_binary(op, lt, rt)
-            if self._has_type_error(r):
-                self._error(e, f"Invalid binary op '{op}' for types {self._tname(lt)} and {self._tname(rt)}.")
-                return Type.error()
-            return r
+            result_type = result_of_binary(operator_text, left_type, right_type)
 
-        if k == "IdentifierRef":
-            name = getattr(e, "name", None)
-            sym = self.scope.resolve(name) if name else None
+            if self._has_type_error(result_type):
+                self._error(
+                    expression_node,
+                    f"Invalid binary op '{operator_text}' for types {self._tname(left_type)} and {self._tname(right_type)}."
+                )
+                return Type.error()
+
+            return result_type
+
+        if expression_kind == "IdentifierRef":
+            identifier_name = getattr(expression_node, "name", None)
+            resolved_symbol = self.scope.resolve(identifier_name) if identifier_name else None
+
             from backend.semantic.symbols import VarSymbol
-            if isinstance(sym, VarSymbol):
-                return sym.typ
 
-            hint = self._did_you_mean(name)
-            self._error(e, f"Undeclared identifier '{name}'.{hint}")
+            if isinstance(resolved_symbol, VarSymbol):
+                return resolved_symbol.typ
+
+            suggestion_text = self._did_you_mean(identifier_name)
+            self._error(expression_node, f"Undeclared identifier '{identifier_name}'.{suggestion_text}")
             return Type.error()
 
         return Type.unknown()
