@@ -36,13 +36,11 @@ function splitLineClickableParts(lineObj) {
 
 function renderExpectedDelims(text) {
     const s = String(text ?? "");
-
     const m = s.match(/(Expected:\s*)(.*)$/i);
     if (!m) return s;
 
     const prefix = s.slice(0, m.index ?? 0) + m[1];
     const list = m[2];
-
     const parts = list.split(/(\s*,\s*)/);
 
     return (
@@ -66,13 +64,21 @@ export default function OutputPanel({
     outputOpen,
     toggleOutput,
     onJumpToPosition,
+    runtimePrompt = null,
+    onSubmitRuntimeInput,
 }) {
     const bottomRef = useRef(null);
+    const inputRef = useRef(null);
 
     useEffect(() => {
         if (!outputOpen) return;
         bottomRef.current?.scrollIntoView({ block: "end" });
-    }, [terminalLines, outputOpen]);
+    }, [terminalLines, outputOpen, runtimePrompt]);
+
+    useEffect(() => {
+        if (!runtimePrompt) return;
+        setTimeout(() => inputRef.current?.focus(), 0);
+    }, [runtimePrompt]);
 
     const rendered = useMemo(() => {
         return (Array.isArray(terminalLines) ? terminalLines : []).map((l) => {
@@ -80,6 +86,14 @@ export default function OutputPanel({
             return { lineObj: l, parts };
         });
     }, [terminalLines]);
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+        const value = String(formData.get("runtime_input") ?? "");
+        onSubmitRuntimeInput?.(value);
+        e.currentTarget.reset();
+    };
 
     return (
         <div className={`panel output-panel ${outputOpen ? "open" : "closed"}`}>
@@ -126,6 +140,24 @@ export default function OutputPanel({
                         </div>
                     );
                 })}
+
+                {runtimePrompt && (
+                    <form className="terminal-stdin-line" onSubmit={handleSubmit}>
+                        <span className="terminal-stdin-prefix">{runtimePrompt.prefix ?? ""}</span>
+
+                        <input
+                            key={runtimePrompt?.id ?? "runtime-input"}
+                            ref={inputRef}
+                            name="runtime_input"
+                            type="text"
+                            className="terminal-stdin-input"
+                            defaultValue=""
+                            autoComplete="off"
+                            spellCheck={false}
+                        />
+                    </form>
+                )}
+
                 <div ref={bottomRef} />
             </div>
         </div>

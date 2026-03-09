@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { runLexical, runSyntax, runSemantic, runExecute } from "../../api/brevApi.js";
+import {
+    runLexical,
+    runSyntax,
+    runSemantic,
+    runStartExecute,
+    runSendInput,
+} from "../../api/brevApi.js";
 
 export default function useLiveRunner({
     getCode,
@@ -13,6 +19,8 @@ export default function useLiveRunner({
 }) {
     const [isRunning, setIsRunning] = useState(false);
     const [runningPhase, setRunningPhase] = useState("");
+    const [runtimePrompt, setRuntimePrompt] = useState(null);
+    const [runtimeSessionId, setRuntimeSessionId] = useState(null);
 
     const liveAbortRef = useRef(null);
     const liveReqIdRef = useRef(0);
@@ -23,6 +31,22 @@ export default function useLiveRunner({
             if (liveDebounceRef.current) clearTimeout(liveDebounceRef.current);
             if (liveAbortRef.current) liveAbortRef.current.abort();
         };
+    }, []);
+
+    const appendRuntimeOutput = useCallback(
+        (output) => {
+            const lines = Array.isArray(output) ? output : [];
+            lines.forEach((line) => {
+                if (line === "" || line == null) logWarn("");
+                else logWarn(String(line));
+            });
+        },
+        [logWarn]
+    );
+
+    const finishRuntimeState = useCallback(() => {
+        setRuntimePrompt(null);
+        setRuntimeSessionId(null);
     }, []);
 
     const stopLive = useCallback(() => {
@@ -36,12 +60,13 @@ export default function useLiveRunner({
             liveAbortRef.current = null;
         }
 
+        finishRuntimeState();
         liveReqIdRef.current += 1;
 
         setIsRunning(false);
         setRunningPhase("");
         logWarn("Stopped.");
-    }, [logWarn]);
+    }, [finishRuntimeState, logWarn]);
 
     const runLiveOnce = useCallback(
         async (phase, sourceCode, openTokens) => {
@@ -148,50 +173,64 @@ export default function useLiveRunner({
                 if (phase === "run") {
                     setTerminal("Running execution...", "info");
 
-                    const { res, data } = await runExecute(sourceCode, controller.signal);
+                    const { res, data } = await runStartExecute(sourceCode, controller.signal);
                     if (reqId !== liveReqIdRef.current) return;
 
                     if (!res.ok) {
                         const msg = `Execute API error (HTTP ${res.status}): ${data.error || "Unknown error"}`;
-                        setTerminal("Execution failed:", "error");
+                        logError("Execution failed:");
                         logError(msg);
                         setMarkersFromErrors([msg]);
+                        finishRuntimeState();
+                        setIsRunning(false);
+                        setRunningPhase("");
                         return;
                     }
 
-                    const errs = Array.isArray(data.errors) ? data.errors : [];
                     const output = Array.isArray(data.output) ? data.output : [];
+                    const errs = Array.isArray(data.errors) ? data.errors : [];
 
-                    if (data.ran && errs.length === 0) {
-                        if (output.length > 0) {
-                            setTerminal("Execution successful!", "success");
-                            output.forEach((line) => {
-                                if (line === "" || line == null) logWarn("");
-                                else logWarn(String(line));
-                            });
-                        } else {
-                            setTerminal("Execution successful! No output.", "success");
-                        }
-                        setMarkersFromErrors([]);
-                    } else {
-                        setTerminal("Execution failed:", "error");
-                        if (errs.length) errs.forEach((e) => logError(e));
-                        else logError("Unknown runtime error");
-                        if (errs.length) setMarkersFromErrors(errs);
+                    appendRuntimeOutput(output);
+
+                    if (data.status === "waiting_input") {
+                        setRuntimeSessionId(data.session_id);
+                        setRuntimePrompt({ id: data.session_id, prefix: "" });
+                        return;
                     }
 
+                    if (data.status === "finished") {
+                        logWarn("Execution successful!");
+                        setMarkersFromErrors([]);
+                        finishRuntimeState();
+                        setIsRunning(false);
+                        setRunningPhase("");
+                        return;
+                    }
+
+                    logError("Execution failed:");
+                    if (errs.length) errs.forEach((e) => logError(e));
+                    else logError("Unknown runtime error");
+                    if (errs.length) setMarkersFromErrors(errs);
+                    finishRuntimeState();
+                    setIsRunning(false);
+                    setRunningPhase("");
                     return;
                 }
             } catch (e) {
                 if (e?.name === "AbortError") return;
                 const msg = `Network error: ${e.message}`;
-                setTerminal("Run failed:", "error");
+                logError("Run failed:");
                 logError(msg);
                 setMarkersFromErrors([msg]);
+                finishRuntimeState();
+                setIsRunning(false);
+                setRunningPhase("");
             }
         },
         [
+            appendRuntimeOutput,
             clearAllEditorMarkers,
+            finishRuntimeState,
             logError,
             logWarn,
             setMarkersFromErrors,
@@ -203,6 +242,8 @@ export default function useLiveRunner({
 
     const startLive = useCallback(
         (phase) => {
+            if (phase === "run") return;
+
             if (isRunning && runningPhase === phase) return;
 
             stopLive();
@@ -240,17 +281,101 @@ export default function useLiveRunner({
         startLive("sem");
     }, [isRunning, runningPhase, startLive, stopLive]);
 
-    const toggleExecute = useCallback(() => {
-        if (isRunning && runningPhase === "run") {
-            stopLive();
-            return;
+    const toggleExecute = useCallback(async () => {
+        if (liveAbortRef.current) {
+            liveAbortRef.current.abort();
+            liveAbortRef.current = null;
         }
-        startLive("run");
-    }, [isRunning, runningPhase, startLive, stopLive]);
+
+        finishRuntimeState();
+        setIsRunning(true);
+        setRunningPhase("run");
+
+        const code = getCode();
+        await runLiveOnce("run", code, true);
+    }, [finishRuntimeState, getCode, runLiveOnce]);
+
+    const submitRuntimeInput = useCallback(
+        async (value) => {
+            if (!runtimeSessionId) return;
+
+            const controller = new AbortController();
+            liveAbortRef.current = controller;
+
+            logWarn(String(value ?? ""));
+            setRuntimePrompt(null);
+
+            try {
+                const { res, data } = await runSendInput(runtimeSessionId, value ?? "", controller.signal);
+
+                if (!res.ok) {
+                    const msg = `Execute API error (HTTP ${res.status}): ${data.error || "Unknown error"}`;
+                    logError("Execution failed:");
+                    logError(msg);
+                    setMarkersFromErrors([msg]);
+                    finishRuntimeState();
+                    setIsRunning(false);
+                    setRunningPhase("");
+                    return;
+                }
+
+                const output = Array.isArray(data.output) ? data.output : [];
+                const errs = Array.isArray(data.errors) ? data.errors : [];
+
+                appendRuntimeOutput(output);
+
+                if (data.status === "waiting_input") {
+                    setRuntimeSessionId(data.session_id);
+                    setRuntimePrompt({ id: data.session_id, prefix: "" });
+                    return;
+                }
+
+                if (data.status === "finished") {
+                    logWarn("Execution successful!");
+                    setMarkersFromErrors([]);
+                    finishRuntimeState();
+                    setIsRunning(false);
+                    setRunningPhase("");
+                    return;
+                }
+
+                logError("Execution failed:");
+                if (errs.length) errs.forEach((e) => logError(e));
+                else logError("Unknown runtime error");
+                if (errs.length) setMarkersFromErrors(errs);
+                finishRuntimeState();
+                setIsRunning(false);
+                setRunningPhase("");
+            } catch (e) {
+                if (e?.name === "AbortError") return;
+                logError("Execution failed:");
+                logError(`Network error: ${e.message}`);
+                finishRuntimeState();
+                setIsRunning(false);
+                setRunningPhase("");
+            }
+        },
+        [
+            appendRuntimeOutput,
+            finishRuntimeState,
+            logError,
+            logWarn,
+            runtimeSessionId,
+            setMarkersFromErrors,
+        ]
+    );
+
+    const cancelRuntimeInput = useCallback(() => {
+        finishRuntimeState();
+        setIsRunning(false);
+        setRunningPhase("");
+        logWarn("Execution cancelled.");
+    }, [finishRuntimeState, logWarn]);
 
     const onEditorChange = useCallback(
         (v) => {
             if (!isRunning || !runningPhase) return;
+            if (runningPhase === "run") return;
 
             if (liveDebounceRef.current) clearTimeout(liveDebounceRef.current);
 
@@ -272,5 +397,9 @@ export default function useLiveRunner({
         toggleLiveSem,
         toggleExecute,
         onEditorChange,
+        runtimePrompt,
+        runtimeSessionId,
+        submitRuntimeInput,
+        cancelRuntimeInput,
     };
 }

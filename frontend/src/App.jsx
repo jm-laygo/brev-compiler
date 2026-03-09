@@ -45,6 +45,9 @@ export default function App() {
         toggleLiveSem,
         toggleExecute,
         onEditorChange,
+        runtimePrompt,
+        submitRuntimeInput,
+        cancelRuntimeInput,
     } = useLiveRunner({
         getCode,
         clearAllEditorMarkers,
@@ -114,6 +117,9 @@ export default function App() {
                                 outputOpen={outputOpen}
                                 toggleOutput={() => setOutputOpen((v) => !v)}
                                 onJumpToPosition={jumpToPosition}
+                                runtimePrompt={runtimePrompt}
+                                onSubmitRuntimeInput={submitRuntimeInput}
+                                onCancelRuntimeInput={cancelRuntimeInput}
                             />
                         </div>
 

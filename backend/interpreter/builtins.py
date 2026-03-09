@@ -12,4 +12,6 @@ def stringify(value):
     if isinstance(value, dict):
         inner = ", ".join(f"{k}: {stringify(v)}" for k, v in value.items() if k != "__order__")
         return "{ " + inner + " }"
-    return str(value)
+    if isinstance(value, float):
+        return f"{value:.2f}".rstrip("0").rstrip(".")
+    return str(value)   

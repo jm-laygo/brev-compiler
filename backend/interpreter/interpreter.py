@@ -1,10 +1,9 @@
 from __future__ import annotations
-
 from typing import Dict, List
-
 from backend.ast.ast_nodes import *
+from backend.errors import RuntimeErrorBase
 from backend.interpreter.environment import Environment
-
+from backend.interpreter.input_request import InputRequest
 from backend.interpreter.runtime.output import bind_output_methods
 from backend.interpreter.runtime.coercion import bind_coercion_methods
 from backend.interpreter.runtime.program import bind_program_methods
@@ -14,7 +13,6 @@ from backend.interpreter.runtime.expressions import bind_expression_methods
 from backend.interpreter.runtime.declarations import bind_declaration_methods
 from backend.interpreter.runtime.references import bind_reference_methods
 from backend.interpreter.runtime.input_conversion import bind_input_conversion_methods
-
 
 class Interpreter:
     def __init__(self, *, input_provider=None):
@@ -27,7 +25,6 @@ class Interpreter:
         self.output = []
         self.current_line = ""
 
-
 bind_output_methods(Interpreter)
 bind_coercion_methods(Interpreter)
 bind_program_methods(Interpreter)
@@ -38,12 +35,18 @@ bind_declaration_methods(Interpreter)
 bind_reference_methods(Interpreter)
 bind_input_conversion_methods(Interpreter)
 
-
 def run_interpreter(program_node, *, input_provider=None):
     interpreter = Interpreter(input_provider=input_provider)
-    execution_result = interpreter.run(program_node)
 
-    return {
-        "result": execution_result,
-        "output": interpreter.output,
-    }
+    try:
+        execution_result = interpreter.run(program_node)
+        return {
+            "result": execution_result,
+            "output": list(interpreter.output),
+        }
+    except InputRequest as input_request:
+        input_request.interpreter_output = list(interpreter.output)
+        raise
+    except RuntimeErrorBase as runtime_error:
+        runtime_error.interpreter_output = list(interpreter.output)
+        raise

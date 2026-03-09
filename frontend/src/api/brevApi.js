@@ -22,6 +22,10 @@ export async function runSemantic(source_code, signal) {
     return postJson("/api/sem", { source_code }, signal);
 }
 
-export async function runExecute(source_code, signal, inputs = []) {
-    return postJson("/api/run", { source_code, inputs }, signal);
+export async function runStartExecute(source_code, signal) {
+    return postJson("/api/run/start", { source_code }, signal);
+}
+
+export async function runSendInput(session_id, value, signal) {
+    return postJson("/api/run/input", { session_id, value }, signal);
 }
