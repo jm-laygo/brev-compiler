@@ -49,6 +49,12 @@ export default function useLiveRunner({
         setRuntimeSessionId(null);
     }, []);
 
+    const resetRunState = useCallback(() => {
+        finishRuntimeState();
+        setIsRunning(false);
+        setRunningPhase("");
+    }, [finishRuntimeState]);
+
     const stopLive = useCallback(() => {
         if (liveDebounceRef.current) {
             clearTimeout(liveDebounceRef.current);
@@ -60,13 +66,10 @@ export default function useLiveRunner({
             liveAbortRef.current = null;
         }
 
-        finishRuntimeState();
         liveReqIdRef.current += 1;
-
-        setIsRunning(false);
-        setRunningPhase("");
+        resetRunState();
         logWarn("Stopped.");
-    }, [finishRuntimeState, logWarn]);
+    }, [logWarn, resetRunState]);
 
     const runLiveOnce = useCallback(
         async (phase, sourceCode, openTokens) => {
@@ -181,9 +184,7 @@ export default function useLiveRunner({
                         logError("Execution failed:");
                         logError(msg);
                         setMarkersFromErrors([msg]);
-                        finishRuntimeState();
-                        setIsRunning(false);
-                        setRunningPhase("");
+                        resetRunState();
                         return;
                     }
 
@@ -201,9 +202,7 @@ export default function useLiveRunner({
                     if (data.status === "finished") {
                         logWarn("Execution successful!");
                         setMarkersFromErrors([]);
-                        finishRuntimeState();
-                        setIsRunning(false);
-                        setRunningPhase("");
+                        resetRunState();
                         return;
                     }
 
@@ -211,28 +210,28 @@ export default function useLiveRunner({
                     if (errs.length) errs.forEach((e) => logError(e));
                     else logError("Unknown runtime error");
                     if (errs.length) setMarkersFromErrors(errs);
-                    finishRuntimeState();
-                    setIsRunning(false);
-                    setRunningPhase("");
+                    resetRunState();
                     return;
                 }
             } catch (e) {
-                if (e?.name === "AbortError") return;
+                if (e?.name === "AbortError") {
+                    resetRunState();
+                    return;
+                }
+
                 const msg = `Network error: ${e.message}`;
                 logError("Run failed:");
                 logError(msg);
                 setMarkersFromErrors([msg]);
-                finishRuntimeState();
-                setIsRunning(false);
-                setRunningPhase("");
+                resetRunState();
             }
         },
         [
             appendRuntimeOutput,
             clearAllEditorMarkers,
-            finishRuntimeState,
             logError,
             logWarn,
+            resetRunState,
             setMarkersFromErrors,
             setTerminal,
             setTokens,
@@ -282,22 +281,25 @@ export default function useLiveRunner({
     }, [isRunning, runningPhase, startLive, stopLive]);
 
     const toggleExecute = useCallback(async () => {
-        if (liveAbortRef.current) {
-            liveAbortRef.current.abort();
-            liveAbortRef.current = null;
+        if (isRunning && runningPhase === "run") {
+            stopLive();
+            return;
         }
 
-        finishRuntimeState();
+        stopLive();
+
         setIsRunning(true);
         setRunningPhase("run");
 
         const code = getCode();
         await runLiveOnce("run", code, true);
-    }, [finishRuntimeState, getCode, runLiveOnce]);
+    }, [getCode, isRunning, runLiveOnce, runningPhase, stopLive]);
 
     const submitRuntimeInput = useCallback(
         async (value) => {
             if (!runtimeSessionId) return;
+
+            if (liveAbortRef.current) liveAbortRef.current.abort();
 
             const controller = new AbortController();
             liveAbortRef.current = controller;
@@ -313,9 +315,7 @@ export default function useLiveRunner({
                     logError("Execution failed:");
                     logError(msg);
                     setMarkersFromErrors([msg]);
-                    finishRuntimeState();
-                    setIsRunning(false);
-                    setRunningPhase("");
+                    resetRunState();
                     return;
                 }
 
@@ -333,9 +333,7 @@ export default function useLiveRunner({
                 if (data.status === "finished") {
                     logWarn("Execution successful!");
                     setMarkersFromErrors([]);
-                    finishRuntimeState();
-                    setIsRunning(false);
-                    setRunningPhase("");
+                    resetRunState();
                     return;
                 }
 
@@ -343,34 +341,38 @@ export default function useLiveRunner({
                 if (errs.length) errs.forEach((e) => logError(e));
                 else logError("Unknown runtime error");
                 if (errs.length) setMarkersFromErrors(errs);
-                finishRuntimeState();
-                setIsRunning(false);
-                setRunningPhase("");
+                resetRunState();
             } catch (e) {
-                if (e?.name === "AbortError") return;
+                if (e?.name === "AbortError") {
+                    resetRunState();
+                    return;
+                }
+
                 logError("Execution failed:");
                 logError(`Network error: ${e.message}`);
-                finishRuntimeState();
-                setIsRunning(false);
-                setRunningPhase("");
+                resetRunState();
             }
         },
         [
             appendRuntimeOutput,
-            finishRuntimeState,
             logError,
             logWarn,
+            resetRunState,
             runtimeSessionId,
             setMarkersFromErrors,
         ]
     );
 
     const cancelRuntimeInput = useCallback(() => {
-        finishRuntimeState();
-        setIsRunning(false);
-        setRunningPhase("");
+        if (liveAbortRef.current) {
+            liveAbortRef.current.abort();
+            liveAbortRef.current = null;
+        }
+
+        liveReqIdRef.current += 1;
+        resetRunState();
         logWarn("Execution cancelled.");
-    }, [finishRuntimeState, logWarn]);
+    }, [logWarn, resetRunState]);
 
     const onEditorChange = useCallback(
         (v) => {
