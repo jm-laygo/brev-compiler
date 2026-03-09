@@ -89,8 +89,15 @@ export default function OutputPanel({
 
     const handleSubmit = (e) => {
         e.preventDefault();
+
         const formData = new FormData(e.currentTarget);
         const value = String(formData.get("runtime_input") ?? "");
+
+        if (value.trim() === "") {
+            inputRef.current?.focus();
+            return;
+        }
+
         onSubmitRuntimeInput?.(value);
         e.currentTarget.reset();
     };
