@@ -332,9 +332,26 @@ PREDICT = {
     },
 
     "<param_array_tail>": {
-        TK_SYM_OPBRACK:  [TK_SYM_OPBRACK, TK_SYM_CLSBRACK, "<param_array_tail>"],
+        TK_SYM_OPBRACK:  [TK_SYM_OPBRACK, "<param_dim_expr_opt>", TK_SYM_CLSBRACK, "<param_array_tail>"],
         TK_SYM_COMMA:    [EPSILON],
         TK_SYM_CLSPAREN: [EPSILON],
+    },
+
+    "<param_dim_expr_opt>": {
+        TK_OP_NOT:         ["<expr>"],
+        TK_OP_TILDE:       ["<expr>"],
+        TK_OP_INC:         ["<expr>"],
+        TK_OP_DEC:         ["<expr>"],
+        TK_SYM_OPPAREN:    ["<expr>"],
+        TK_IDENTIFIER:     ["<expr>"],
+        TK_OTHERS_VERSEOF: ["<expr>"],
+        TK_LIT_INT:        ["<expr>"],
+        TK_LIT_DECIMAL:    ["<expr>"],
+        TK_LIT_CHAR:       ["<expr>"],
+        TK_LIT_STRING:     ["<expr>"],
+        TK_LIT_BOOL:       ["<expr>"],
+
+        TK_SYM_CLSBRACK:   [EPSILON],
     },
 
     # 10) LOCAL DECLS

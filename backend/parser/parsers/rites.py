@@ -163,16 +163,16 @@ def parse_param(self: Parser) -> Param:
 
     type_name = self.parse_data_type_id()
     identifier_token = self.expect(TK_IDENTIFIER)
-    array_dimension_count = self.parse_param_array_tail()
+    dims = self.parse_param_array_tail()
 
     return Param(
         pos=_tok_pos(identifier_token),
         type_name=type_name,
         name=_tok_lexeme(identifier_token),
-        array_dims=array_dimension_count
+        dims=dims
     )
 
-def parse_param_array_tail(self: Parser) -> int:
+def parse_param_array_tail(self: Parser) -> List[Optional[Expr]]:
     lookahead_type = self.current_type(0)
 
     if lookahead_type not in PREDICT["<param_array_tail>"]:
@@ -181,16 +181,29 @@ def parse_param_array_tail(self: Parser) -> int:
             expected=list(PREDICT["<param_array_tail>"].keys()),
         )
 
-    if lookahead_type in (TK_SYM_COMMA, TK_SYM_CLSPAREN):
-        return 0
+    dims: List[Optional[Expr]] = []
 
-    array_dimension_count = 0
     while self.current_type(0) == TK_SYM_OPBRACK:
         self.expect(TK_SYM_OPBRACK)
+        dim_expr = self.parse_param_dim_expr_opt()
         self.expect(TK_SYM_CLSBRACK)
-        array_dimension_count += 1
+        dims.append(dim_expr)
 
-    return array_dimension_count
+    return dims
+
+def parse_param_dim_expr_opt(self: Parser) -> Optional[Expr]:
+    lookahead_type = self.current_type(0)
+
+    if lookahead_type not in PREDICT["<param_dim_expr_opt>"]:
+        raise ParserError(
+            self.peek(0) or self.peek(-1),
+            expected=list(PREDICT["<param_dim_expr_opt>"].keys()),
+        )
+
+    if lookahead_type == TK_SYM_CLSBRACK:
+        return None
+
+    return self.parse_expr()
 
 # LOCAL DECLS (func / main)
 def parse_func_local_dec_opt(self: Parser) -> List[Any]:
@@ -309,6 +322,7 @@ Parser.parse_param_list = parse_param_list
 Parser.parse_param_list_tail = parse_param_list_tail
 Parser.parse_param = parse_param
 Parser.parse_param_array_tail = parse_param_array_tail
+Parser.parse_param_dim_expr_opt = parse_param_dim_expr_opt
 
 Parser.parse_func_local_dec_opt = parse_func_local_dec_opt
 Parser.parse_func_local_dec = parse_func_local_dec

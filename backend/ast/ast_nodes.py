@@ -33,7 +33,7 @@ class RiteDecl(Node):
 class Param(Node):
     type_name: str = ""
     name: str = ""
-    array_dims: int = 0
+    dims: List[Optional["Expr"]] = field(default_factory=list)
 
 # Global / Local Decls
 @dataclass
