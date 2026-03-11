@@ -10,9 +10,9 @@ class Environment:
         self.values = {}
         self.constants = set()
 
-    def declare(self, name, value=None, *, is_const=False):
+    def declare(self, name, value=None, *, is_const=False, node=None):
         if name in self.values:
-            raise RuntimeNameError(None, f"Runtime redeclaration of '{name}'.")
+            raise RuntimeNameError(node, f"Runtime redeclaration of '{name}'.")
         self.values[name] = value
         if is_const:
             self.constants.add(name)

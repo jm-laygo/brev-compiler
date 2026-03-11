@@ -140,7 +140,7 @@ def _exec_stmt(self, statement_node, current_environment: Environment):
         for argument_node in statement_node.args:
             evaluated_value = self._eval_expr(argument_node, current_environment)
             output_parts.append(self.stringify(evaluated_value))
-        self._write_line("".join(output_parts))
+        self._write_inline("".join(output_parts))
         return
 
     # CONDITIONALS
@@ -221,7 +221,7 @@ def _exec_stmt(self, statement_node, current_environment: Environment):
                     break
 
             try:
-                self._exec_block(body_statements, loop_environment, create_scope=False)
+                self._exec_block(body_statements, loop_environment, create_scope=True)
             except ProceedSignal:
                 pass
             except FallSignal:

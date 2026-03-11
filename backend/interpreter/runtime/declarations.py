@@ -25,7 +25,12 @@ def _exec_var_decl(self, declaration_node: VarDecl, current_environment: Environ
                 declared_item,
             )
 
-        current_environment.declare(declared_item.name, coerced_value, is_const=False)
+        current_environment.declare(
+            declared_item.name,
+            coerced_value,
+            is_const=False,
+            node=declared_item
+        )
 
 def _exec_sacred_decl(self, declaration_node: SacredDecl, current_environment: Environment):
     declared_type_name = getattr(declaration_node, "type_name", "")
@@ -44,7 +49,12 @@ def _exec_sacred_decl(self, declaration_node: SacredDecl, current_environment: E
             evaluated_value,
             declared_item,
         )
-        current_environment.declare(declared_item.name, coerced_value, is_const=True)
+        current_environment.declare(
+            declared_item.name,
+            coerced_value,
+            is_const=False,
+            node=declared_item
+        )
 
 def _exec_ordain_decl(self, declaration_node: OrdainDecl, current_environment: Environment):
     order_name = declaration_node.name
@@ -76,7 +86,12 @@ def _exec_ordain_decl(self, declaration_node: OrdainDecl, current_environment: E
         else:
             runtime_value = self._make_order_instance(order_declaration)
 
-        current_environment.declare(declared_item.name, runtime_value, is_const=False)
+        current_environment.declare(
+            declared_item.name,
+            runtime_value,
+            is_const=False,
+            node=declared_item
+        )
 
 def _materialize_var_item(
     self,

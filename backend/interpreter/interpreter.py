@@ -40,13 +40,16 @@ def run_interpreter(program_node, *, input_provider=None):
 
     try:
         execution_result = interpreter.run(program_node)
+        interpreter._flush_output()
         return {
             "result": execution_result,
             "output": list(interpreter.output),
         }
     except InputRequest as input_request:
+        interpreter._flush_output()
         input_request.interpreter_output = list(interpreter.output)
         raise
     except RuntimeErrorBase as runtime_error:
+        interpreter._flush_output()
         runtime_error.interpreter_output = list(interpreter.output)
         raise
