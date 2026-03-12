@@ -21,6 +21,40 @@ app = Flask(__name__)
 RUN_SESSIONS = {}
 
 
+def output_delta(previous_output, current_output):
+    previous_output = list(previous_output or [])
+    current_output = list(current_output or [])
+
+    # Fast path: previous output is a strict line-prefix of current output.
+    shared_line_count = min(len(previous_output), len(current_output))
+    matching_full_lines = 0
+
+    while (
+        matching_full_lines < shared_line_count
+        and previous_output[matching_full_lines] == current_output[matching_full_lines]
+    ):
+        matching_full_lines += 1
+
+    if matching_full_lines == len(previous_output):
+        return current_output[matching_full_lines:]
+
+    # Reruns can extend the last previously emitted line (inline prompt growth).
+    if matching_full_lines == len(previous_output) - 1 and matching_full_lines < len(current_output):
+        previous_tail = previous_output[matching_full_lines]
+        current_tail = current_output[matching_full_lines]
+
+        if isinstance(previous_tail, str) and isinstance(current_tail, str) and current_tail.startswith(previous_tail):
+            delta = []
+            tail_delta = current_tail[len(previous_tail):]
+            if tail_delta:
+                delta.append(tail_delta)
+            delta.extend(current_output[matching_full_lines + 1:])
+            return delta
+
+    # Fallback for mismatched reruns: avoid dropping content.
+    return current_output
+
+
 @app.get("/api/ping")
 def ping():
     return jsonify({"ok": True, "msg": "Flask API is running"}), 200
@@ -76,9 +110,8 @@ def execute_session_until_pause(session):
     try:
         result = run_interpreter(session["checked_ast"], input_provider=input_provider)
         full_output = result["output"]
-        old_len = session["emitted_output_len"]
-        delta_output = full_output[old_len:]
-        session["emitted_output_len"] = len(full_output)
+        delta_output = output_delta(session["emitted_output"], full_output)
+        session["emitted_output"] = list(full_output)
 
         return {
             "status": "finished",
@@ -90,9 +123,8 @@ def execute_session_until_pause(session):
 
     except InputRequest as input_request:
         full_output = getattr(input_request, "interpreter_output", [])
-        old_len = session["emitted_output_len"]
-        delta_output = full_output[old_len:]
-        session["emitted_output_len"] = len(full_output)
+        delta_output = output_delta(session["emitted_output"], full_output)
+        session["emitted_output"] = list(full_output)
 
         return {
             "status": "waiting_input",
@@ -104,9 +136,8 @@ def execute_session_until_pause(session):
 
     except RuntimeErrorBase as runtime_error:
         full_output = getattr(runtime_error, "interpreter_output", [])
-        old_len = session["emitted_output_len"]
-        delta_output = full_output[old_len:]
-        session["emitted_output_len"] = len(full_output)
+        delta_output = output_delta(session["emitted_output"], full_output)
+        session["emitted_output"] = list(full_output)
 
         return {
             "status": "error",
@@ -272,7 +303,7 @@ def api_run_start():
             "source_code": source_code,
             "checked_ast": checked_ast,
             "inputs": [],
-            "emitted_output_len": 0,
+            "emitted_output": [],
         }
         RUN_SESSIONS[session_id] = session
 
