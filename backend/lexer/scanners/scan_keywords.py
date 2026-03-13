@@ -11,9 +11,6 @@ def scan_keywords_manual(lexer, tokens, errors):
         else:
             lexer.current_char = None
 
-    def is_ident_char(ch):
-        return ch is not None and ch in (ALPHA_DIG + "_")
-
     def accept_keyword(tok_type, ident_str, start_pos, allowed_delims):
         if isinstance(allowed_delims, str):
             allowed_delims = {allowed_delims}
@@ -149,7 +146,7 @@ def scan_keywords_manual(lexer, tokens, errors):
                             ident_str += "s"; lexer.advance()
                             if lexer.current_char == "s":
                                 ident_str += "s"; lexer.advance()
-                                return accept_keyword(TK_CF_DISMISS, ident_str, start_pos, {space})
+                                return accept_keyword(TK_CF_DISMISS, ident_str, start_pos, {space, semicolon})
 
             # DIVINE
             restore(save_pos_di)

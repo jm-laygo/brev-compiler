@@ -51,6 +51,8 @@ def scan_string(lexer, tokens, errors):
                 value += "\n"
             elif esc == "t":
                 value += "\t"
+            elif esc == "0":
+                value += "\0"
             elif esc == "\\":
                 value += "\\"
             elif esc == '"':
