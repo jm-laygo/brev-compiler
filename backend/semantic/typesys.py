@@ -142,7 +142,7 @@ def result_of_binary(op: str, left: Type, right: Type) -> Type:
         return Type.error()
 
     op = op or ""
-    if op in ("&", "concat", "++"):
+    if op in ("&", "concat"):
         if can_concat(left, right, allow_coerce=True):
             return Type.base_t(BaseType.SCRIPTURE)
         return Type.error()
