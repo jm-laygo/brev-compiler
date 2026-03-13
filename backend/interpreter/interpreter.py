@@ -1,5 +1,6 @@
 from __future__ import annotations
 from typing import Dict, List
+
 from backend.ast.ast_nodes import *
 from backend.errors import RuntimeErrorBase
 from backend.interpreter.environment import Environment
@@ -21,8 +22,6 @@ class Interpreter:
         self.rites: Dict[str, RiteDecl] = {}
         self.orders: Dict[str, OrderDecl] = {}
         self.input_provider = input_provider or self._default_input_provider
-
-        self.output = []
         self.current_line = ""
 
 bind_output_methods(Interpreter)

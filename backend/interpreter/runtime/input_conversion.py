@@ -20,17 +20,26 @@ def _convert_input_for_target(self, target_reference, raw_input_value, current_e
 
     if isinstance(current_runtime_value, int) and not isinstance(current_runtime_value, bool):
         try:
-            return int(raw_input_value)
-        except Exception:
+            converted_value = int(raw_input_value)
+        except (TypeError, ValueError):
             raise InputConversionRuntimeError(
                 target_reference,
                 f"'{raw_input_value}' cannot be converted to tally.",
             )
 
+        digit_count = len(str(raw_input_value).strip().lstrip("-"))
+        if digit_count > 9:
+            raise InputConversionRuntimeError(
+                target_reference,
+                f"Tally input '{raw_input_value}' exceeds the 9-digit limit.",
+            )
+
+        return converted_value
+
     if isinstance(current_runtime_value, float):
         try:
             return float(raw_input_value)
-        except Exception:
+        except (TypeError, ValueError):
             raise InputConversionRuntimeError(
                 target_reference,
                 f"'{raw_input_value}' cannot be converted to divine.",
