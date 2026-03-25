@@ -200,13 +200,13 @@
 .terminal-stdin-input{
     flex: 1 1 auto;
     min-width: 120px;
-    min-height: 24px;
+    min-height: 1px;
     background: transparent;
     border: 0;
     outline: none;
     color: #00ff99;
     font: inherit;
-    padding: 2px 0;
+    padding: 1px 0;
     margin: 0;
     box-shadow: none;
 }
