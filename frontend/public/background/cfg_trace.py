@@ -3,8 +3,17 @@ from __future__ import annotations
 import argparse
 import sys
 import textwrap
+from pathlib import Path
 from dataclasses import dataclass
 from typing import Dict, List, Sequence, Tuple
+
+PROJECT_ROOT = next(
+    (parent for parent in Path(__file__).resolve().parents if (parent / "backend").is_dir()),
+    None,
+)
+
+if PROJECT_ROOT and str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from backend.errors import LexicalError, ParserError
 from backend.lexer.lexer import Lexer
@@ -48,7 +57,10 @@ EXPR_HELPER_NONTERMINALS = {
 EXPR_CHAIN_START = "<expr>"
 
 MANUAL_SOURCE_CODE = """
-
+    rite tally genesis() {
+        tally age = 10;
+        dismiss 0;
+        }
 
 """
 
