@@ -1,7 +1,6 @@
 #brev-pane{
     flex: 1 1 auto;
-
-    height: clamp(500px, 22vh, 260px);
+    min-height: 180px;
 
     display: flex;
     background: var(--ink);

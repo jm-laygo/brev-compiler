@@ -63,6 +63,9 @@ export default function OutputPanel({
     terminalLines = [],
     outputOpen,
     toggleOutput,
+    panelStyle,
+    onStartResize,
+    isResizing = false,
     onJumpToPosition,
     runtimePrompt = null,
     onSubmitRuntimeInput,
@@ -103,7 +106,17 @@ export default function OutputPanel({
     };
 
     return (
-        <div className={`panel output-panel ${outputOpen ? "open" : "closed"}`}>
+        <div className={`panel output-panel ${outputOpen ? "open" : "closed"}`} style={panelStyle}>
+            {outputOpen && (
+                <div
+                    className={`output-resize-grip ${isResizing ? "dragging" : ""}`}
+                    role="separator"
+                    aria-orientation="horizontal"
+                    aria-label="Resize editor and output panels"
+                    onPointerDown={onStartResize}
+                />
+            )}
+
             <div className="panel-head">
                 <h3 className="panel-title">Output</h3>
 
@@ -149,7 +162,11 @@ export default function OutputPanel({
                 })}
 
                 {runtimePrompt && (
-                    <form className="terminal-stdin-line" onSubmit={handleSubmit}>
+                    <form
+                        className="terminal-stdin-line"
+                        onSubmit={handleSubmit}
+                        onClick={() => inputRef.current?.focus()}
+                    >
                         <span className="terminal-stdin-prefix">{runtimePrompt.prefix ?? ""}</span>
 
                         <input

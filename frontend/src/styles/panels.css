@@ -36,6 +36,7 @@
 
 /* Output Panel */
 .output-panel{
+    position: relative;
     display: flex;
     flex-direction: column;
     min-height: 0;
@@ -47,8 +48,8 @@
 
 .output-panel.open{
     min-height: 160px;
-    max-height: 260px;
-    height: clamp(60px, 22vh, 260px);
+    max-height: none;
+    height: var(--output-height, 220px);
 }
 
 .output-panel.closed{
@@ -59,6 +60,21 @@
 
 .output-panel.closed #terminal{
     display: none;
+}
+
+.output-resize-grip{
+    position: absolute;
+    top: calc(-1 * var(--panel-frame));
+    left: 0;
+    right: 0;
+    height: calc(var(--panel-frame) + 4px);
+    cursor: row-resize;
+    z-index: 5;
+}
+
+.output-resize-grip:hover,
+.output-resize-grip.dragging{
+    box-shadow: inset 0 1px 0 rgba(255, 215, 0, 0.35);
 }
 .output-right{
     display: flex;
@@ -167,8 +183,13 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    margin: 0;
-    padding: 0;
+    margin-top: 6px;
+    padding: 8px 10px;
+    min-height: 38px;
+    border-radius: 8px;
+    background: rgba(255, 215, 0, 0.06);
+    border: 1px solid rgba(255, 215, 0, 0.16);
+    cursor: text;
 }
 
 .terminal-stdin-prefix{
@@ -179,12 +200,13 @@
 .terminal-stdin-input{
     flex: 1 1 auto;
     min-width: 120px;
+    min-height: 24px;
     background: transparent;
     border: 0;
     outline: none;
     color: #00ff99;
     font: inherit;
-    padding: 0;
+    padding: 2px 0;
     margin: 0;
     box-shadow: none;
 }
