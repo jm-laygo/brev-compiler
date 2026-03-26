@@ -57,10 +57,25 @@ EXPR_HELPER_NONTERMINALS = {
 EXPR_CHAIN_START = "<expr>"
 
 MANUAL_SOURCE_CODE = """
-    rite tally genesis() {
-        tally age = 10;
-        dismiss 0;
-        }
+rite tally genesis() {
+
+    tally a;
+    tally b;
+    tally sum;
+
+    proclaim("Enter first number:");
+    receive(a);
+
+    proclaim("Enter second number:");
+    receive(b);
+
+    sum = a + b;
+
+    proclaim("Sum:");
+    proclaim(sum);
+
+    dismiss 0;
+}
 
 """
 
