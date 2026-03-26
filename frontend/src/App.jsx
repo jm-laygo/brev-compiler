@@ -14,7 +14,9 @@ import useEditorLayoutEffect from "./components/app/useEditorLayoutEffect.js";
 export default function App() {
     const { terminalLines, logError, logWarn, setTerminal } = useTerminal(800);
 
-    const [initialCode, setInitialCode] = useState("");
+    const [initialCode, setInitialCode] = useState(`rite tally genesis() {
+    dismiss 0;
+}`);
     const [tokens, setTokens] = useState([]);
     const [tokensOpen, setTokensOpen] = useState(false);
     const [outputOpen, setOutputOpen] = useState(true);
