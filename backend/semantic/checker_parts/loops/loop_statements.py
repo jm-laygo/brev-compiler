@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Any
 
+from backend.semantic.typesys import is_bool, is_numeric
 from backend.semantic.typesys import is_bool
 
 
@@ -34,8 +35,8 @@ class LoopStatementsMixin:
             condition_expression = getattr(statement_node, "condition", None)
             condition_type = self._expr_type(condition_expression)
 
-            if not is_bool(condition_type):
-                self._error(statement_node, f"endure condition must be verity, got {condition_type}.")
+            if not (is_bool(condition_type) or is_numeric(condition_type)):
+                self._error(statement_node, f"endure condition must be verity or numeric, got {condition_type}.")
 
             body_statements = getattr(statement_node, "body", []) or []
             for body_statement in body_statements:

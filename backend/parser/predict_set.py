@@ -1305,7 +1305,7 @@ PREDICT = {
         TK_LIT_DECIMAL:    ["<unary_expr>", "<pow_tail>"],
         TK_LIT_CHAR:       ["<unary_expr>", "<pow_tail>"],
         TK_LIT_STRING:     ["<unary_expr>", "<pow_tail>"],
-        TK_LIT_BOOL:    ["<unary_expr>", "<pow_tail>"],
+        TK_LIT_BOOL:       ["<unary_expr>", "<pow_tail>"],
     },
 
     "<pow_tail>": {

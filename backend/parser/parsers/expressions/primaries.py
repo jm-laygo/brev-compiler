@@ -11,6 +11,15 @@ from backend.parser.parser import Parser, _tok_lexeme, _tok_pos
 def parse_unary_expr(self: Parser) -> Expr:
     lookahead_type = self.current_type(0)
 
+
+    if lookahead_type == TK_OP_MINUS:
+        # Explicitly reject unary minus as a negation operator
+        raise ParserError(
+            self.peek(0) or self.peek(-1),
+            expected=[TK_OP_TILDE],
+            message="Unary minus (-) is not allowed. Use ~ for negation."
+        )
+
     if lookahead_type not in PREDICT["<unary_expr>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),

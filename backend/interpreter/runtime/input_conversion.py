@@ -19,15 +19,19 @@ def _convert_input_for_target(self, target_reference, raw_input_value, current_e
         )
 
     if isinstance(current_runtime_value, int) and not isinstance(current_runtime_value, bool):
+        # Accept ~ as a negative sign for tally input
+        input_str = str(raw_input_value).strip()
+        if input_str.startswith("~"):
+            input_str = "-" + input_str[1:]
         try:
-            converted_value = int(raw_input_value)
+            converted_value = int(input_str)
         except (TypeError, ValueError):
             raise InputConversionRuntimeError(
                 target_reference,
                 f"'{raw_input_value}' cannot be converted to tally.",
             )
 
-        digit_count = len(str(raw_input_value).strip().lstrip("-"))
+        digit_count = len(input_str.lstrip("-"))
         if digit_count > 9:
             raise InputConversionRuntimeError(
                 target_reference,
