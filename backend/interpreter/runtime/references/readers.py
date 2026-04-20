@@ -16,21 +16,22 @@ def _read_lvalue(self, reference_node, current_environment):
         base_value = self._read_lvalue(reference_node.base, current_environment)
         index_value = self._eval_expr(reference_node.index, current_environment)
 
-        if not isinstance(index_value, int):
+        if not isinstance(index_value, int) or isinstance(index_value, bool):
             raise RuntimeTypeError(reference_node, "Array index must be a tally value.")
 
-        try:
-            return base_value[index_value]
-        except IndexError:
+        if not isinstance(base_value, list):
+            raise RuntimeTypeError(
+                reference_node,
+                "Indexed access requires an array value.",
+            )
+
+        if index_value < 0 or index_value >= len(base_value):
             raise IndexOutOfBoundsRuntimeError(
                 reference_node,
                 f"Index {index_value} is out of bounds.",
             )
-        except TypeError:
-            raise RuntimeTypeError(
-                reference_node,
-                "Indexed access requires an array-like value.",
-            )
+
+        return base_value[index_value]
 
     if isinstance(reference_node, MemberRef):
         base_value = self._read_lvalue(reference_node.base, current_environment)

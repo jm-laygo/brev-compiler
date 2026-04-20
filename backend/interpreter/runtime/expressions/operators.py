@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 from backend.ast.ast_nodes import BinaryExpr, UnaryExpr, VarExpr
 from backend.errors import DivisionByZeroRuntimeError, RuntimeErrorBase, RuntimeTypeError
 
@@ -46,6 +48,14 @@ def _require_logical_operands(expression_node, operator_text, left_value, right_
             expression_node,
             f"Logical operator '{operator_text}' requires verity operands, got {_runtime_type_name(left_value)} and {_runtime_type_name(right_value)}.",
         )
+
+def _require_numeric_operands(expression_node, operator_text, left_value, right_value):
+    if _is_numeric_runtime(left_value) and _is_numeric_runtime(right_value):
+        return
+    raise RuntimeTypeError(
+        expression_node,
+        f"Operator '{operator_text}' requires numeric operands, got {_runtime_type_name(left_value)} and {_runtime_type_name(right_value)}.",
+    )
     
 def _require_relational_operands(expression_node, operator_text, left_value, right_value):
     if _is_numeric_runtime(left_value) and _is_numeric_runtime(right_value):
@@ -71,6 +81,11 @@ def _require_equality_operands(expression_node, operator_text, left_value, right
 def _run_binary_operation(expression_node, operator_text, operation):
     try:
         return operation()
+    except OverflowError as exc:
+        raise RuntimeErrorBase(
+            expression_node,
+            f"Operator '{operator_text}' overflowed during execution.",
+        ) from exc
     except TypeError as exc:
         raise RuntimeTypeError(
             expression_node,
@@ -90,7 +105,7 @@ def _handle_unary_expr(self, expression_node, current_environment):
         return not operand_value
 
     if operator_text == "~":
-        if not isinstance(operand_value, (int, float)):
+        if not _is_numeric_runtime(operand_value):
             raise RuntimeTypeError(expression_node, "Unary negation requires a numeric operand.")
         return _run_binary_operation(expression_node, operator_text, lambda: -operand_value)
 
@@ -101,7 +116,7 @@ def _handle_unary_expr(self, expression_node, current_environment):
         target_reference = expression_node.operand.ref
         current_value = self._read_lvalue(target_reference, current_environment)
 
-        if not isinstance(current_value, (int, float)):
+        if not _is_numeric_runtime(current_value):
             raise RuntimeTypeError(expression_node, "Increment requires a numeric variable.")
 
         incremented_value = current_value + 1
@@ -115,7 +130,7 @@ def _handle_unary_expr(self, expression_node, current_environment):
         target_reference = expression_node.operand.ref
         current_value = self._read_lvalue(target_reference, current_environment)
 
-        if not isinstance(current_value, (int, float)):
+        if not _is_numeric_runtime(current_value):
             raise RuntimeTypeError(expression_node, "Decrement requires a numeric variable.")
 
         decremented_value = current_value - 1
@@ -134,15 +149,19 @@ def _handle_binary_expr(self, expression_node, current_environment):
     operator_text = expression_node.op
 
     if operator_text == "+":
+        _require_numeric_operands(expression_node, operator_text, left_value, right_value)
         return _run_binary_operation(expression_node, operator_text, lambda: left_value + right_value)
 
     if operator_text == "-":
+        _require_numeric_operands(expression_node, operator_text, left_value, right_value)
         return _run_binary_operation(expression_node, operator_text, lambda: left_value - right_value)
 
     if operator_text == "*":
+        _require_numeric_operands(expression_node, operator_text, left_value, right_value)
         return _run_binary_operation(expression_node, operator_text, lambda: left_value * right_value)
 
     if operator_text == "/":
+        _require_numeric_operands(expression_node, operator_text, left_value, right_value)
         if right_value == 0:
             raise DivisionByZeroRuntimeError(expression_node, "Division by zero.")
         if isinstance(left_value, int) and isinstance(right_value, int):
@@ -150,12 +169,17 @@ def _handle_binary_expr(self, expression_node, current_environment):
         return _run_binary_operation(expression_node, operator_text, lambda: left_value / right_value)
 
     if operator_text == "%":
+        _require_numeric_operands(expression_node, operator_text, left_value, right_value)
         if right_value == 0:
             raise DivisionByZeroRuntimeError(expression_node, "Modulo by zero.")
         return _run_binary_operation(expression_node, operator_text, lambda: left_value % right_value)
 
     if operator_text in ("^", "**"):
-        return _run_binary_operation(expression_node, operator_text, lambda: left_value ** right_value)
+        _require_numeric_operands(expression_node, operator_text, left_value, right_value)
+        result = _run_binary_operation(expression_node, operator_text, lambda: left_value ** right_value)
+        if isinstance(result, float) and (math.isnan(result) or math.isinf(result)):
+            raise RuntimeErrorBase(expression_node, "Power operation overflowed during execution.")
+        return result
 
     if operator_text == "==":
         _require_equality_operands(expression_node, operator_text, left_value, right_value)
@@ -190,6 +214,12 @@ def _handle_binary_expr(self, expression_node, current_environment):
         return left_value or right_value
 
     if operator_text in ("&", "concat"):
-        return self.stringify(left_value) + self.stringify(right_value)
+        try:
+            return self.stringify(left_value) + self.stringify(right_value)
+        except RecursionError as exc:
+            raise RuntimeErrorBase(
+                expression_node,
+                "String concatenation failed due to nested/circular values.",
+            ) from exc
 
     raise RuntimeErrorBase(expression_node, "This binary expression is not yet supported during execution.")

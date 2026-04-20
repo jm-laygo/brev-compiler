@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from backend.ast.ast_nodes import CallStmt, ProclaimStmt, ReceiveStmt
+from backend.errors import InputConversionRuntimeError, RuntimeErrorBase
+from backend.interpreter.input_request import InputRequest
 
 
 def _handle_io_stmt(self, statement_node, current_environment):
@@ -13,7 +15,15 @@ def _handle_io_stmt(self, statement_node, current_environment):
         return True
 
     if isinstance(statement_node, ReceiveStmt):
-        raw_input_value = self.input_provider(statement_node.target)
+        try:
+            raw_input_value = self.input_provider(statement_node.target)
+        except (InputRequest, RuntimeErrorBase):
+            raise
+        except Exception as exc:
+            raise InputConversionRuntimeError(
+                statement_node.target,
+                f"Input provider failure: {type(exc).__name__}.",
+            ) from exc
         converted_input_value = self._convert_input_for_target(
             statement_node.target,
             raw_input_value,
