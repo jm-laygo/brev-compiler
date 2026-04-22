@@ -7,28 +7,31 @@
     padding: 15px;
     border: none;
     border-image: none;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     box-sizing: border-box;
 }
 
 #brev-container::before{
     content: "";
-    position: absolute;
+    position: fixed;
     inset: 0;
     z-index: 0;
+    pointer-events: none;
     background-image: url("/background/main_background.png");
     background-repeat: no-repeat;
-    background-position: center center;
-    background-size: 100% 100%;
+    background-position: center top;
+    background-size: cover;
 }
 
 /* glass overlay */
 #brev-container::after{
     content: "";
-    position: absolute;
+    position: fixed;
     inset: 0;
     z-index: 1;
-    background: rgba(0,0,0,0.20);
+    pointer-events: none;
+    background: rgba(0,0,0,0.20);   
 }
 
 #brev-inner-container{
