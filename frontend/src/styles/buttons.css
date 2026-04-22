@@ -1,20 +1,52 @@
 .command-btn{
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
 
-    padding: 10px 16px;
+    padding: 2px 6px;
     font-size: 0.9rem;
     line-height: 1;
-
     color: var(--gold);
     cursor: pointer;
-
-    border: 10px solid transparent;
-    border-image: var(--border-img) 8.4% round;
-    background: rgba(10,10,10,0.92);
-
-    border-radius: 12px;
-    transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
     user-select: none;
+
+    border: 6px solid transparent;
+    border-image: url("/images/gold_frame.png") 40 round;
+
+    background-image: url("/images/button_background.png");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 200px;
+
+    border-radius: 2px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+}
+
+.command-btn::before{
+    content: "";
+    width: 42px;
+    height: 42px;
+    flex: 0 0 42px;
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: contain;
+}
+
+.command-btn-run::before{
+    background-image: url("/icons/run_button.png");
+}
+
+.command-btn-open::before{
+    background-image: url("/icons/open_button.png");
+}
+
+.command-btn-save::before{
+    background-image: url("/icons/save_button.png");
+}
+
+.command-btn-clear::before{
+    background-image: url("/icons/clear_button.png");
 }
 
 .command-btn:hover{

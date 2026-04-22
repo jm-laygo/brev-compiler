@@ -200,7 +200,7 @@ export default function useLiveRunner({
                     }
 
                     if (data.status === "finished") {
-                        logWarn("Execution successful!");
+                        setTerminal("Execution successful!", "success");
                         setMarkersFromErrors([]);
                         resetRunState();
                         return;
@@ -230,7 +230,6 @@ export default function useLiveRunner({
             appendRuntimeOutput,
             clearAllEditorMarkers,
             logError,
-            logWarn,
             resetRunState,
             setMarkersFromErrors,
             setTerminal,
@@ -403,7 +402,7 @@ export default function useLiveRunner({
             }
 
             if (runData.status === "finished") {
-                logWarn("Execution successful!");
+                setTerminal("Execution successful!", "success");
                 setMarkersFromErrors([]);
                 resetRunState();
                 return;
@@ -434,7 +433,6 @@ export default function useLiveRunner({
         getCode,
         isRunning,
         logError,
-        logWarn,
         resetRunState,
         runningPhase,
         setMarkersFromErrors,
@@ -480,7 +478,7 @@ export default function useLiveRunner({
                 }
 
                 if (data.status === "finished") {
-                    logWarn("Execution successful!");
+                    setTerminal("Execution successful!", "success");
                     setMarkersFromErrors([]);
                     resetRunState();
                     return;
@@ -509,6 +507,7 @@ export default function useLiveRunner({
             resetRunState,
             runtimeSessionId,
             setMarkersFromErrors,
+            setTerminal,
         ]
     );
 

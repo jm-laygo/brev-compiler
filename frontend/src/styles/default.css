@@ -12,6 +12,7 @@
     --radius: 16px;
 
     --border-img: url("/images/border_background.png");
+
 }
     
 *{
@@ -72,10 +73,9 @@ a{ color: inherit; }
     ::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
     ::-webkit-scrollbar-thumb:hover { background: gold; }
 
-  /* RESPONSIVE OVERRIDES */
 #brev-container .command-btn{
     font-size: clamp(10px, 0.75vw + 6px, 15px) !important;
-    padding: clamp(6px, 0.7vw, 10px) clamp(10px, 1.0vw, 16px) !important;
+    padding: clamp(1px, 0.1vw, 4px) clamp(10px, 0.1vw, 5px) !important;
 
     border-width: clamp(4px, 0.55vw, 8px) !important;
 
@@ -147,11 +147,7 @@ a{ color: inherit; }
         gap: 10px !important;
   }
 
-  #brev-container .command-btn{
-    font-size: 10px !important;
-    padding: 6px 10px !important;
-    border-width: 4px !important;
-  }
+
 }
 .monaco-editor .find-widget{
   z-index: 9999 !important;

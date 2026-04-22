@@ -6,20 +6,20 @@ export default function Toolbar({
     openFile,
     saveFile,
     clearEditor,
-    toggleLiveLex,
-    toggleLiveSyn,
-    toggleLiveSem,
-    toggleExecute,
+    // toggleLiveLex,
+    // toggleLiveSyn,
+    // toggleLiveSem,
+    // toggleExecute,
     toggleRunProgram,
     isRunning,
     runningPhase,
-    tokensOpen,
-    toggleTokens,
+    // tokensOpen,
+    // toggleTokens,
 }) {
-    const isLexRunning = isRunning && runningPhase === "lex";
-    const isSynRunning = isRunning && runningPhase === "syn";
-    const isSemRunning = isRunning && runningPhase === "sem";
-    const isExecRunning = isRunning && runningPhase === "run";
+    // const isLexRunning = isRunning && runningPhase === "lex";
+    // const isSynRunning = isRunning && runningPhase === "syn";
+    // const isSemRunning = isRunning && runningPhase === "sem";
+    // const isExecRunning = isRunning && runningPhase === "run";
     const isProgramRunning = isRunning && runningPhase === "program";
 
     return (
@@ -57,7 +57,9 @@ export default function Toolbar({
 
                 <button
                     onClick={toggleRunProgram}
-                    className={`command-btn ${isProgramRunning ? "active-btn" : ""}`}
+                    className={`command-btn command-btn-run ${isProgramRunning ? "active-btn" : ""}`}
+                    aria-label={isProgramRunning ? "Stop running program" : "Run program"}
+                    title={isProgramRunning ? "Stop running program" : "Run program"}
                 >
                     {isProgramRunning ? "Stop Running" : "Run Program"}
                 </button>
@@ -68,7 +70,12 @@ export default function Toolbar({
             </div>
 
             <div className="toolbar-right">
-                <button onClick={openFile} className="command-btn">
+                <button
+                    onClick={openFile}
+                    className="command-btn command-btn-open"
+                    aria-label="Open file"
+                    title="Open file"
+                >
                     Open
                 </button>
 
@@ -79,11 +86,21 @@ export default function Toolbar({
                     onChange={onFilePicked}
                 />
 
-                <button onClick={saveFile} className="command-btn">
+                <button
+                    onClick={saveFile}
+                    className="command-btn command-btn-save"
+                    aria-label="Save file"
+                    title="Save file"
+                >
                     Save
                 </button>
 
-                <button onClick={clearEditor} className="command-btn">
+                <button
+                    onClick={clearEditor}
+                    className="command-btn command-btn-clear"
+                    aria-label="Clear editor"
+                    title="Clear editor"
+                >
                     Clear
                 </button>
                 {/*

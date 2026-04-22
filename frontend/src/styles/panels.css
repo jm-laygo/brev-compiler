@@ -104,11 +104,11 @@
 }
 
 #terminal .term-line.info{
-    color: gold;
+    color: slateblue;
 }
 
 #terminal .term-line.success{
-    color: #00ff66;
+    color: #7CFF7A;
 }
 
 #terminal .term-line.error{
