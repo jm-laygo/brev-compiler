@@ -14,6 +14,7 @@ export default function useLiveRunner({
     setTerminal,
     logError,
     logWarn,
+    logSuccess,
     setTokens,
     setTokensOpen,
 }) {
@@ -200,7 +201,7 @@ export default function useLiveRunner({
                     }
 
                     if (data.status === "finished") {
-                        setTerminal("Execution successful!", "success");
+                        logSuccess("Execution successful!");
                         setMarkersFromErrors([]);
                         resetRunState();
                         return;
@@ -230,6 +231,7 @@ export default function useLiveRunner({
             appendRuntimeOutput,
             clearAllEditorMarkers,
             logError,
+            logSuccess,
             resetRunState,
             setMarkersFromErrors,
             setTerminal,
@@ -320,7 +322,9 @@ export default function useLiveRunner({
                 return;
             }
 
-            const lexTokens = Array.isArray(lexData.tokens) ? lexData.tokens.filter((token) => !token.hidden) : [];
+            const lexTokens = Array.isArray(lexData.tokens)
+                ? lexData.tokens.filter((token) => !token.hidden)
+                : [];
             const lexErrors = Array.isArray(lexData.errors) ? lexData.errors : [];
             setTokens(lexTokens);
             if (lexTokens.length > 0) setTokensOpen(true);
@@ -402,7 +406,7 @@ export default function useLiveRunner({
             }
 
             if (runData.status === "finished") {
-                setTerminal("Execution successful!", "success");
+                logSuccess("Execution successful!");
                 setMarkersFromErrors([]);
                 resetRunState();
                 return;
@@ -433,6 +437,7 @@ export default function useLiveRunner({
         getCode,
         isRunning,
         logError,
+        logSuccess,
         resetRunState,
         runningPhase,
         setMarkersFromErrors,
@@ -455,7 +460,11 @@ export default function useLiveRunner({
             setRuntimePrompt(null);
 
             try {
-                const { res, data } = await runSendInput(runtimeSessionId, value ?? "", controller.signal);
+                const { res, data } = await runSendInput(
+                    runtimeSessionId,
+                    value ?? "",
+                    controller.signal
+                );
 
                 if (!res.ok) {
                     const msg = `Execute API error (HTTP ${res.status}): ${data.error || "Unknown error"}`;
@@ -478,7 +487,7 @@ export default function useLiveRunner({
                 }
 
                 if (data.status === "finished") {
-                    setTerminal("Execution successful!", "success");
+                    logSuccess("Execution successful!");
                     setMarkersFromErrors([]);
                     resetRunState();
                     return;
@@ -503,11 +512,11 @@ export default function useLiveRunner({
         [
             appendRuntimeOutput,
             logError,
+            logSuccess,
             logWarn,
             resetRunState,
             runtimeSessionId,
             setMarkersFromErrors,
-            setTerminal,
         ]
     );
 

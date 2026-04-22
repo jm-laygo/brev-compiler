@@ -10,7 +10,7 @@ import useLiveRunner from "./components/app/useLiveRunner.js";
 import useEditorLayoutEffect from "./components/app/useEditorLayoutEffect.js";
 
 export default function App() {
-    const { terminalLines, logError, logWarn, setTerminal } = useTerminal(800);
+    const { terminalLines, logError, logWarn, logSuccess, setTerminal } = useTerminal(800);
 
     const DEFAULT_BREV_CODE = `rite tally genesis() {
     dismiss 0;
@@ -95,6 +95,7 @@ export default function App() {
         setTerminal,
         logError,
         logWarn,
+        logSuccess,
         setTokens,
         setTokensOpen,
     });
