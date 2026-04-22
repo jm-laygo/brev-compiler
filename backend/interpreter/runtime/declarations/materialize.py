@@ -4,8 +4,6 @@ from backend.ast.ast_nodes import OrderDecl, VarItem
 from backend.errors import RuntimeErrorBase, RuntimeTypeError
 from backend.interpreter.environment import Environment
 
-MAX_ARRAY_DIMENSION_SIZE = 100000
-
 def _materialize_var_item(
     self,
     declared_type_name: str,
@@ -81,17 +79,11 @@ def _make_array_of(self, value_factory, shape):
 def _require_int_dim(self, dimension_expression, current_environment: Environment, node):
     evaluated_dimension_value = self._eval_expr(dimension_expression, current_environment)
 
-    if not isinstance(evaluated_dimension_value, int) or isinstance(evaluated_dimension_value, bool):
+    if not isinstance(evaluated_dimension_value, int):
         raise RuntimeTypeError(node, "Array dimensions must evaluate to tally values.")
 
     if evaluated_dimension_value <= 0:
         raise RuntimeErrorBase(node, "Array dimensions must be positive.")
-
-    if evaluated_dimension_value > MAX_ARRAY_DIMENSION_SIZE:
-        raise RuntimeErrorBase(
-            node,
-            f"Array dimension exceeds maximum size of {MAX_ARRAY_DIMENSION_SIZE}.",
-        )
 
     return evaluated_dimension_value
 
