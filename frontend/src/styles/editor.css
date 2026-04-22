@@ -128,7 +128,7 @@
     padding: 8px 14px;
     min-height: 36px;
 
-    color: #d9c18a;
+    color: #857d6c;
     cursor: pointer;
     position: relative;
 
@@ -147,7 +147,7 @@
 
 .brev-editor-tab.active{
     opacity: 1;
-    color: #fff7d6;
+    color: #a6e612;
     border-color: rgba(10, 10, 8, 0.55);
 
     background-image:
@@ -159,7 +159,6 @@
 
     z-index: 2;
 }
-
 
 .brev-editor-tab-label{
     pointer-events: none;
@@ -180,6 +179,7 @@
     padding: 0;
     margin: 0;
     user-select: none;
+    
 }.brev-editor-tab-close{
     display: inline-flex;
     align-items: center;
