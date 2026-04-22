@@ -10,6 +10,7 @@ export default function Toolbar({
     toggleLiveSyn,
     toggleLiveSem,
     toggleExecute,
+    toggleRunProgram,
     isRunning,
     runningPhase,
     tokensOpen,
@@ -19,10 +20,12 @@ export default function Toolbar({
     const isSynRunning = isRunning && runningPhase === "syn";
     const isSemRunning = isRunning && runningPhase === "sem";
     const isExecRunning = isRunning && runningPhase === "run";
+    const isProgramRunning = isRunning && runningPhase === "program";
 
     return (
         <header id="header-row">
             <div className="toolbar-left">
+                {/*
                 <button
                     onClick={toggleLiveLex}
                     className={`command-btn ${isLexRunning ? "active-btn" : ""}`}
@@ -50,6 +53,14 @@ export default function Toolbar({
                 >
                     {isExecRunning ? "Stop Running" : "Run Execute"}
                 </button>
+                */}
+
+                <button
+                    onClick={toggleRunProgram}
+                    className={`command-btn ${isProgramRunning ? "active-btn" : ""}`}
+                >
+                    {isProgramRunning ? "Stop Running" : "Run Program"}
+                </button>
             </div>
 
             <div className="header-title-box">
@@ -75,6 +86,7 @@ export default function Toolbar({
                 <button onClick={clearEditor} className="command-btn">
                     Clear
                 </button>
+                {/*
                 <button
                     onClick={toggleTokens}
                     className={`command-btn ${tokensOpen ? "active-btn" : ""}`}
@@ -82,6 +94,7 @@ export default function Toolbar({
                 >
                     Tokens {tokensOpen ? "«" : "»"}
                 </button>
+                */}
             </div>
         </header>
     );

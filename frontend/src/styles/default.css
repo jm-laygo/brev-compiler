@@ -6,12 +6,12 @@
     --panel-frame: clamp(16px, 1.1vw, 14px);
 
     --gold: gold;
-    --ink: rgba(12,12,12,0.86);
-    --ink2: rgba(18,18,18,0.80);
+
+
 
     --radius: 16px;
 
-    --border-img: url("/images/border_background.svg");
+    --border-img: url("/images/border_background.png");
 }
     
 *{
@@ -38,8 +38,7 @@ body{
     overflow-x: hidden;
     color: #e0e0e0;
 
-    background: url("/background/main_background02.webp")
-                center / cover no-repeat fixed;
+    background: #000
 }
     
 /* links/images */

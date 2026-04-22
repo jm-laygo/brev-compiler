@@ -295,6 +295,155 @@ export default function useLiveRunner({
         await runLiveOnce("run", code, true);
     }, [getCode, isRunning, runLiveOnce, runningPhase, stopLive]);
 
+    const toggleRunProgram = useCallback(async () => {
+        if (isRunning && runningPhase === "program") {
+            stopLive();
+            return;
+        }
+
+        stopLive();
+
+        const code = getCode();
+        setIsRunning(true);
+        setRunningPhase("program");
+        clearAllEditorMarkers();
+
+        try {
+            setTerminal("Running lexical analysis...", "info");
+            const lexResult = await runLexical(code);
+            const lexData = lexResult?.data || {};
+            if (!lexResult?.res?.ok) {
+                const msg = `Lex API error (HTTP ${lexResult?.res?.status ?? "?"}): ${lexData.error || "Unknown error"}`;
+                setTerminal("Lexical analysis failed:", "error");
+                logError(msg);
+                setMarkersFromErrors([msg]);
+                resetRunState();
+                return;
+            }
+
+            const lexTokens = Array.isArray(lexData.tokens) ? lexData.tokens.filter((token) => !token.hidden) : [];
+            const lexErrors = Array.isArray(lexData.errors) ? lexData.errors : [];
+            setTokens(lexTokens);
+            if (lexTokens.length > 0) setTokensOpen(true);
+
+            if (lexErrors.length) {
+                setTerminal("Lexical analysis failed:", "error");
+                lexErrors.forEach((errorText) => logError(errorText));
+                setMarkersFromErrors(lexErrors);
+                resetRunState();
+                return;
+            }
+
+            setTerminal("Running syntax analysis...", "info");
+            const synResult = await runSyntax(code);
+            const synData = synResult?.data || {};
+            if (!synResult?.res?.ok) {
+                const msg = `Syntax API error (HTTP ${synResult?.res?.status ?? "?"}): ${synData.error || "Unknown error"}`;
+                setTerminal("Syntax analysis failed:", "error");
+                logError(msg);
+                setMarkersFromErrors([msg]);
+                resetRunState();
+                return;
+            }
+
+            const synErrors = Array.isArray(synData.errors) ? synData.errors : [];
+            if (synErrors.length) {
+                setTerminal("Syntax analysis failed:", "error");
+                synErrors.forEach((errorText) => logError(errorText));
+                setMarkersFromErrors(synErrors);
+                resetRunState();
+                return;
+            }
+
+            setTerminal("Running semantic analysis...", "info");
+            const semResult = await runSemantic(code);
+            const semData = semResult?.data || {};
+            if (!semResult?.res?.ok) {
+                const msg = `Semantic API error (HTTP ${semResult?.res?.status ?? "?"}): ${semData.error || "Unknown error"}`;
+                setTerminal("Semantic analysis failed:", "error");
+                logError(msg);
+                setMarkersFromErrors([msg]);
+                resetRunState();
+                return;
+            }
+
+            const semErrors = Array.isArray(semData.errors) ? semData.errors : [];
+            if (!(semData.semantic_valid && semErrors.length === 0)) {
+                setTerminal("Semantic analysis failed:", "error");
+                if (semErrors.length) {
+                    semErrors.forEach((errorText) => logError(errorText));
+                    setMarkersFromErrors(semErrors);
+                } else {
+                    logError("Unknown semantic error");
+                }
+                resetRunState();
+                return;
+            }
+
+            setTerminal("Running execution...", "info");
+            const runResult = await runStartExecute(code);
+            const runData = runResult?.data || {};
+            if (!runResult?.res?.ok) {
+                const msg = `Execute API error (HTTP ${runResult?.res?.status ?? "?"}): ${runData.error || "Unknown error"}`;
+                logError("Execution failed:");
+                logError(msg);
+                setMarkersFromErrors([msg]);
+                resetRunState();
+                return;
+            }
+
+            const output = Array.isArray(runData.output) ? runData.output : [];
+            const runErrors = Array.isArray(runData.errors) ? runData.errors : [];
+            appendRuntimeOutput(output);
+
+            if (runData.status === "waiting_input") {
+                setRuntimeSessionId(runData.session_id);
+                setRuntimePrompt({ id: runData.session_id, prefix: "" });
+                return;
+            }
+
+            if (runData.status === "finished") {
+                logWarn("Execution successful!");
+                setMarkersFromErrors([]);
+                resetRunState();
+                return;
+            }
+
+            logError("Execution failed:");
+            if (runErrors.length) {
+                runErrors.forEach((errorText) => logError(errorText));
+                setMarkersFromErrors(runErrors);
+            } else {
+                logError("Unknown runtime error");
+            }
+            resetRunState();
+        } catch (e) {
+            if (e?.name === "AbortError") {
+                resetRunState();
+                return;
+            }
+
+            logError("Run failed:");
+            logError(`Network error: ${e.message}`);
+            setMarkersFromErrors([`Network error: ${e.message}`]);
+            resetRunState();
+        }
+    }, [
+        appendRuntimeOutput,
+        clearAllEditorMarkers,
+        getCode,
+        isRunning,
+        logError,
+        logWarn,
+        resetRunState,
+        runningPhase,
+        setMarkersFromErrors,
+        setTerminal,
+        setTokens,
+        setTokensOpen,
+        stopLive,
+    ]);
+
     const submitRuntimeInput = useCallback(
         async (value) => {
             if (!runtimeSessionId) return;
@@ -398,6 +547,7 @@ export default function useLiveRunner({
         toggleLiveSyn,
         toggleLiveSem,
         toggleExecute,
+        toggleRunProgram,
         onEditorChange,
         runtimePrompt,
         runtimeSessionId,

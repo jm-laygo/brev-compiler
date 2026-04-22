@@ -1,7 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import BrevEditor from "./components/editor.jsx";
-import ErrorBoundary from "./components/ErrorBoundary.jsx";
-import TokenPanel from "./components/TokenPanel.jsx";
 import Toolbar from "./components/Toolbar.jsx";
 import OutputPanel from "./components/OutputPanel.jsx";
 import useTerminal from "./hooks/useTerminal.js";
@@ -20,30 +18,29 @@ export default function App() {
     const [initialCode, setInitialCode] = useState(DEFAULT_BREV_CODE);
     const [tokens, setTokens] = useState([]);
     const [tokensOpen, setTokensOpen] = useState(false);
-    const [outputOpen, setOutputOpen] = useState(true);
-    const [outputHeightPx, setOutputHeightPx] = useState(220);
+        const [outputWidthPx, setOutputWidthPx] = useState(650);
     const [isResizingPanels, setIsResizingPanels] = useState(false);
-    const [activeTokenRange, setActiveTokenRange] = useState({ start: -1, end: -1 });
-    const [activeTokenHeadIndex, setActiveTokenHeadIndex] = useState(-1);
+    const [, setActiveTokenRange] = useState({ start: -1, end: -1 });
+    const [, setActiveTokenHeadIndex] = useState(-1);
     const workspaceRef = useRef(null);
 
     useEffect(() => {
         if (!isResizingPanels) return;
 
-        const MIN_OUTPUT_HEIGHT = 120;
-        const MIN_EDITOR_HEIGHT = 180;
+        const MIN_OUTPUT_WIDTH = 320;
+        const MIN_EDITOR_WIDTH = 380;
 
         const onPointerMove = (event) => {
             const workspaceElement = workspaceRef.current;
             if (!workspaceElement) return;
 
             const workspaceRect = workspaceElement.getBoundingClientRect();
-            const topOffset = event.clientY - workspaceRect.top;
-            const nextOutputHeight = workspaceRect.height - topOffset;
-            const maxOutputHeight = Math.max(MIN_OUTPUT_HEIGHT, workspaceRect.height - MIN_EDITOR_HEIGHT);
-            const clampedOutputHeight = Math.max(MIN_OUTPUT_HEIGHT, Math.min(nextOutputHeight, maxOutputHeight));
+            const leftOffset = event.clientX - workspaceRect.left;
+            const nextOutputWidth = workspaceRect.width - leftOffset;
+            const maxOutputWidth = Math.max(MIN_OUTPUT_WIDTH, workspaceRect.width - MIN_EDITOR_WIDTH);
+            const clampedOutputWidth = Math.max(MIN_OUTPUT_WIDTH, Math.min(nextOutputWidth, maxOutputWidth));
 
-            setOutputHeightPx(clampedOutputHeight);
+            setOutputWidthPx(clampedOutputWidth);
         };
 
         const onPointerUp = () => setIsResizingPanels(false);
@@ -69,7 +66,7 @@ export default function App() {
         onEditorReady,
         clearAllEditorMarkers,
         setMarkersFromErrors,
-        jumpToToken,
+        jumpToToken: _jumpToToken,
         jumpToPosition,
     } = useEditorBridge({
         tokens,
@@ -85,6 +82,7 @@ export default function App() {
         toggleLiveSyn,
         toggleLiveSem,
         toggleExecute,
+        toggleRunProgram,
         onEditorChange,
         runtimePrompt,
         submitRuntimeInput,
@@ -133,6 +131,7 @@ export default function App() {
                         toggleLiveSyn={toggleLiveSyn}
                         toggleLiveSem={toggleLiveSem}
                         toggleExecute={toggleExecute}
+                        toggleRunProgram={toggleRunProgram}
                         isRunning={isRunning}
                         runningPhase={runningPhase}
                         tokensOpen={tokensOpen}
@@ -155,9 +154,8 @@ export default function App() {
 
                             <OutputPanel
                                 terminalLines={terminalLines}
-                                outputOpen={outputOpen}
-                                toggleOutput={() => setOutputOpen((v) => !v)}
-                                panelStyle={outputOpen ? { "--output-height": `${outputHeightPx}px` } : undefined}
+                                outputOpen={true}
+                                panelStyle={{ "--output-width": `${outputWidthPx}px` }}
                                 onStartResize={startPanelResize}
                                 isResizing={isResizingPanels}
                                 onJumpToPosition={jumpToPosition}
@@ -167,6 +165,7 @@ export default function App() {
                             />
                         </div>
 
+                        {/*
                         <aside className="tokens-dock" aria-hidden={!tokensOpen}>
                             <ErrorBoundary>
                                 <TokenPanel
@@ -177,6 +176,7 @@ export default function App() {
                                 />
                             </ErrorBoundary>
                         </aside>
+                        */}
                     </div>
                 </section>
             </main>

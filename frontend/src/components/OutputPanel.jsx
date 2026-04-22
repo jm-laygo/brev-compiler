@@ -62,7 +62,6 @@ function renderExpectedDelims(text) {
 export default function OutputPanel({
     terminalLines = [],
     outputOpen,
-    toggleOutput,
     panelStyle,
     onStartResize,
     isResizing = false,
@@ -111,7 +110,7 @@ export default function OutputPanel({
                 <div
                     className={`output-resize-grip ${isResizing ? "dragging" : ""}`}
                     role="separator"
-                    aria-orientation="horizontal"
+                    aria-orientation="vertical"
                     aria-label="Resize editor and output panels"
                     onPointerDown={onStartResize}
                 />
@@ -122,16 +121,6 @@ export default function OutputPanel({
 
                 <div className="output-right">
                     <div className="panel-hint">{terminalLines.length} lines</div>
-
-                    <button
-                        type="button"
-                        className="output-toggle-btn"
-                        onClick={toggleOutput}
-                        aria-label={outputOpen ? "Collapse output" : "Expand output"}
-                        title={outputOpen ? "Collapse output" : "Expand output"}
-                    >
-                        {outputOpen ? "×" : "▲"}
-                    </button>
                 </div>
             </div>
 
