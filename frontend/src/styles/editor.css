@@ -6,7 +6,7 @@
     display: flex;
     overflow: hidden;
 
-    background: #050505;
+
     border: var(--panel-frame) solid transparent;
     border-image: var(--border-img) 8.4% round;
     border-radius: var(--radius);
@@ -31,11 +31,26 @@
     gap: 8px;
     position: relative;
 
-    padding: 10px 52px 0 10px;
-    background: linear-gradient(180deg, rgba(255,215,0,0.06) 0%, rgba(10,10,10,0.94) 62%);
-    border-bottom: 1px solid rgba(243, 243, 243, 0.35);
+    padding: 10px 52px 6px 10px;
     min-width: 0;
 }
+
+.brev-editor-tabs-bar::after{
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    height: 6px; /* change thickness here */
+    background-image: url("/images/border_line.png");
+    background-repeat: repeat-x;
+    background-position: center bottom;
+    background-size: auto 100%;
+
+    pointer-events: none;
+}
+
 
 .brev-editor-tabs-scroll{
     flex: 1 1 auto;
@@ -81,44 +96,53 @@
     display: flex;
     align-items: center;
     padding: 0 0 0 10px;
-    border-left: 1px solid rgba(243, 243, 243, 0.35);
 }
 
+.brev-editor-tabs-actions::before{
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 6px;
+    bottom: 6px;
+
+    width: 6px; /* thickness of the image line */
+    background-image: url("/images/border_line_vertical.png");
+    margin-top: -20px;
+    background-repeat: repeat-y;
+    background-position: left center;
+    background-size: 100% auto;
+
+    pointer-events: none;
+}
 .brev-editor-tab,
 .brev-editor-tab-add{
     flex: 0 0 auto;
 }
 
 .brev-editor-tab{
-    opacity: 0.78;
     appearance: none;
-    border: 1px solid rgba(255,215,0,0.22);
-    border-bottom: none;
-
-    background-image:
-        linear-gradient(rgba(8,8,8,0.30), rgba(8,8,8,0.30)),
-        url("/images/button_background.png");
-    background-repeat: no-repeat, repeat;
-    background-position: center, center;
-    background-size: cover, cover;
-
-    color: #ccb781;
-    font-family: "Source Sans Pro", sans-serif;
-    font-size: 0.84rem;
-    letter-spacing: 0.02em;
-    line-height: 1;
-
-    border-top-left-radius: 10px;
-    border-top-right-radius: 10px;
-
-    padding: 8px 10px 7px 12px;
-    cursor: pointer;
-
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 
+    padding: 8px 14px;
+    min-height: 36px;
+
+    color: #d9c18a;
+    cursor: pointer;
     position: relative;
+
+    border: 8px solid transparent;
+    border-image: url("/images/border_background.png") 68 round;
+
+    background: #000;
+    border-radius: 0;
+
+    font-family: "Source Sans Pro", sans-serif;
+    font-size: 0.84rem;
+    line-height: 1;
+
+    opacity: 0.88;
 }
 
 .brev-editor-tab.active{
@@ -127,26 +151,12 @@
     border-color: rgba(10, 10, 8, 0.55);
 
     background-image:
-        linear-gradient(rgba(20,12,4,0.18), rgba(8,6,3,0.32)),
         url("/images/button_background.png");
     background-repeat: no-repeat, repeat;
     background-position: center, center;
-    background-size: cover, cover;
+    background-size: 200px, auto;
 
-    box-shadow:
-        inset 0 1px 0 rgba(255,255,220,0.16),
-        0 0 8px rgba(255,215,0,0.12);
-    z-index: 2;
-}
 
-.brev-editor-tab.active{
-    opacity: 1;
-    color: #fff8dc;
-    background: linear-gradient(180deg, #3e2b14 0%, #1a1108 100%);
-    border-color: rgba(255,215,0,0.72);
-    box-shadow:
-        inset 0 1px 0 rgba(255,255,220,0.20),
-        0 0 10px rgba(255,215,0,0.15);
     z-index: 2;
 }
 
@@ -215,27 +225,42 @@
 
 .brev-editor-tab-add{
     appearance: none;
-    border: 1px solid rgba(255,215,0,0.35);
-    background: linear-gradient(180deg, #24170b 0%, #120d08 100%);
-    color: var(--gold);
-    border-radius: 10px;
-    min-width: 32px;
-    height: 32px;
+    border: none;
+    background: transparent;
+    width: 25px;
+    height: 20px;
+    flex: 0 0 25px;
     cursor: pointer;
+    position: relative;
 
     display: inline-flex;
     align-items: center;
     justify-content: center;
 
-    font-size: 1rem;
-    line-height: 1;
-    margin-bottom: 0;
+    font-size: 0;
+    color: transparent;
+    padding: 0;
+    line-height: 0;
+}
+
+.brev-editor-tab-add::before{
+    content: "";
+    position: absolute;
+    left: 65%;
+    top: 50%;
+    width: 30px;
+    height: 30px;
+    transform: translate(-50%, -50%);
+    background: url("/icons/add_button.png") center / contain no-repeat;
+    pointer-events: none;
 }
 
 .brev-editor-tab-add:hover{
-    color: #fff;
-    background: linear-gradient(180deg, #2b1d10 0%, #171008 100%);
-    box-shadow: 0 0 8px rgba(255,215,0,0.18);
+    filter: brightness(1.08);
+}
+
+.brev-editor-tab-add:active{
+    filter: brightness(0.98);
 }
 
 .brev-editor-tab-input{
