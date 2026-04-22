@@ -23,6 +23,7 @@ export default function App() {
     const [, setActiveTokenRange] = useState({ start: -1, end: -1 });
     const [, setActiveTokenHeadIndex] = useState(-1);
     const workspaceRef = useRef(null);
+    const editorApiRef = useRef(null);
 
     useEffect(() => {
         if (!isResizingPanels) return;
@@ -107,6 +108,7 @@ export default function App() {
     } = useFileActions({
         getCode,
         editorRef,
+        editorApiRef,
         setInitialCode,
         setSource,
         setTerminal,
@@ -144,6 +146,7 @@ export default function App() {
                                 <BrevEditor
                                     initialValue={initialCode}
                                     editorRef={editorRef}
+                                    editorApiRef={editorApiRef}
                                     onReady={onEditorReady}
                                     onChange={(v) => {
                                         setSource(v);

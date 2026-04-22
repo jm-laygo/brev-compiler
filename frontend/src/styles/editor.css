@@ -1,18 +1,262 @@
 #brev-pane{
     flex: 1 1 auto;
     min-height: 180px;
-
-    display: flex;
-    background: var(--ink);
-    overflow: hidden;
     min-width: 0;
 
+    display: flex;
+    overflow: hidden;
+
+    background: #050505;
     border: var(--panel-frame) solid transparent;
     border-image: var(--border-img) 8.4% round;
     border-radius: var(--radius);
-
     box-shadow: inset 0 0 0 1px rgba(255,215,0,0.10);
 }
+
+.brev-editor-shell{
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: #0b0f14;
+    overflow: hidden;
+}
+
+.brev-editor-tabs-bar{
+    flex: 0 0 auto;
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    position: relative;
+
+    padding: 10px 52px 0 10px;
+    background: linear-gradient(180deg, rgba(255,215,0,0.06) 0%, rgba(10,10,10,0.94) 62%);
+    border-bottom: 1px solid rgba(22, 20, 8, 0.22);
+    min-width: 0;
+}
+
+.brev-editor-tabs-scroll{
+    flex: 1 1 auto;
+    min-width: 0;
+
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    padding-bottom: 1px;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,215,0,0.55) rgba(255,255,255,0.05);
+    mask-image: linear-gradient(to right, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
+}
+
+.brev-editor-tabs-scroll::-webkit-scrollbar{
+    height: 2px;
+}
+
+.brev-editor-tabs-scroll::-webkit-scrollbar-track{
+    background: rgba(255,255,255,0.05);
+    border-radius: 999px;
+}
+
+.brev-editor-tabs-scroll::-webkit-scrollbar-thumb{
+    background: rgba(255,215,0,0.55);
+    border-radius: 999px;
+}
+
+.brev-editor-tabs-scroll::-webkit-scrollbar-thumb:hover{
+    background: rgba(255,215,0,0.75);
+}
+
+.brev-editor-tabs-actions{
+    position: absolute;
+    right: 10px;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    padding: 0 0 0 10px;
+    border-left: 1px solid rgba(255,215,0,0.35);
+}
+
+.brev-editor-tab,
+.brev-editor-tab-add{
+    flex: 0 0 auto;
+}
+
+.brev-editor-tab{
+    opacity: 0.78;
+    appearance: none;
+    border: 1px solid rgba(255,215,0,0.22);
+    border-bottom: none;
+
+    background-image:
+        linear-gradient(rgba(8,8,8,0.30), rgba(8,8,8,0.30)),
+        url("/images/button_background.png");
+    background-repeat: no-repeat, repeat;
+    background-position: center, center;
+    background-size: cover, cover;
+
+    color: #ccb781;
+    font-family: "Source Sans Pro", sans-serif;
+    font-size: 0.84rem;
+    letter-spacing: 0.02em;
+    line-height: 1;
+
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+
+    padding: 8px 10px 7px 12px;
+    cursor: pointer;
+
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+
+    position: relative;
+}
+
+.brev-editor-tab.active{
+    opacity: 1;
+    color: #fff7d6;
+    border-color: rgba(10, 10, 8, 0.55);
+
+    background-image:
+        linear-gradient(rgba(20,12,4,0.18), rgba(8,6,3,0.32)),
+        url("/images/button_background.png");
+    background-repeat: no-repeat, repeat;
+    background-position: center, center;
+    background-size: cover, cover;
+
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,220,0.16),
+        0 0 8px rgba(255,215,0,0.12);
+    z-index: 2;
+}
+
+.brev-editor-tab.active{
+    opacity: 1;
+    color: #fff8dc;
+    background: linear-gradient(180deg, #3e2b14 0%, #1a1108 100%);
+    border-color: rgba(255,215,0,0.72);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,220,0.20),
+        0 0 10px rgba(255,215,0,0.15);
+    z-index: 2;
+}
+
+
+.brev-editor-tab-label{
+    pointer-events: none;
+}
+
+.brev-editor-tab-close{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border: none;
+    background: transparent;
+    color: rgba(255,215,0,0.75);
+    font-size: 0.95rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    user-select: none;
+}.brev-editor-tab-close{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+
+    border-radius: 5px;
+    border: 1px solid rgba(255,215,0,0.14);
+    background: rgba(255,215,0,0.06);
+
+    color: rgba(255,215,0,0.82);
+    font-size: 0.95rem;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    user-select: none;
+
+    transition:
+        background 0.15s ease,
+        color 0.15s ease,
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.brev-editor-tab-close.is-hidden{
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.brev-editor-tab-close.is-visible{
+    visibility: visible;
+}
+
+.brev-editor-tab-close.is-visible:hover{
+    color: #fff;
+    background: rgba(255,215,0,0.14);
+    border-color: rgba(255,215,0,0.32);
+    box-shadow: 0 0 6px rgba(255,215,0,0.14);
+}
+
+.brev-editor-tab-add{
+    appearance: none;
+    border: 1px solid rgba(255,215,0,0.35);
+    background: linear-gradient(180deg, #24170b 0%, #120d08 100%);
+    color: var(--gold);
+    border-radius: 10px;
+    min-width: 32px;
+    height: 32px;
+    cursor: pointer;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 1rem;
+    line-height: 1;
+    margin-bottom: 0;
+}
+
+.brev-editor-tab-add:hover{
+    color: #fff;
+    background: linear-gradient(180deg, #2b1d10 0%, #171008 100%);
+    box-shadow: 0 0 8px rgba(255,215,0,0.18);
+}
+
+.brev-editor-tab-input{
+    width: 90px;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: rgba(255,255,255,0.06);
+    color: #fff4d3;
+    font: inherit;
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+
+.brev-editor-content{
+    flex: 1 1 auto;
+    min-height: 0;
+    min-width: 0;
+    background: #050505;
+}
+
 #editor{
     width: 100%;
     height: 100%;

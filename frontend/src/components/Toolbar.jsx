@@ -82,8 +82,9 @@ export default function Toolbar({
                 <input
                     ref={fileInputRef}
                     type="file"
-                    style={{ display: "none" }}
+                    accept=".brev"
                     onChange={onFilePicked}
+                    hidden
                 />
 
                 <button
