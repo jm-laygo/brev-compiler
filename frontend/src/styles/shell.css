@@ -14,24 +14,22 @@
 
 #brev-container::before{
     content: "";
-    position: fixed;
+    position: absolute;
     inset: 0;
     z-index: 0;
-    pointer-events: none;
     background-image: url("/background/main_background.png");
     background-repeat: no-repeat;
-    background-position: center top;
-    background-size: cover;
+    background-position: center center;
+    background-size: 100dvw 100dvh;
 }
 
 /* glass overlay */
 #brev-container::after{
     content: "";
-    position: fixed;
+    position: absolute;
     inset: 0;
     z-index: 1;
-    pointer-events: none;
-    background: rgba(0,0,0,0.20);   
+    background: rgba(0,0,0,0.20);
 }
 
 #brev-inner-container{
