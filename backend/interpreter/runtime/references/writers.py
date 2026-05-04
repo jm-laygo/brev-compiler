@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from backend.ast.ast_nodes import IndexRef, MemberRef, NameRef
+from backend.ast.ast_nodes import IndexReference, MemberReference, NameReference
 from backend.errors import (
     IndexOutOfBoundsRuntimeError,
     InvalidMemberAccessRuntimeError,
@@ -8,60 +8,79 @@ from backend.errors import (
     RuntimeTypeError,
 )
 
-def _assign_lvalue(self, reference_node, assigned_value, current_environment, node=None):
-    if isinstance(reference_node, NameRef):
-        current_environment.assign(
-            reference_node.name,
-            assigned_value,
-            node=node or reference_node,
+
+def assignLeftHandValue(self, referenceNode, assignedValue, currentEnvironment, node=None):
+    if isinstance(referenceNode, NameReference):
+        currentEnvironment.assign(
+            referenceNode.name,
+            assignedValue,
+            node=node or referenceNode
         )
+
         return
 
-    if isinstance(reference_node, IndexRef):
-        target_container, target_index = self._resolve_index_target(
-            reference_node,
-            current_environment,
+    if isinstance(referenceNode, IndexReference):
+        targetContainer, targetIndex = self.resolveIndexTarget(
+            referenceNode,
+            currentEnvironment
         )
-        target_container[target_index] = assigned_value
+
+        targetContainer[targetIndex] = assignedValue
         return
 
-    if isinstance(reference_node, MemberRef):
-        base_object = self._read_lvalue(reference_node.base, current_environment)
+    if isinstance(referenceNode, MemberReference):
+        baseObject = self.readLeftHandValue(
+            referenceNode.baseReference,
+            currentEnvironment
+        )
 
-        if not isinstance(base_object, dict):
+        if not isinstance(baseObject, dict):
             raise InvalidMemberAccessRuntimeError(
-                reference_node,
-                "Member assignment requires an order instance.",
+                referenceNode,
+                "Member assignment requires an order instance."
             )
 
-        if reference_node.member not in base_object:
+        if referenceNode.memberName not in baseObject:
             raise InvalidMemberAccessRuntimeError(
-                reference_node,
-                f"Unknown member '{reference_node.member}'.",
+                referenceNode,
+                f"Unknown member '{referenceNode.memberName}'."
             )
 
-        base_object[reference_node.member] = assigned_value
+        baseObject[referenceNode.memberName] = assignedValue
         return
 
     raise RuntimeErrorBase(
-        reference_node,
-        "This assignment target is not valid during execution.",
+        referenceNode,
+        "This assignment target is not valid during execution."
     )
 
-def _resolve_index_target(self, index_reference, current_environment):
-    target_container = self._read_lvalue(index_reference.base, current_environment)
-    index_value = self._eval_expr(index_reference.index, current_environment)
+def resolveIndexTarget(self, indexReference, currentEnvironment):
+    targetContainer = self.readLeftHandValue(
+        indexReference.baseReference,
+        currentEnvironment
+    )
 
-    if not isinstance(index_value, int):
-        raise RuntimeTypeError(index_reference, "Array index must be a tally value.")
+    indexValue = self.evaluateExpression(
+        indexReference.indexExpression,
+        currentEnvironment
+    )
 
-    if not isinstance(target_container, list):
-        raise RuntimeTypeError(index_reference, "Indexed assignment requires an array value.")
-
-    if index_value < 0 or index_value >= len(target_container):
-        raise IndexOutOfBoundsRuntimeError(
-            index_reference,
-            f"Index {index_value} is out of bounds.",
+    if not isinstance(indexValue, int):
+        raise RuntimeTypeError(
+            indexReference,
+            "Array index must be a tally value."
         )
 
-    return target_container, index_value
+    if not isinstance(targetContainer, list):
+        raise RuntimeTypeError(
+            indexReference,
+            "Indexed assignment requires an array value."
+        )
+
+    if indexValue < 0 or indexValue >= len(targetContainer):
+        raise IndexOutOfBoundsRuntimeError(
+            indexReference,
+            f"Index {indexValue} is out of bounds."
+        )
+
+    return targetContainer, indexValue

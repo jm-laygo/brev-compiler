@@ -3,42 +3,47 @@ from typing import Any
 
 from backend.semantic.typesys import BaseType, Type
 
+
 class TypeBuildersMixin:
-    def _type_from_return_type(self, return_type_value: Any) -> Type:
-        if return_type_value is None:
+    def getTypeFromReturnType(self, returnTypeValue: Any) -> Type:
+        if returnTypeValue is None:
             return Type.unknown()
 
-        if isinstance(return_type_value, str):
-            type_name = return_type_value
+        if isinstance(returnTypeValue, str):
+            typeName = returnTypeValue
         else:
-            type_name = str(return_type_value)
+            typeName = str(returnTypeValue)
 
-        resolved_type = Type.base_t(type_name)
+        resolvedType = Type.fromBaseType(typeName)
 
-        if resolved_type.base == BaseType.UNKNOWN and type_name:
-            return Type.order(type_name)
+        if resolvedType.baseType == BaseType.UNKNOWN and typeName:
+            return Type.fromOrder(typeName)
 
-        return resolved_type
+        return resolvedType
 
-    def _type_from_decl(self, declaration_node: Any) -> Type:
-        declared_type_name = getattr(declaration_node, "type_name", None)
+    def getTypeFromDeclaration(self, declarationNode: Any) -> Type:
+        declaredTypeName = getattr(declarationNode, "typeName", None)
 
-        if isinstance(declared_type_name, str):
-            base_type = Type.base_t(declared_type_name)
+        if isinstance(declaredTypeName, str):
+            baseType = Type.fromBaseType(declaredTypeName)
         else:
-            base_type = Type.base_t(str(declared_type_name))
+            baseType = Type.fromBaseType(str(declaredTypeName))
 
-        if base_type.base == BaseType.UNKNOWN and isinstance(declared_type_name, str) and declared_type_name:
-            base_type = Type.order(declared_type_name)
+        if (
+            baseType.baseType == BaseType.UNKNOWN
+            and isinstance(declaredTypeName, str)
+            and declaredTypeName
+        ):
+            baseType = Type.fromOrder(declaredTypeName)
 
-        dimension_nodes = getattr(declaration_node, "dims", None)
+        dimensionNodes = getattr(declarationNode, "dimensions", None)
 
-        if isinstance(dimension_nodes, list):
-            dimension_count = len(dimension_nodes)
+        if isinstance(dimensionNodes, list):
+            dimensionCount = len(dimensionNodes)
         else:
-            dimension_count = int(getattr(declaration_node, "array_dims", 0) or 0)
+            dimensionCount = int(getattr(declarationNode, "arrayDimensions", 0) or 0)
 
-        if dimension_count > 0:
-            return Type.array(base_type, dimension_count)
+        if dimensionCount > 0:
+            return Type.fromArray(baseType, dimensionCount)
 
-        return base_type
+        return baseType

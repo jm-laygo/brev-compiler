@@ -1,610 +1,1091 @@
 from backend.tokens import *
 from backend.delimiters import *
 from backend.errors import LexicalError
-from backend.delimiters import format_expected_delims
+from backend.delimiters import format_expected_delims as formatExpectedDelimiters
 
-def scan_keywords_manual(lexer, tokens, errors):
-    def restore(saved_pos):
-        lexer.pos = saved_pos.copy()
-        if 0 <= lexer.pos.index < len(lexer.source_code):
-            lexer.current_char = lexer.source_code[lexer.pos.index]
+
+def scanKeywordsManual(lexer, tokenList, errorList):
+    def restoreLexerState(savedPosition):
+        lexer.currentPosition = savedPosition.copy()
+
+        if 0 <= lexer.currentPosition.index < len(lexer.sourceCode):
+            lexer.currentCharacter = lexer.sourceCode[lexer.currentPosition.index]
         else:
-            lexer.current_char = None
+            lexer.currentCharacter = None
 
-    def accept_keyword(tok_type, ident_str, start_pos, allowed_delims):
-        if isinstance(allowed_delims, str):
-            allowed_delims = {allowed_delims}
+    def acceptKeyword(tokenType, keywordText, startingPosition, allowedDelimiters):
+        if isinstance(allowedDelimiters, str):
+            allowedDelimiters = {allowedDelimiters}
 
-        ch = lexer.current_char
-        if ch == "\r":
-            ch = "\n"
+        currentCharacter = lexer.currentCharacter
 
-        expected = format_expected_delims(allowed_delims)
+        if currentCharacter == "\r":
+            currentCharacter = "\n"
 
-        if ch is not None and (ch.isalnum() or ch == "_"):
-            restore(start_pos)
+        expectedDelimiters = formatExpectedDelimiters(allowedDelimiters)
+
+        if currentCharacter is not None and (currentCharacter.isalnum() or currentCharacter == "_"):
+            restoreLexerState(startingPosition)
             return False
 
-        if ch is None and None not in allowed_delims:
-            errors.append(LexicalError(start_pos, f"Missing delimiter after '{ident_str}'. Expected: {expected}"))
+        if currentCharacter is None and None not in allowedDelimiters:
+            lexicalError = LexicalError(
+                startingPosition,
+                f"Missing delimiter after '{keywordText}'. Expected: {expectedDelimiters}"
+            )
+
+            errorList.extend([lexicalError])
             return True
 
-        if ch is not None and ch in allowed_delims:
-            tokens.append(Token(tok_type, ident_str, start_pos))
+        if currentCharacter is not None and currentCharacter in allowedDelimiters:
+            keywordToken = Token(
+                tokenType,
+                keywordText,
+                startingPosition
+            )
+
+            tokenList.extend([keywordToken])
             return True
 
-        if ch is not None and ch not in allowed_delims:
-            errors.append(LexicalError(start_pos, f"Invalid delimiter {repr(ch)} after '{ident_str}'. Expected: {expected}"))
+        if currentCharacter is not None and currentCharacter not in allowedDelimiters:
+            lexicalError = LexicalError(
+                startingPosition,
+                f"Invalid delimiter {repr(currentCharacter)} after '{keywordText}'. Expected: {expectedDelimiters}"
+            )
+
+            errorList.extend([lexicalError])
             return True
 
-        tokens.append(Token(tok_type, ident_str, start_pos))
+        keywordToken = Token(
+            tokenType,
+            keywordText,
+            startingPosition
+        )
+
+        tokenList.extend([keywordToken])
         return True
 
-    start_pos = lexer.pos.copy()
-    first = lexer.current_char
-    
+    startingPosition = lexer.currentPosition.copy()
+    firstCharacter = lexer.currentCharacter
+
     # LETTER A
-    if first == "a":
+    if firstCharacter == "a":
         lexer.advance()
-        save_pos = lexer.pos.copy()
+        savedPosition = lexer.currentPosition.copy()
 
         # ABSOLUTION
-        restore(save_pos)
-        ident_str = "a"
-        if lexer.current_char == "b":
-            ident_str += "b"; lexer.advance()
-            if lexer.current_char == "s":
-                ident_str += "s"; lexer.advance()
-                if lexer.current_char == "o":
-                    ident_str += "o"; lexer.advance()
-                    if lexer.current_char == "l":
-                        ident_str += "l"; lexer.advance()
-                        if lexer.current_char == "u":
-                            ident_str += "u"; lexer.advance()
-                            if lexer.current_char == "t":
-                                ident_str += "t"; lexer.advance()
-                                if lexer.current_char == "i":
-                                    ident_str += "i"; lexer.advance()
-                                    if lexer.current_char == "o":
-                                        ident_str += "o"; lexer.advance()
-                                        if lexer.current_char == "n":
-                                            ident_str += "n"; lexer.advance()
-                                            return accept_keyword(TK_CF_ABSOLUTION, ident_str, start_pos, els_delim)
+        restoreLexerState(savedPosition)
+        keywordText = "a"
+
+        if lexer.currentCharacter == "b":
+            keywordText = keywordText + "b"
+            lexer.advance()
+
+            if lexer.currentCharacter == "s":
+                keywordText = keywordText + "s"
+                lexer.advance()
+
+                if lexer.currentCharacter == "o":
+                    keywordText = keywordText + "o"
+                    lexer.advance()
+
+                    if lexer.currentCharacter == "l":
+                        keywordText = keywordText + "l"
+                        lexer.advance()
+
+                        if lexer.currentCharacter == "u":
+                            keywordText = keywordText + "u"
+                            lexer.advance()
+
+                            if lexer.currentCharacter == "t":
+                                keywordText = keywordText + "t"
+                                lexer.advance()
+
+                                if lexer.currentCharacter == "i":
+                                    keywordText = keywordText + "i"
+                                    lexer.advance()
+
+                                    if lexer.currentCharacter == "o":
+                                        keywordText = keywordText + "o"
+                                        lexer.advance()
+
+                                        if lexer.currentCharacter == "n":
+                                            keywordText = keywordText + "n"
+                                            lexer.advance()
+
+                                            return acceptKeyword(
+                                                TK_CF_ABSOLUTION,
+                                                keywordText,
+                                                startingPosition,
+                                                els_delim
+                                            )
 
         # ABSOLVE
-        restore(save_pos)
-        ident_str = "a"
-        if lexer.current_char == "b":
-            ident_str += "b"; lexer.advance()
-            if lexer.current_char == "s":
-                ident_str += "s"; lexer.advance()
-                if lexer.current_char == "o":
-                    ident_str += "o"; lexer.advance()
-                    if lexer.current_char == "l":
-                        ident_str += "l"; lexer.advance()
-                        if lexer.current_char == "v":
-                            ident_str += "v"; lexer.advance()
-                            if lexer.current_char == "e":
-                                ident_str += "e"; lexer.advance()
-                                return accept_keyword(TK_CF_ABSOLVE, ident_str, start_pos, {semicolon})
-        restore(start_pos)
+        restoreLexerState(savedPosition)
+        keywordText = "a"
+
+        if lexer.currentCharacter == "b":
+            keywordText = keywordText + "b"
+            lexer.advance()
+
+            if lexer.currentCharacter == "s":
+                keywordText = keywordText + "s"
+                lexer.advance()
+
+                if lexer.currentCharacter == "o":
+                    keywordText = keywordText + "o"
+                    lexer.advance()
+
+                    if lexer.currentCharacter == "l":
+                        keywordText = keywordText + "l"
+                        lexer.advance()
+
+                        if lexer.currentCharacter == "v":
+                            keywordText = keywordText + "v"
+                            lexer.advance()
+
+                            if lexer.currentCharacter == "e":
+                                keywordText = keywordText + "e"
+                                lexer.advance()
+
+                                return acceptKeyword(
+                                    TK_CF_ABSOLVE,
+                                    keywordText,
+                                    startingPosition,
+                                    {semicolon}
+                                )
+
+        restoreLexerState(startingPosition)
         return False
 
     # LETTER D
-    if first == "d":
+    if firstCharacter == "d":
         lexer.advance()
-        save_pos = lexer.pos.copy()
+        savedPosition = lexer.currentPosition.copy()
 
         # DECREE
-        restore(save_pos)
-        ident_str = "d"
-        if lexer.current_char == "e":
-            ident_str += "e"; lexer.advance()
-            if lexer.current_char == "c":
-                ident_str += "c"; lexer.advance()
-                if lexer.current_char == "r":
-                    ident_str += "r"; lexer.advance()
-                    if lexer.current_char == "e":
-                        ident_str += "e"; lexer.advance()
-                        if lexer.current_char == "e":
-                            ident_str += "e"; lexer.advance()
-                            return accept_keyword(TK_CF_DECREE, ident_str, start_pos, {op_par, space})
+        restoreLexerState(savedPosition)
+        keywordText = "d"
 
-        # (DISCERN / DISMISS / DIVINE)
-        restore(save_pos)
-        ident_str = "d"
-        if lexer.current_char == "i":
-            ident_str_di = "di"
+        if lexer.currentCharacter == "e":
+            keywordText = keywordText + "e"
             lexer.advance()
-            save_pos_di = lexer.pos.copy()
+
+            if lexer.currentCharacter == "c":
+                keywordText = keywordText + "c"
+                lexer.advance()
+
+                if lexer.currentCharacter == "r":
+                    keywordText = keywordText + "r"
+                    lexer.advance()
+
+                    if lexer.currentCharacter == "e":
+                        keywordText = keywordText + "e"
+                        lexer.advance()
+
+                        if lexer.currentCharacter == "e":
+                            keywordText = keywordText + "e"
+                            lexer.advance()
+
+                            return acceptKeyword(
+                                TK_CF_DECREE,
+                                keywordText,
+                                startingPosition,
+                                {op_par, space}
+                            )
+
+        # DISCERN / DISMISS / DIVINE
+        restoreLexerState(savedPosition)
+        keywordText = "d"
+
+        if lexer.currentCharacter == "i":
+            keywordTextWithDi = "di"
+            lexer.advance()
+            savedPositionAfterDi = lexer.currentPosition.copy()
 
             # DISCERN
-            restore(save_pos_di)
-            ident_str = ident_str_di
-            if lexer.current_char == "s":
-                ident_str += "s"; lexer.advance()
-                if lexer.current_char == "c":
-                    ident_str += "c"; lexer.advance()
-                    if lexer.current_char == "e":
-                        ident_str += "e"; lexer.advance()
-                        if lexer.current_char == "r":
-                            ident_str += "r"; lexer.advance()
-                            if lexer.current_char == "n":
-                                ident_str += "n"; lexer.advance()
-                                return accept_keyword(TK_CF_DISCERN, ident_str, start_pos, {op_par, space})
+            restoreLexerState(savedPositionAfterDi)
+            keywordText = keywordTextWithDi
+
+            if lexer.currentCharacter == "s":
+                keywordText = keywordText + "s"
+                lexer.advance()
+
+                if lexer.currentCharacter == "c":
+                    keywordText = keywordText + "c"
+                    lexer.advance()
+
+                    if lexer.currentCharacter == "e":
+                        keywordText = keywordText + "e"
+                        lexer.advance()
+
+                        if lexer.currentCharacter == "r":
+                            keywordText = keywordText + "r"
+                            lexer.advance()
+
+                            if lexer.currentCharacter == "n":
+                                keywordText = keywordText + "n"
+                                lexer.advance()
+
+                                return acceptKeyword(
+                                    TK_CF_DISCERN,
+                                    keywordText,
+                                    startingPosition,
+                                    {op_par, space}
+                                )
 
             # DISMISS
-            restore(save_pos_di)
-            ident_str = ident_str_di
-            if lexer.current_char == "s":
-                ident_str += "s"; lexer.advance()
-                if lexer.current_char == "m":
-                    ident_str += "m"; lexer.advance()
-                    if lexer.current_char == "i":
-                        ident_str += "i"; lexer.advance()
-                        if lexer.current_char == "s":
-                            ident_str += "s"; lexer.advance()
-                            if lexer.current_char == "s":
-                                ident_str += "s"; lexer.advance()
-                                return accept_keyword(TK_CF_DISMISS, ident_str, start_pos, {space, semicolon})
+            restoreLexerState(savedPositionAfterDi)
+            keywordText = keywordTextWithDi
+
+            if lexer.currentCharacter == "s":
+                keywordText = keywordText + "s"
+                lexer.advance()
+
+                if lexer.currentCharacter == "m":
+                    keywordText = keywordText + "m"
+                    lexer.advance()
+
+                    if lexer.currentCharacter == "i":
+                        keywordText = keywordText + "i"
+                        lexer.advance()
+
+                        if lexer.currentCharacter == "s":
+                            keywordText = keywordText + "s"
+                            lexer.advance()
+
+                            if lexer.currentCharacter == "s":
+                                keywordText = keywordText + "s"
+                                lexer.advance()
+
+                                return acceptKeyword(
+                                    TK_CF_DISMISS,
+                                    keywordText,
+                                    startingPosition,
+                                    {space, semicolon}
+                                )
 
             # DIVINE
-            restore(save_pos_di)
-            ident_str = ident_str_di
-            if lexer.current_char == "v":
-                ident_str += "v"; lexer.advance()
-                if lexer.current_char == "i":
-                    ident_str += "i"; lexer.advance()
-                    if lexer.current_char == "n":
-                        ident_str += "n"; lexer.advance()
-                        if lexer.current_char == "e":
-                            ident_str += "e"; lexer.advance()
-                            return accept_keyword(TK_DTYPE_DIVINE, ident_str, start_pos, {space})
+            restoreLexerState(savedPositionAfterDi)
+            keywordText = keywordTextWithDi
 
-        restore(start_pos)
+            if lexer.currentCharacter == "v":
+                keywordText = keywordText + "v"
+                lexer.advance()
+
+                if lexer.currentCharacter == "i":
+                    keywordText = keywordText + "i"
+                    lexer.advance()
+
+                    if lexer.currentCharacter == "n":
+                        keywordText = keywordText + "n"
+                        lexer.advance()
+
+                        if lexer.currentCharacter == "e":
+                            keywordText = keywordText + "e"
+                            lexer.advance()
+
+                            return acceptKeyword(
+                                TK_DTYPE_DIVINE,
+                                keywordText,
+                                startingPosition,
+                                {space}
+                            )
+
+        restoreLexerState(startingPosition)
         return False
 
     # LETTER E
-    if first == "e":
+    if firstCharacter == "e":
         lexer.advance()
-        save_pos = lexer.pos.copy()
+        savedPosition = lexer.currentPosition.copy()
 
         # EDICT
-        restore(save_pos)
-        ident_str = "e"
-        if lexer.current_char == "d":
-            ident_str += "d"; lexer.advance()
-            if lexer.current_char == "i":
-                ident_str += "i"; lexer.advance()
-                if lexer.current_char == "c":
-                    ident_str += "c"; lexer.advance()
-                    if lexer.current_char == "t":
-                        ident_str += "t"; lexer.advance()
-                        return accept_keyword(TK_CF_EDICT, ident_str, start_pos, {op_par, space})
+        restoreLexerState(savedPosition)
+        keywordText = "e"
+
+        if lexer.currentCharacter == "d":
+            keywordText = keywordText + "d"
+            lexer.advance()
+
+            if lexer.currentCharacter == "i":
+                keywordText = keywordText + "i"
+                lexer.advance()
+
+                if lexer.currentCharacter == "c":
+                    keywordText = keywordText + "c"
+                    lexer.advance()
+
+                    if lexer.currentCharacter == "t":
+                        keywordText = keywordText + "t"
+                        lexer.advance()
+
+                        return acceptKeyword(
+                            TK_CF_EDICT,
+                            keywordText,
+                            startingPosition,
+                            {op_par, space}
+                        )
 
         # ENDURE
-        restore(save_pos)
-        ident_str = "e"
-        if lexer.current_char == "n":
-            ident_str += "n"; lexer.advance()
-            if lexer.current_char == "d":
-                ident_str += "d"; lexer.advance()
-                if lexer.current_char == "u":
-                    ident_str += "u"; lexer.advance()
-                    if lexer.current_char == "r":
-                        ident_str += "r"; lexer.advance()
-                        if lexer.current_char == "e":
-                            ident_str += "e"; lexer.advance()
-                            return accept_keyword(TK_CF_ENDURE, ident_str, start_pos, {op_par, space})
+        restoreLexerState(savedPosition)
+        keywordText = "e"
 
-        restore(start_pos)
+        if lexer.currentCharacter == "n":
+            keywordText = keywordText + "n"
+            lexer.advance()
+
+            if lexer.currentCharacter == "d":
+                keywordText = keywordText + "d"
+                lexer.advance()
+
+                if lexer.currentCharacter == "u":
+                    keywordText = keywordText + "u"
+                    lexer.advance()
+
+                    if lexer.currentCharacter == "r":
+                        keywordText = keywordText + "r"
+                        lexer.advance()
+
+                        if lexer.currentCharacter == "e":
+                            keywordText = keywordText + "e"
+                            lexer.advance()
+
+                            return acceptKeyword(
+                                TK_CF_ENDURE,
+                                keywordText,
+                                startingPosition,
+                                {op_par, space}
+                            )
+
+        restoreLexerState(startingPosition)
         return False
+
     # LETTER F
-    if first == "f":
+    if firstCharacter == "f":
         lexer.advance()
-        save_pos = lexer.pos.copy()
+        savedPosition = lexer.currentPosition.copy()
 
         # FALL
-        restore(save_pos)
-        ident_str = "f"
-        if lexer.current_char == "a":
-            ident_str += "a"; lexer.advance()
-            if lexer.current_char == "l":
-                ident_str += "l"; lexer.advance()
-                if lexer.current_char == "l":
-                    ident_str += "l"; lexer.advance()
-                    return accept_keyword(TK_CF_FALL, ident_str, start_pos, {semicolon})
-                
-        restore(start_pos)
+        restoreLexerState(savedPosition)
+        keywordText = "f"
+
+        if lexer.currentCharacter == "a":
+            keywordText = keywordText + "a"
+            lexer.advance()
+
+            if lexer.currentCharacter == "l":
+                keywordText = keywordText + "l"
+                lexer.advance()
+
+                if lexer.currentCharacter == "l":
+                    keywordText = keywordText + "l"
+                    lexer.advance()
+
+                    return acceptKeyword(
+                        TK_CF_FALL,
+                        keywordText,
+                        startingPosition,
+                        {semicolon}
+                    )
+
+        restoreLexerState(startingPosition)
         return False
 
     # LETTER G
-    if first == "g":
+    if firstCharacter == "g":
         lexer.advance()
-        save_pos = lexer.pos.copy()
+        savedPosition = lexer.currentPosition.copy()
 
         # GENESIS
-        restore(save_pos)
-        ident_str = "g"
-        if lexer.current_char == "e":
-            ident_str += "e"; lexer.advance()
-            if lexer.current_char == "n":
-                ident_str += "n"; lexer.advance()
-                if lexer.current_char == "e":
-                    ident_str += "e"; lexer.advance()
-                    if lexer.current_char == "s":
-                        ident_str += "s"; lexer.advance()
-                        if lexer.current_char == "i":
-                            ident_str += "i"; lexer.advance()
-                            if lexer.current_char == "s":
-                                ident_str += "s"; lexer.advance()
-                                return accept_keyword(TK_OTHERS_GENESIS, ident_str, start_pos, {op_par})
+        restoreLexerState(savedPosition)
+        keywordText = "g"
+
+        if lexer.currentCharacter == "e":
+            keywordText = keywordText + "e"
+            lexer.advance()
+
+            if lexer.currentCharacter == "n":
+                keywordText = keywordText + "n"
+                lexer.advance()
+
+                if lexer.currentCharacter == "e":
+                    keywordText = keywordText + "e"
+                    lexer.advance()
+
+                    if lexer.currentCharacter == "s":
+                        keywordText = keywordText + "s"
+                        lexer.advance()
+
+                        if lexer.currentCharacter == "i":
+                            keywordText = keywordText + "i"
+                            lexer.advance()
+
+                            if lexer.currentCharacter == "s":
+                                keywordText = keywordText + "s"
+                                lexer.advance()
+
+                                return acceptKeyword(
+                                    TK_OTHERS_GENESIS,
+                                    keywordText,
+                                    startingPosition,
+                                    {op_par}
+                                )
 
         # GRACE
-        restore(save_pos)
-        ident_str = "g"
-        if lexer.current_char == "r":
-            ident_str += "r"; lexer.advance()
-            if lexer.current_char == "a":
-                ident_str += "a"; lexer.advance()
-                if lexer.current_char == "c":
-                    ident_str += "c"; lexer.advance()
-                    if lexer.current_char == "e":
-                        ident_str += "e"; lexer.advance()
-                        return accept_keyword(TK_CF_GRACE, ident_str, start_pos, {colon})
+        restoreLexerState(savedPosition)
+        keywordText = "g"
 
-        restore(start_pos)
+        if lexer.currentCharacter == "r":
+            keywordText = keywordText + "r"
+            lexer.advance()
+
+            if lexer.currentCharacter == "a":
+                keywordText = keywordText + "a"
+                lexer.advance()
+
+                if lexer.currentCharacter == "c":
+                    keywordText = keywordText + "c"
+                    lexer.advance()
+
+                    if lexer.currentCharacter == "e":
+                        keywordText = keywordText + "e"
+                        lexer.advance()
+
+                        return acceptKeyword(
+                            TK_CF_GRACE,
+                            keywordText,
+                            startingPosition,
+                            {colon}
+                        )
+
+        restoreLexerState(startingPosition)
         return False
-    
+
     # LETTER H
-    if first == "h":
+    if firstCharacter == "h":
         lexer.advance()
-        save_pos = lexer.pos.copy()
+        savedPosition = lexer.currentPosition.copy()
 
         # HOLLOW
-        restore(save_pos)
-        ident_str = "h"
-        if lexer.current_char == "o":
-            ident_str += "o"; lexer.advance()
-            if lexer.current_char == "l":
-                ident_str += "l"; lexer.advance()
-                if lexer.current_char == "l":
-                    ident_str += "l"; lexer.advance()
-                    if lexer.current_char == "o":
-                        ident_str += "o"; lexer.advance()
-                        if lexer.current_char == "w":
-                            ident_str += "w"; lexer.advance()
-                            return accept_keyword(TK_DTYPE_HOLLOW, ident_str, start_pos, {space})
+        restoreLexerState(savedPosition)
+        keywordText = "h"
+
+        if lexer.currentCharacter == "o":
+            keywordText = keywordText + "o"
+            lexer.advance()
+
+            if lexer.currentCharacter == "l":
+                keywordText = keywordText + "l"
+                lexer.advance()
+
+                if lexer.currentCharacter == "l":
+                    keywordText = keywordText + "l"
+                    lexer.advance()
+
+                    if lexer.currentCharacter == "o":
+                        keywordText = keywordText + "o"
+                        lexer.advance()
+
+                        if lexer.currentCharacter == "w":
+                            keywordText = keywordText + "w"
+                            lexer.advance()
+
+                            return acceptKeyword(
+                                TK_DTYPE_HOLLOW,
+                                keywordText,
+                                startingPosition,
+                                {space}
+                            )
 
         # HOLY
-        restore(save_pos)
-        ident_str = "h"
-        if lexer.current_char == "o":
-            ident_str += "o"; lexer.advance()
-            if lexer.current_char == "l":
-                ident_str += "l"; lexer.advance()
-                if lexer.current_char == "y":
-                    ident_str += "y"; lexer.advance()
-                    return accept_keyword(TK_LIT_BOOL, ident_str, start_pos, bool_delim)
+        restoreLexerState(savedPosition)
+        keywordText = "h"
 
-        restore(start_pos)
-        return False
-    
-    # LETTER O
-    if first == "o":
+        if lexer.currentCharacter == "o":
+            keywordText = keywordText + "o"
+            lexer.advance()
+
+            if lexer.currentCharacter == "l":
+                keywordText = keywordText + "l"
+                lexer.advance()
+
+                if lexer.currentCharacter == "y":
+                    keywordText = keywordText + "y"
+                    lexer.advance()
+
+                    return acceptKeyword(
+                        TK_LIT_BOOL,
+                        keywordText,
+                        startingPosition,
+                        bool_delim
+                    )
+                    # LETTER O
+    if firstCharacter == "o":
         lexer.advance()
-        save_pos = lexer.pos.copy()
+        savedPosition = lexer.currentPosition.copy()
 
         # ORDAIN
-        restore(save_pos)
-        ident_str = "o"
-        if lexer.current_char == "r":
-            ident_str += "r"; lexer.advance()
-            if lexer.current_char == "d":
-                ident_str += "d"; lexer.advance()
-                if lexer.current_char == "a":
-                    ident_str += "a"; lexer.advance()
-                    if lexer.current_char == "i":
-                        ident_str += "i"; lexer.advance()
-                        if lexer.current_char == "n":
-                            ident_str += "n"; lexer.advance()
-                            return accept_keyword(TK_OTHERS_ORDAIN, ident_str, start_pos, {space})
+        restoreLexerState(savedPosition)
+        keywordText = "o"
+
+        if lexer.currentCharacter == "r":
+            keywordText = keywordText + "r"
+            lexer.advance()
+
+            if lexer.currentCharacter == "d":
+                keywordText = keywordText + "d"
+                lexer.advance()
+
+                if lexer.currentCharacter == "a":
+                    keywordText = keywordText + "a"
+                    lexer.advance()
+
+                    if lexer.currentCharacter == "i":
+                        keywordText = keywordText + "i"
+                        lexer.advance()
+
+                        if lexer.currentCharacter == "n":
+                            keywordText = keywordText + "n"
+                            lexer.advance()
+
+                            return acceptKeyword(
+                                TK_OTHERS_ORDAIN,
+                                keywordText,
+                                startingPosition,
+                                {space}
+                            )
 
         # ORDER
-        restore(save_pos)
-        ident_str = "o"
-        if lexer.current_char == "r":
-            ident_str += "r"; lexer.advance()
-            if lexer.current_char == "d":
-                ident_str += "d"; lexer.advance()
-                if lexer.current_char == "e":
-                    ident_str += "e"; lexer.advance()
-                    if lexer.current_char == "r":
-                        ident_str += "r"; lexer.advance()
-                        return accept_keyword(TK_OTHERS_ORDER, ident_str, start_pos, space)
+        restoreLexerState(savedPosition)
+        keywordText = "o"
 
-        restore(start_pos)
+        if lexer.currentCharacter == "r":
+            keywordText = keywordText + "r"
+            lexer.advance()
+
+            if lexer.currentCharacter == "d":
+                keywordText = keywordText + "d"
+                lexer.advance()
+
+                if lexer.currentCharacter == "e":
+                    keywordText = keywordText + "e"
+                    lexer.advance()
+
+                    if lexer.currentCharacter == "r":
+                        keywordText = keywordText + "r"
+                        lexer.advance()
+
+                        return acceptKeyword(
+                            TK_OTHERS_ORDER,
+                            keywordText,
+                            startingPosition,
+                            space
+                        )
+
+        restoreLexerState(startingPosition)
         return False
 
     # LETTER P
-    if first == "p":
+    if firstCharacter == "p":
         lexer.advance()
-        save_pos = lexer.pos.copy()
+        savedPosition = lexer.currentPosition.copy()
 
-        restore(save_pos)
-        ident_str = "p"
-        if lexer.current_char == "r":
-            ident_str_pr = "pr"
+        # PROCEED / PROCLAIM / PROCESSION
+        restoreLexerState(savedPosition)
+        keywordText = "p"
+
+        if lexer.currentCharacter == "r":
+            keywordTextWithPr = "pr"
             lexer.advance()
-            save_pos_pr = lexer.pos.copy()
+            savedPositionAfterPr = lexer.currentPosition.copy()
 
             # PROCEED
-            restore(save_pos_pr)
-            ident_str = ident_str_pr
-            if lexer.current_char == "o":
-                ident_str += "o"; lexer.advance()
-                if lexer.current_char == "c":
-                    ident_str += "c"; lexer.advance()
-                    if lexer.current_char == "e":
-                        ident_str += "e"; lexer.advance()
-                        if lexer.current_char == "e":
-                            ident_str += "e"; lexer.advance()
-                            if lexer.current_char == "d":
-                                ident_str += "d"; lexer.advance()
-                                return accept_keyword(TK_CF_PROCEED, ident_str, start_pos, {semicolon})
+            restoreLexerState(savedPositionAfterPr)
+            keywordText = keywordTextWithPr
+
+            if lexer.currentCharacter == "o":
+                keywordText = keywordText + "o"
+                lexer.advance()
+
+                if lexer.currentCharacter == "c":
+                    keywordText = keywordText + "c"
+                    lexer.advance()
+
+                    if lexer.currentCharacter == "e":
+                        keywordText = keywordText + "e"
+                        lexer.advance()
+
+                        if lexer.currentCharacter == "e":
+                            keywordText = keywordText + "e"
+                            lexer.advance()
+
+                            if lexer.currentCharacter == "d":
+                                keywordText = keywordText + "d"
+                                lexer.advance()
+
+                                return acceptKeyword(
+                                    TK_CF_PROCEED,
+                                    keywordText,
+                                    startingPosition,
+                                    {semicolon}
+                                )
 
             # PROCLAIM
-            restore(save_pos_pr)
-            ident_str = ident_str_pr
-            if lexer.current_char == "o":
-                ident_str += "o"; lexer.advance()
-                if lexer.current_char == "c":
-                    ident_str += "c"; lexer.advance()
-                    if lexer.current_char == "l":
-                        ident_str += "l"; lexer.advance()
-                        if lexer.current_char == "a":
-                            ident_str += "a"; lexer.advance()
-                            if lexer.current_char == "i":
-                                ident_str += "i"; lexer.advance()
-                                if lexer.current_char == "m":
-                                    ident_str += "m"; lexer.advance()
-                                    return accept_keyword(TK_IO_PROCLAIM, ident_str, start_pos, {op_par})
+            restoreLexerState(savedPositionAfterPr)
+            keywordText = keywordTextWithPr
+
+            if lexer.currentCharacter == "o":
+                keywordText = keywordText + "o"
+                lexer.advance()
+
+                if lexer.currentCharacter == "c":
+                    keywordText = keywordText + "c"
+                    lexer.advance()
+
+                    if lexer.currentCharacter == "l":
+                        keywordText = keywordText + "l"
+                        lexer.advance()
+
+                        if lexer.currentCharacter == "a":
+                            keywordText = keywordText + "a"
+                            lexer.advance()
+
+                            if lexer.currentCharacter == "i":
+                                keywordText = keywordText + "i"
+                                lexer.advance()
+
+                                if lexer.currentCharacter == "m":
+                                    keywordText = keywordText + "m"
+                                    lexer.advance()
+
+                                    return acceptKeyword(
+                                        TK_IO_PROCLAIM,
+                                        keywordText,
+                                        startingPosition,
+                                        {op_par}
+                                    )
 
             # PROCESSION
-            restore(save_pos_pr)
-            ident_str = ident_str_pr
-            if lexer.current_char == "o":
-                ident_str += "o"; lexer.advance()
-                if lexer.current_char == "c":
-                    ident_str += "c"; lexer.advance()
-                    if lexer.current_char == "e":
-                        ident_str += "e"; lexer.advance()
-                        if lexer.current_char == "s":
-                            ident_str += "s"; lexer.advance()
-                            if lexer.current_char == "s":
-                                ident_str += "s"; lexer.advance()
-                                if lexer.current_char == "i":
-                                    ident_str += "i"; lexer.advance()
-                                    if lexer.current_char == "o":
-                                        ident_str += "o"; lexer.advance()
-                                        if lexer.current_char == "n":
-                                            ident_str += "n"; lexer.advance()
-                                            return accept_keyword(TK_CF_PROCESSION, ident_str, start_pos, {op_par, space})
+            restoreLexerState(savedPositionAfterPr)
+            keywordText = keywordTextWithPr
 
-        restore(start_pos)
+            if lexer.currentCharacter == "o":
+                keywordText = keywordText + "o"
+                lexer.advance()
+
+                if lexer.currentCharacter == "c":
+                    keywordText = keywordText + "c"
+                    lexer.advance()
+
+                    if lexer.currentCharacter == "e":
+                        keywordText = keywordText + "e"
+                        lexer.advance()
+
+                        if lexer.currentCharacter == "s":
+                            keywordText = keywordText + "s"
+                            lexer.advance()
+
+                            if lexer.currentCharacter == "s":
+                                keywordText = keywordText + "s"
+                                lexer.advance()
+
+                                if lexer.currentCharacter == "i":
+                                    keywordText = keywordText + "i"
+                                    lexer.advance()
+
+                                    if lexer.currentCharacter == "o":
+                                        keywordText = keywordText + "o"
+                                        lexer.advance()
+
+                                        if lexer.currentCharacter == "n":
+                                            keywordText = keywordText + "n"
+                                            lexer.advance()
+
+                                            return acceptKeyword(
+                                                TK_CF_PROCESSION,
+                                                keywordText,
+                                                startingPosition,
+                                                {op_par, space}
+                                            )
+
+        restoreLexerState(startingPosition)
         return False
 
     # LETTER R
-    if first == "r":
+    if firstCharacter == "r":
         lexer.advance()
-        save_pos = lexer.pos.copy()
+        savedPosition = lexer.currentPosition.copy()
 
         # RECEIVE
-        restore(save_pos)
-        ident_str = "r"
-        if lexer.current_char == "e":
-            ident_str += "e"; lexer.advance()
-            if lexer.current_char == "c":
-                ident_str += "c"; lexer.advance()
-                if lexer.current_char == "e":
-                    ident_str += "e"; lexer.advance()
-                    if lexer.current_char == "i":
-                        ident_str += "i"; lexer.advance()
-                        if lexer.current_char == "v":
-                            ident_str += "v"; lexer.advance()
-                            if lexer.current_char == "e":
-                                ident_str += "e"; lexer.advance()
-                                return accept_keyword(TK_IO_RECEIVE, ident_str, start_pos, {op_par})
+        restoreLexerState(savedPosition)
+        keywordText = "r"
 
-        # RI* group (RITUAL / RITE)
-        restore(save_pos)
-        ident_str = "r"
-        if lexer.current_char == "i":
-            ident_str_ri = "ri"
+        if lexer.currentCharacter == "e":
+            keywordText = keywordText + "e"
             lexer.advance()
-            save_pos_ri = lexer.pos.copy()
+
+            if lexer.currentCharacter == "c":
+                keywordText = keywordText + "c"
+                lexer.advance()
+
+                if lexer.currentCharacter == "e":
+                    keywordText = keywordText + "e"
+                    lexer.advance()
+
+                    if lexer.currentCharacter == "i":
+                        keywordText = keywordText + "i"
+                        lexer.advance()
+
+                        if lexer.currentCharacter == "v":
+                            keywordText = keywordText + "v"
+                            lexer.advance()
+
+                            if lexer.currentCharacter == "e":
+                                keywordText = keywordText + "e"
+                                lexer.advance()
+
+                                return acceptKeyword(
+                                    TK_IO_RECEIVE,
+                                    keywordText,
+                                    startingPosition,
+                                    {op_par}
+                                )
+
+        # RITUAL / RITE
+        restoreLexerState(savedPosition)
+        keywordText = "r"
+
+        if lexer.currentCharacter == "i":
+            keywordTextWithRi = "ri"
+            lexer.advance()
+            savedPositionAfterRi = lexer.currentPosition.copy()
 
             # RITUAL
-            restore(save_pos_ri)
-            ident_str = ident_str_ri
-            if lexer.current_char == "t":
-                ident_str += "t"; lexer.advance()
-                if lexer.current_char == "u":
-                    ident_str += "u"; lexer.advance()
-                    if lexer.current_char == "a":
-                        ident_str += "a"; lexer.advance()
-                        if lexer.current_char == "l":
-                            ident_str += "l"; lexer.advance()
-                            return accept_keyword(TK_CF_RITUAL, ident_str, start_pos, {space, op_bra})
+            restoreLexerState(savedPositionAfterRi)
+            keywordText = keywordTextWithRi
+
+            if lexer.currentCharacter == "t":
+                keywordText = keywordText + "t"
+                lexer.advance()
+
+                if lexer.currentCharacter == "u":
+                    keywordText = keywordText + "u"
+                    lexer.advance()
+
+                    if lexer.currentCharacter == "a":
+                        keywordText = keywordText + "a"
+                        lexer.advance()
+
+                        if lexer.currentCharacter == "l":
+                            keywordText = keywordText + "l"
+                            lexer.advance()
+
+                            return acceptKeyword(
+                                TK_CF_RITUAL,
+                                keywordText,
+                                startingPosition,
+                                {space, op_bra}
+                            )
 
             # RITE
-            restore(save_pos_ri)
-            ident_str = ident_str_ri
-            if lexer.current_char == "t":
-                ident_str += "t"; lexer.advance()
-                if lexer.current_char == "e":
-                    ident_str += "e"; lexer.advance()
-                    return accept_keyword(TK_CF_RITE, ident_str, start_pos, {space})
+            restoreLexerState(savedPositionAfterRi)
+            keywordText = keywordTextWithRi
 
-        restore(start_pos)
+            if lexer.currentCharacter == "t":
+                keywordText = keywordText + "t"
+                lexer.advance()
+
+                if lexer.currentCharacter == "e":
+                    keywordText = keywordText + "e"
+                    lexer.advance()
+
+                    return acceptKeyword(
+                        TK_CF_RITE,
+                        keywordText,
+                        startingPosition,
+                        {space}
+                    )
+
+        restoreLexerState(startingPosition)
         return False
 
     # LETTER S
-    if first == "s":
+    if firstCharacter == "s":
         lexer.advance()
-        save_pos = lexer.pos.copy()
+        savedPosition = lexer.currentPosition.copy()
 
         # SACRED
-        restore(save_pos)
-        ident_str = "s"
-        if lexer.current_char == "a":
-            ident_str += "a"; lexer.advance()
-            if lexer.current_char == "c":
-                ident_str += "c"; lexer.advance()
-                if lexer.current_char == "r":
-                    ident_str += "r"; lexer.advance()
-                    if lexer.current_char == "e":
-                        ident_str += "e"; lexer.advance()
-                        if lexer.current_char == "d":
-                            ident_str += "d"; lexer.advance()
-                            return accept_keyword(TK_SACRED, ident_str, start_pos, {space})
+        restoreLexerState(savedPosition)
+        keywordText = "s"
+
+        if lexer.currentCharacter == "a":
+            keywordText = keywordText + "a"
+            lexer.advance()
+
+            if lexer.currentCharacter == "c":
+                keywordText = keywordText + "c"
+                lexer.advance()
+
+                if lexer.currentCharacter == "r":
+                    keywordText = keywordText + "r"
+                    lexer.advance()
+
+                    if lexer.currentCharacter == "e":
+                        keywordText = keywordText + "e"
+                        lexer.advance()
+
+                        if lexer.currentCharacter == "d":
+                            keywordText = keywordText + "d"
+                            lexer.advance()
+
+                            return acceptKeyword(
+                                TK_SACRED,
+                                keywordText,
+                                startingPosition,
+                                {space}
+                            )
 
         # SCRIPTURE
-        restore(save_pos)
-        ident_str = "s"
-        if lexer.current_char == "c":
-            ident_str += "c"; lexer.advance()
-            if lexer.current_char == "r":
-                ident_str += "r"; lexer.advance()
-                if lexer.current_char == "i":
-                    ident_str += "i"; lexer.advance()
-                    if lexer.current_char == "p":
-                        ident_str += "p"; lexer.advance()
-                        if lexer.current_char == "t":
-                            ident_str += "t"; lexer.advance()
-                            if lexer.current_char == "u":
-                                ident_str += "u"; lexer.advance()
-                                if lexer.current_char == "r":
-                                    ident_str += "r"; lexer.advance()
-                                    if lexer.current_char == "e":
-                                        ident_str += "e"; lexer.advance()
-                                        return accept_keyword(TK_DTYPE_SCRIPTURE, ident_str, start_pos, {space})
+        restoreLexerState(savedPosition)
+        keywordText = "s"
+
+        if lexer.currentCharacter == "c":
+            keywordText = keywordText + "c"
+            lexer.advance()
+
+            if lexer.currentCharacter == "r":
+                keywordText = keywordText + "r"
+                lexer.advance()
+
+                if lexer.currentCharacter == "i":
+                    keywordText = keywordText + "i"
+                    lexer.advance()
+
+                    if lexer.currentCharacter == "p":
+                        keywordText = keywordText + "p"
+                        lexer.advance()
+
+                        if lexer.currentCharacter == "t":
+                            keywordText = keywordText + "t"
+                            lexer.advance()
+
+                            if lexer.currentCharacter == "u":
+                                keywordText = keywordText + "u"
+                                lexer.advance()
+
+                                if lexer.currentCharacter == "r":
+                                    keywordText = keywordText + "r"
+                                    lexer.advance()
+
+                                    if lexer.currentCharacter == "e":
+                                        keywordText = keywordText + "e"
+                                        lexer.advance()
+
+                                        return acceptKeyword(
+                                            TK_DTYPE_SCRIPTURE,
+                                            keywordText,
+                                            startingPosition,
+                                            {space}
+                                        )
 
         # SIGIL
-        restore(save_pos)
-        ident_str = "s"
-        if lexer.current_char == "i":
-            ident_str += "i"; lexer.advance()
-            if lexer.current_char == "g":
-                ident_str += "g"; lexer.advance()
-                if lexer.current_char == "i":
-                    ident_str += "i"; lexer.advance()
-                    if lexer.current_char == "l":
-                        ident_str += "l"; lexer.advance()
-                        return accept_keyword(TK_DTYPE_SIGIL, ident_str, start_pos, {space})
+        restoreLexerState(savedPosition)
+        keywordText = "s"
 
-        restore(start_pos)
+        if lexer.currentCharacter == "i":
+            keywordText = keywordText + "i"
+            lexer.advance()
+
+            if lexer.currentCharacter == "g":
+                keywordText = keywordText + "g"
+                lexer.advance()
+
+                if lexer.currentCharacter == "i":
+                    keywordText = keywordText + "i"
+                    lexer.advance()
+
+                    if lexer.currentCharacter == "l":
+                        keywordText = keywordText + "l"
+                        lexer.advance()
+
+                        return acceptKeyword(
+                            TK_DTYPE_SIGIL,
+                            keywordText,
+                            startingPosition,
+                            {space}
+                        )
+
+        restoreLexerState(startingPosition)
         return False
 
     # LETTER T
-    if first == "t":
+    if firstCharacter == "t":
         lexer.advance()
-        save_pos = lexer.pos.copy()
+        savedPosition = lexer.currentPosition.copy()
 
         # TALLY
-        restore(save_pos)
-        ident_str = "t"
-        if lexer.current_char == "a":
-            ident_str += "a"; lexer.advance()
-            if lexer.current_char == "l":
-                ident_str += "l"; lexer.advance()
-                if lexer.current_char == "l":
-                    ident_str += "l"; lexer.advance()
-                    if lexer.current_char == "y":
-                        ident_str += "y"; lexer.advance()
-                        return accept_keyword(TK_DTYPE_TALLY, ident_str, start_pos, {space})
+        restoreLexerState(savedPosition)
+        keywordText = "t"
 
-        restore(start_pos)
+        if lexer.currentCharacter == "a":
+            keywordText = keywordText + "a"
+            lexer.advance()
+
+            if lexer.currentCharacter == "l":
+                keywordText = keywordText + "l"
+                lexer.advance()
+
+                if lexer.currentCharacter == "l":
+                    keywordText = keywordText + "l"
+                    lexer.advance()
+
+                    if lexer.currentCharacter == "y":
+                        keywordText = keywordText + "y"
+                        lexer.advance()
+
+                        return acceptKeyword(
+                            TK_DTYPE_TALLY,
+                            keywordText,
+                            startingPosition,
+                            {space}
+                        )
+
+        restoreLexerState(startingPosition)
         return False
 
     # LETTER U
-    if first == "u":
+    if firstCharacter == "u":
         lexer.advance()
-        save_pos = lexer.pos.copy()
+        savedPosition = lexer.currentPosition.copy()
 
         # UNHOLY
-        restore(save_pos)
-        ident_str = "u"
-        if lexer.current_char == "n":
-            ident_str += "n"; lexer.advance()
-            if lexer.current_char == "h":
-                ident_str += "h"; lexer.advance()
-                if lexer.current_char == "o":
-                    ident_str += "o"; lexer.advance()
-                    if lexer.current_char == "l":
-                        ident_str += "l"; lexer.advance()
-                        if lexer.current_char == "y":
-                            ident_str += "y"; lexer.advance()
-                            return accept_keyword(TK_LIT_BOOL, ident_str, start_pos, bool_delim)
+        restoreLexerState(savedPosition)
+        keywordText = "u"
 
-        restore(start_pos)
+        if lexer.currentCharacter == "n":
+            keywordText = keywordText + "n"
+            lexer.advance()
+
+            if lexer.currentCharacter == "h":
+                keywordText = keywordText + "h"
+                lexer.advance()
+
+                if lexer.currentCharacter == "o":
+                    keywordText = keywordText + "o"
+                    lexer.advance()
+
+                    if lexer.currentCharacter == "l":
+                        keywordText = keywordText + "l"
+                        lexer.advance()
+
+                        if lexer.currentCharacter == "y":
+                            keywordText = keywordText + "y"
+                            lexer.advance()
+
+                            return acceptKeyword(
+                                TK_LIT_BOOL,
+                                keywordText,
+                                startingPosition,
+                                bool_delim
+                            )
+
+        restoreLexerState(startingPosition)
         return False
 
     # LETTER V
-    if first == "v":
+    if firstCharacter == "v":
         lexer.advance()
-        save_pos = lexer.pos.copy()
+        savedPosition = lexer.currentPosition.copy()
 
-        restore(save_pos)
-        ident_str = "v"
-        if lexer.current_char == "e":
-            ident_str_ve = "ve"
+        # VERITY / VERSE / VERSEOF
+        restoreLexerState(savedPosition)
+        keywordText = "v"
+
+        if lexer.currentCharacter == "e":
+            keywordTextWithVe = "ve"
             lexer.advance()
-            save_pos_ve = lexer.pos.copy()
+            savedPositionAfterVe = lexer.currentPosition.copy()
 
             # VERITY
-            restore(save_pos_ve)
-            ident_str = ident_str_ve
-            if lexer.current_char == "r":
-                ident_str += "r"; lexer.advance()
-                if lexer.current_char == "i":
-                    ident_str += "i"; lexer.advance()
-                    if lexer.current_char == "t":
-                        ident_str += "t"; lexer.advance()
-                        if lexer.current_char == "y":
-                            ident_str += "y"; lexer.advance()
-                            return accept_keyword(TK_DTYPE_VERITY, ident_str, start_pos, {space})
+            restoreLexerState(savedPositionAfterVe)
+            keywordText = keywordTextWithVe
+
+            if lexer.currentCharacter == "r":
+                keywordText = keywordText + "r"
+                lexer.advance()
+
+                if lexer.currentCharacter == "i":
+                    keywordText = keywordText + "i"
+                    lexer.advance()
+
+                    if lexer.currentCharacter == "t":
+                        keywordText = keywordText + "t"
+                        lexer.advance()
+
+                        if lexer.currentCharacter == "y":
+                            keywordText = keywordText + "y"
+                            lexer.advance()
+
+                            return acceptKeyword(
+                                TK_DTYPE_VERITY,
+                                keywordText,
+                                startingPosition,
+                                {space}
+                            )
 
             # VERSE / VERSEOF
-            restore(save_pos_ve)
-            ident_str = ident_str_ve
-            if lexer.current_char == "r":
-                ident_str += "r"; lexer.advance()
-                if lexer.current_char == "s":
-                    ident_str += "s"; lexer.advance()
-                    if lexer.current_char == "e":
-                        ident_str += "e"; lexer.advance()
+            restoreLexerState(savedPositionAfterVe)
+            keywordText = keywordTextWithVe
 
-                        # Try VERSEOF
-                        if lexer.current_char == "o":
-                            save_pos_o = lexer.pos.copy()
-                            ident_str_before = ident_str
+            if lexer.currentCharacter == "r":
+                keywordText = keywordText + "r"
+                lexer.advance()
 
-                            ident_str += "o"; lexer.advance()
-                            if lexer.current_char == "f":
-                                ident_str += "f"; lexer.advance()
-                                return accept_keyword(TK_OTHERS_VERSEOF, ident_str, start_pos, {op_par})
+                if lexer.currentCharacter == "s":
+                    keywordText = keywordText + "s"
+                    lexer.advance()
 
-                            restore(save_pos_o)
-                            ident_str = ident_str_before
+                    if lexer.currentCharacter == "e":
+                        keywordText = keywordText + "e"
+                        lexer.advance()
 
-                        return accept_keyword(TK_CF_VERSE, ident_str, start_pos, {space})
+                        # VERSEOF
+                        if lexer.currentCharacter == "o":
+                            savedPositionAtLetterO = lexer.currentPosition.copy()
+                            keywordTextBeforeVerseOf = keywordText
 
-        restore(start_pos)  
+                            keywordText = keywordText + "o"
+                            lexer.advance()
+
+                            if lexer.currentCharacter == "f":
+                                keywordText = keywordText + "f"
+                                lexer.advance()
+
+                                return acceptKeyword(
+                                    TK_OTHERS_VERSEOF,
+                                    keywordText,
+                                    startingPosition,
+                                    {op_par}
+                                )
+
+                            restoreLexerState(savedPositionAtLetterO)
+                            keywordText = keywordTextBeforeVerseOf
+
+                        # VERSE
+                        return acceptKeyword(
+                            TK_CF_VERSE,
+                            keywordText,
+                            startingPosition,
+                            {space}
+                        )
+
+        restoreLexerState(startingPosition)
         return False
 
-    restore(start_pos)
+    restoreLexerState(startingPosition)
     return False
 
-def scan_keywords(lexer, tokens, errors):
-    return scan_keywords_manual(lexer, tokens, errors)
+
+def scanKeywords(lexer, tokenList, errorList):
+    return scanKeywordsManual(lexer, tokenList, errorList)

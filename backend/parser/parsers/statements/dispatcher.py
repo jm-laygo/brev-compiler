@@ -5,47 +5,55 @@ from backend.tokens import *
 from backend.errors import ParserError
 from backend.parser.predict_set import PREDICT, EPSILON
 from backend.ast.ast_nodes import *
-from backend.parser.parser import Parser, _tok_lexeme, _tok_pos
+from backend.parser.parser import Parser, getTokenValue
 
 
-def parse_statement_list(self: Parser) -> List[Statement]:
-    lookahead_type = self.current_type(0)
+def parseStatementList(self: Parser) -> List[Statement]:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<statement_list>"]:
+    # check statement list
+    if currentTokenType not in PREDICT["<statement_list>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<statement_list>"].keys())
+            list(PREDICT["<statement_list>"].keys())
         )
 
-    if PREDICT["<statement_list>"][lookahead_type] == [EPSILON]:
+    # no statement
+    if PREDICT["<statement_list>"][currentTokenType] == [EPSILON]:
         return []
 
-    statement_list: List[Statement] = []
+    statementList: List[Statement] = []
 
     while True:
-        lookahead_type = self.current_type(0)
+        currentTokenType = self.currentType(0)
 
-        if lookahead_type == TK_SYM_CLSBRACE:
+        # end of block
+        if currentTokenType == TK_SYM_CLSBRACE:
             break
 
-        if lookahead_type in PREDICT["<statement_list>"] and PREDICT["<statement_list>"][lookahead_type] == [EPSILON]:
+        # epsilon stop
+        if (
+            currentTokenType in PREDICT["<statement_list>"]
+            and PREDICT["<statement_list>"][currentTokenType] == [EPSILON]
+        ):
             break
 
-        statement_list.append(self.parse_statement())
+        statementList.extend([self.parseStatement()])
 
-    return statement_list
+    return statementList
 
+def parseStatement(self: Parser) -> Statement:
+    currentTokenType = self.currentType(0)
 
-def parse_statement(self: Parser) -> Statement:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<statement>"]:
+    # check statement
+    if currentTokenType not in PREDICT["<statement>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<statement>"].keys())
+            list(PREDICT["<statement>"].keys())
         )
 
-    if lookahead_type in (
+    # declaration statement
+    if currentTokenType in (
         TK_DTYPE_TALLY,
         TK_DTYPE_DIVINE,
         TK_DTYPE_SIGIL,
@@ -54,36 +62,46 @@ def parse_statement(self: Parser) -> Statement:
         TK_OTHERS_ORDAIN,
         TK_OTHERS_ORDER,
     ):
-        return self.parse_declaration_stmt()
+        return self.parseDeclarationStatement()
 
-    if lookahead_type in (TK_IO_RECEIVE, TK_IO_PROCLAIM):
-        return self.parse_io_stmt()
+    # input/output statement
+    if currentTokenType in (TK_IO_RECEIVE, TK_IO_PROCLAIM):
+        return self.parseInputOutputStatement()
 
-    if lookahead_type in (TK_CF_DECREE, TK_CF_DISCERN):
-        return self.parse_cond_stmt()
+    # condition statement
+    if currentTokenType in (TK_CF_DECREE, TK_CF_DISCERN):
+        return self.parseConditionStatement()
 
-    if lookahead_type in (TK_CF_PROCESSION, TK_CF_ENDURE, TK_CF_RITUAL):
-        return self.parse_loop_stmt()
+    # loop statement
+    if currentTokenType in (TK_CF_PROCESSION, TK_CF_ENDURE, TK_CF_RITUAL):
+        return self.parseLoopStatement()
 
-    if lookahead_type in (TK_CF_DISMISS, TK_CF_PROCEED, TK_CF_FALL, TK_CF_ABSOLVE):
-        return self.parse_jump_stmt()
+    # jump statement
+    if currentTokenType in (TK_CF_DISMISS, TK_CF_PROCEED, TK_CF_FALL, TK_CF_ABSOLVE):
+        return self.parseJumpStatement()
 
-    if lookahead_type in (TK_OP_INC, TK_OP_DEC):
-        return self.parse_prefix_incdec_stmt()
+    # prefix incdec statement
+    if currentTokenType in (TK_OP_INC, TK_OP_DEC):
+        return self.parsePrefixIncrementDecrementStatement()
 
-    if lookahead_type == TK_SYM_OPPAREN:
-        return self.parse_paren_postfix_incdec_stmt()
+    # parenthesized postfix incdec
+    if currentTokenType == TK_SYM_OPPAREN:
+        return self.parseParenthesizedPostfixIncrementDecrementStatement()
 
-    if lookahead_type == TK_IDENTIFIER:
-        identifier_token = self.expect(TK_IDENTIFIER)
-        identifier_name = _tok_lexeme(identifier_token)
-        return self.parse_stmt_id_tail(identifier_token, identifier_name)
+    # identifier statement
+    if currentTokenType == TK_IDENTIFIER:
+        identifierToken = self.expect(TK_IDENTIFIER)
+        identifierName = getTokenValue(identifierToken)
+
+        return self.parseStatementIdentifierTail(
+            identifierToken,
+            identifierName
+        )
 
     raise ParserError(
         self.peek(0) or self.peek(-1),
-        expected=list(PREDICT["<statement>"].keys())
+        list(PREDICT["<statement>"].keys())
     )
 
-
-Parser.parse_statement_list = parse_statement_list
-Parser.parse_statement = parse_statement
+Parser.parseStatementList = parseStatementList
+Parser.parseStatement = parseStatement

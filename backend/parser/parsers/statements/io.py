@@ -5,90 +5,97 @@ from backend.tokens import *
 from backend.errors import ParserError
 from backend.parser.predict_set import PREDICT
 from backend.ast.ast_nodes import *
-from backend.parser.parser import Parser, _tok_pos
+from backend.parser.parser import Parser, getTokenPosition
 
 
-def parse_io_stmt(self: Parser) -> Statement:
-    lookahead_type = self.current_type(0)
+def parseInputOutputStatement(self: Parser) -> Statement:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<io_stmt>"]:
+    # check input/output statement
+    if currentTokenType not in PREDICT["<io_stmt>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<io_stmt>"].keys())
+            list(PREDICT["<io_stmt>"].keys())
         )
 
-    if lookahead_type == TK_IO_RECEIVE:
-        receive_token = self.expect(TK_IO_RECEIVE)
+    # receive statement
+    if currentTokenType == TK_IO_RECEIVE:
+        receiveToken = self.expect(TK_IO_RECEIVE)
         self.expect(TK_SYM_OPPAREN)
-        target_reference = self.parse_lvalue()
+        targetReference = self.parseLeftHandValue()
         self.expect(TK_SYM_CLSPAREN)
         self.expect(TK_SYM_SEMICOL)
 
-        return ReceiveStmt(
-            pos=_tok_pos(receive_token),
-            target=target_reference
+        return ReceiveStatement(
+            position=getTokenPosition(receiveToken),
+            target=targetReference
         )
 
-    proclaim_token = self.expect(TK_IO_PROCLAIM)
+    # proclaim statement
+    proclaimToken = self.expect(TK_IO_PROCLAIM)
     self.expect(TK_SYM_OPPAREN)
-    output_arguments = self.parse_output_list_opt()
+    outputArguments = self.parseOutputListOptional()
     self.expect(TK_SYM_CLSPAREN)
     self.expect(TK_SYM_SEMICOL)
 
-    return ProclaimStmt(
-        pos=_tok_pos(proclaim_token),
-        args=output_arguments
+    return ProclaimStatement(
+        position=getTokenPosition(proclaimToken),
+        arguments=outputArguments
     )
 
+def parseOutputListOptional(self: Parser) -> List[Expression]:
+    currentTokenType = self.currentType(0)
 
-def parse_output_list_opt(self: Parser) -> List[Expr]:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<output_list_opt>"]:
+    # check output list
+    if currentTokenType not in PREDICT["<output_list_opt>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<output_list_opt>"].keys())
+            list(PREDICT["<output_list_opt>"].keys())
         )
 
-    if lookahead_type == TK_SYM_CLSPAREN:
+    # no output
+    if currentTokenType == TK_SYM_CLSPAREN:
         return []
 
-    return self.parse_output_list()
+    return self.parseOutputList()
 
+def parseOutputList(self: Parser) -> List[Expression]:
+    currentTokenType = self.currentType(0)
 
-def parse_output_list(self: Parser) -> List[Expr]:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<output_list>"]:
+    # check first output
+    if currentTokenType not in PREDICT["<output_list>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<output_list>"].keys())
+            list(PREDICT["<output_list>"].keys())
         )
 
-    output_arguments = [self.parse_expr()]
-    output_arguments.extend(self.parse_output_tail())
-    return output_arguments
+    outputArguments = [self.parseExpression()]
+    outputArguments.extend(self.parseOutputTail())
 
+    return outputArguments
 
-def parse_output_tail(self: Parser) -> List[Expr]:
-    lookahead_type = self.current_type(0)
+def parseOutputTail(self: Parser) -> List[Expression]:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<output_tail>"]:
+    # check next output
+    if currentTokenType not in PREDICT["<output_tail>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<output_tail>"].keys())
+            list(PREDICT["<output_tail>"].keys())
         )
 
-    if lookahead_type == TK_SYM_CLSPAREN:
+    # end of output list
+    if currentTokenType == TK_SYM_CLSPAREN:
         return []
 
     self.expect(TK_SYM_COMMA)
-    remaining_output_arguments = [self.parse_expr()]
-    remaining_output_arguments.extend(self.parse_output_tail())
-    return remaining_output_arguments
 
+    remainingOutputArguments = [self.parseExpression()]
+    remainingOutputArguments.extend(self.parseOutputTail())
 
-Parser.parse_io_stmt = parse_io_stmt
-Parser.parse_output_list_opt = parse_output_list_opt
-Parser.parse_output_list = parse_output_list
-Parser.parse_output_tail = parse_output_tail
+    return remainingOutputArguments
+
+Parser.parseInputOutputStatement = parseInputOutputStatement
+Parser.parseOutputListOptional = parseOutputListOptional
+Parser.parseOutputList = parseOutputList
+Parser.parseOutputTail = parseOutputTail

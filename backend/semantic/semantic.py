@@ -1,16 +1,33 @@
 from __future__ import annotations
-from typing import Any, List, Tuple
+from typing import List, Tuple
+
 from backend.ast.ast_nodes import Program
 from backend.errors import SemanticError
 from backend.semantic.checker import SemanticChecker, CheckerConfig
 
-def run_semantic(program: Program, *, config: CheckerConfig | None = None) -> Tuple[Program, List[SemanticError]]:
-    checker = SemanticChecker(config=config)
+
+def runSemanticAnalysis(
+    program: Program,
+    *,
+    config: CheckerConfig | None = None
+) -> Tuple[Program, List[SemanticError]]:
+    # run semantic checker
+    semanticChecker = SemanticChecker(config=config)
+
     try:
-        checked_ast, errors = checker.check(program)
-        return checked_ast, errors
-    except SemanticError as e:
-        return program, [e]
-    except Exception as e:
-        pos = getattr(program, "pos", None)
-        return program, [SemanticError(pos, f"Internal semantic error: {e}")]
+        checkedProgram, errorList = semanticChecker.check(program)
+
+        return checkedProgram, errorList
+
+    except SemanticError as semanticError:
+        return program, [semanticError]
+
+    except Exception as exception:
+        programPosition = getattr(program, "position", None)
+
+        internalError = SemanticError(
+            programPosition,
+            f"Internal semantic error: {exception}"
+        )
+
+        return program, [internalError]

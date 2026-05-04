@@ -2,19 +2,17 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional, Tuple
 
 from backend.semantic.typesys import Type
-from backend.semantic.symbols import Scope, FuncSymbol, OrderSymbol
+from backend.semantic.symbols import Scope, FunctionSymbol, OrderSymbol
 from backend.errors import SemanticError
 
 from backend.semantic.checker_parts import (
     CheckerConfig,
-
-    _fmt_type,
-    _is_bad,
-    _fmt_type_for_msg,
-    _binop_error_msg,
-    _has_type_error,
-    _tname,
-
+    formatType,
+    isBadType,
+    formatTypeForMessage,
+    getBinaryOperationErrorMessage,
+    hasTypeError,
+    getTypeName,
     DeclarationsMixin,
     SuggestionsMixin,
     TypeBuildersMixin,
@@ -40,42 +38,45 @@ class SemanticChecker(
 ):
     def __init__(self, config: Optional[CheckerConfig] = None):
         self.config = config or CheckerConfig()
-
-        self.global_scope = Scope(None)
+        self.globalScope = Scope(None)
         self.orders: Dict[str, OrderSymbol] = {}
-        self.funcs: Dict[str, FuncSymbol] = {}
+        self.functions: Dict[str, FunctionSymbol] = {}
+        self.currentScope: Scope = self.globalScope
+        self.currentFunction: Optional[FunctionSymbol] = None
+        self.loopDepth: int = 0
+        self.discernDepth: int = 0
+        self.errorList: List[SemanticError] = []
 
-        self.scope: Scope = self.global_scope
-        self.current_func: Optional[FuncSymbol] = None
-        self.in_loop: int = 0
-        self.in_discern: int = 0
+    def check(self, programNode: Any) -> Tuple[Any, List[SemanticError]]:
+        self.declareOrders(programNode)
+        self.declareGlobals(programNode)
+        self.declareFunctions(programNode)
+        self.checkProgram(programNode)
 
-        self.errors: List[SemanticError] = []
+        return programNode, self.errorList
 
-    def check(self, program_node: Any) -> Tuple[Any, List[SemanticError]]:
-        self._declare_orders(program_node)
-        self._declare_globals(program_node)
-        self._declare_functions(program_node)
-        self._check_program(program_node)
-        return program_node, self.errors
+    def addError(self, nodeOrToken: Any, message: str) -> None:
+        self.errorList.extend([SemanticError(nodeOrToken, message)])
 
-    def _error(self, node_or_token: Any, message: str) -> None:
-        self.errors.append(SemanticError(node_or_token, message))
+    def formatType(self, typeValue: Type) -> str:
+        return formatType(typeValue)
 
-    def _fmt_type(self, type_value: Type) -> str:
-        return _fmt_type(type_value)
+    def isBadType(self, typeValue: Type) -> bool:
+        return isBadType(typeValue)
 
-    def _is_bad(self, type_value: Type) -> bool:
-        return _is_bad(type_value)
+    def formatTypeForMessage(self, typeValue: Type) -> str:
+        return formatTypeForMessage(typeValue)
 
-    def _fmt_type_for_msg(self, type_value: Type) -> str:
-        return _fmt_type_for_msg(type_value)
+    def getBinaryOperationErrorMessage(
+        self,
+        operatorText: str,
+        leftType: Type,
+        rightType: Type
+    ) -> str:
+        return getBinaryOperationErrorMessage(operatorText, leftType, rightType)
 
-    def _binop_error_msg(self, operator_text: str, left_type: Type, right_type: Type) -> str:
-        return _binop_error_msg(operator_text, left_type, right_type)
+    def hasTypeError(self, typeValue: Type) -> bool:
+        return hasTypeError(typeValue)
 
-    def _has_type_error(self, type_value: Type) -> bool:
-        return _has_type_error(type_value)
-
-    def _tname(self, type_value: Type) -> str:
-        return _tname(type_value)
+    def getTypeName(self, typeValue: Type) -> str:
+        return getTypeName(typeValue)

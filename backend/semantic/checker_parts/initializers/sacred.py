@@ -1,32 +1,37 @@
 from __future__ import annotations
 from typing import Any
 
-from backend.semantic.typesys import BaseType, Type, can_assign
+from backend.semantic.typesys import BaseType, Type, canAssign
+
 
 class SacredInitializerMixin:
-    def _check_sacred_decl_init(self, declaration_node: Any) -> None:
-        declared_type_name = getattr(declaration_node, "type_name", "")
-        declared_type = Type.base_t(declared_type_name)
+    def checkSacredDeclarationInitialValues(self, declarationNode: Any) -> None:
+        declaredTypeName = getattr(declarationNode, "typeName", "")
+        declaredType = Type.fromBaseType(declaredTypeName)
 
-        if declared_type.base == BaseType.UNKNOWN and isinstance(getattr(declaration_node, "type_name", None), str):
-            declared_type = Type.order(getattr(declaration_node, "type_name"))
+        if (
+            declaredType.baseType == BaseType.UNKNOWN
+            and isinstance(getattr(declarationNode, "typeName", None), str)
+        ):
+            declaredType = Type.fromOrder(getattr(declarationNode, "typeName"))
 
-        declared_items = getattr(declaration_node, "items", []) or []
+        declaredItems = getattr(declarationNode, "items", []) or []
 
-        for declared_item in declared_items:
-            initializer_value = getattr(declared_item, "value", None)
+        for declaredItem in declaredItems:
+            initialValue = getattr(declaredItem, "value", None)
 
-            if initializer_value is None:
-                self._error(
-                    declared_item,
-                    f"Sacred '{getattr(declared_item, 'name', '?')}' must be initialized."
+            if initialValue is None:
+                self.addError(
+                    declaredItem,
+                    f"Sacred '{getattr(declaredItem, 'name', '?')}' must be initialized."
                 )
+
                 continue
 
-            initializer_type = self._expr_type(initializer_value)
+            initialValueType = self.getExpressionType(initialValue)
 
-            if not can_assign(declared_type, initializer_type):
-                self._error(
-                    declared_item,
-                    f"Cannot assign {initializer_type} to {declared_type} in sacred '{getattr(declared_item, 'name', '?')}'."
+            if not canAssign(declaredType, initialValueType):
+                self.addError(
+                    declaredItem,
+                    f"Cannot assign {initialValueType} to {declaredType} in sacred '{getattr(declaredItem, 'name', '?')}'."
                 )

@@ -70,70 +70,85 @@ _DOCU_EOF = [None]
 
 DOCU_DELIM_ORDER = _DOCU_PREFIX + _DOCU_SYMBOLS + _DOCU_OPS + _DOCU_EOF
 
-def format_expected_delims(allowed):
-    if not allowed:
+def formatExpectedDelimiters(allowedDelimiters):
+    # no delimiter
+    if not allowedDelimiters:
         return "(none)"
 
-    remaining = set(allowed)
-    parts = []
+    remainingDelimiters = set(allowedDelimiters)
+    delimiterParts = []
 
-    DIGIT_SET = set(DIGITS)
-    ALPHA_SET = set(ALPHABET)
-    ALPHA_DIG_SET = set(ALPHA_DIG)
+    digitSet = set(DIGITS)
+    alphabetSet = set(ALPHABET)
+    alphaDigitSet = set(ALPHA_DIG)
 
-    if space in remaining:
-        parts.append("space")
-        remaining.remove(space)
+    # common names first
+    if space in remainingDelimiters:
+        delimiterParts.append("space")
+        remainingDelimiters.remove(space)
 
-    if comma in remaining:
-        parts.append("comma")
-        remaining.remove(comma)
+    if comma in remainingDelimiters:
+        delimiterParts.append("comma")
+        remainingDelimiters.remove(comma)
 
-    if semicolon in remaining:
-        parts.append("semicolon")
-        remaining.remove(semicolon)
+    if semicolon in remainingDelimiters:
+        delimiterParts.append("semicolon")
+        remainingDelimiters.remove(semicolon)
 
-    if colon in remaining:
-        parts.append("colon")
-        remaining.remove(colon)
+    if colon in remainingDelimiters:
+        delimiterParts.append("colon")
+        remainingDelimiters.remove(colon)
 
-    if period in remaining:
-        parts.append("period")
-        remaining.remove(period)
+    if period in remainingDelimiters:
+        delimiterParts.append("period")
+        remainingDelimiters.remove(period)
 
-    if newline in remaining:
-        parts.append("newline")
-        remaining.remove(newline)
+    if newline in remainingDelimiters:
+        delimiterParts.append("newline")
+        remainingDelimiters.remove(newline)
 
-    if tab in remaining:
-        parts.append("tab")
-        remaining.remove(tab)
+    if tab in remainingDelimiters:
+        delimiterParts.append("tab")
+        remainingDelimiters.remove(tab)
 
-    if None in remaining:
-        parts.append("EOF")
-        remaining.remove(None)
+    if None in remainingDelimiters:
+        delimiterParts.append("EOF")
+        remainingDelimiters.remove(None)
 
-    for d in DOCU_DELIM_ORDER:
-        if d in (space, newline, tab, None):
+    # symbols and operators
+    for delimiter in DOCU_DELIM_ORDER:
+        if delimiter in (space, newline, tab, None):
             continue
-        if d in remaining:
-            parts.append(repr(d))
-            remaining.remove(d)
 
-    if ALPHA_DIG_SET.issubset(remaining):
-        parts.append("alphanumeric")
-        remaining -= ALPHA_DIG_SET
+        if delimiter in remainingDelimiters:
+            delimiterParts.append(repr(delimiter))
+            remainingDelimiters.remove(delimiter)
+
+    # grouped characters
+    if alphaDigitSet.issubset(remainingDelimiters):
+        delimiterParts.append("alphanumeric")
+        remainingDelimiters = remainingDelimiters - alphaDigitSet
+
     else:
-        if ALPHA_SET.issubset(remaining):
-            parts.append("alphabet")
-            remaining -= ALPHA_SET
-        if DIGIT_SET.issubset(remaining):
-            parts.append("digits")
-            remaining -= DIGIT_SET
+        if alphabetSet.issubset(remainingDelimiters):
+            delimiterParts.append("alphabet")
+            remainingDelimiters = remainingDelimiters - alphabetSet
 
-    for x in sorted(remaining, key=lambda c: str(c)):
-        if x in (space, newline, tab, None):
+        if digitSet.issubset(remainingDelimiters):
+            delimiterParts.append("digits")
+            remainingDelimiters = remainingDelimiters - digitSet
+
+    # remaining chars
+    for delimiter in sorted(remainingDelimiters, key=lambda character: str(character)):
+        if delimiter in (space, newline, tab, None):
             continue
-        parts.append(repr(x))
 
-    return ", ".join(parts) if parts else "(none)"
+        delimiterParts.append(repr(delimiter))
+
+    if delimiterParts:
+        return ", ".join(delimiterParts)
+
+    return "(none)"
+
+def format_expected_delims(allowedDelimiters):
+    return formatExpectedDelimiters(allowedDelimiters)

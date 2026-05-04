@@ -1,22 +1,25 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Dict, Optional, List
+
 from backend.semantic.typesys import Type
+
 
 @dataclass
 class Symbol:
     name: str
-    typ: Type
-    pos: Optional[object] = None
+    symbolType: Type
+    position: Optional[object] = None
 
 @dataclass
-class VarSymbol(Symbol):
-    array_sizes: Optional[List[int]] = None
-    is_const: bool = False
+class VariableSymbol(Symbol):
+    arraySizes: Optional[List[int]] = None
+    isConstant: bool = False
+
 @dataclass
-class FuncSymbol(Symbol):
-    return_type: Type = field(default_factory=Type.unknown)
-    params: List[VarSymbol] = field(default_factory=list)
+class FunctionSymbol(Symbol):
+    returnType: Type = field(default_factory=Type.unknown)
+    parameters: List[VariableSymbol] = field(default_factory=list)
 
 @dataclass
 class MemberSymbol(Symbol):
@@ -27,20 +30,27 @@ class OrderSymbol(Symbol):
     members: Dict[str, MemberSymbol] = field(default_factory=dict)
 
 class Scope:
-    def __init__(self, parent: Optional["Scope"] = None):
-        self.parent = parent
-        self.table: Dict[str, Symbol] = {}
+    def __init__(self, parentScope: Optional["Scope"] = None):
+        self.parentScope = parentScope
+        self.symbolTable: Dict[str, Symbol] = {}
 
-    def define(self, sym: Symbol) -> None:
-        self.table[sym.name] = sym
+    def define(self, symbol: Symbol) -> None:
+        # add symbol
+        self.symbolTable[symbol.name] = symbol
 
-    def resolve_local(self, name: str) -> Optional[Symbol]:
-        return self.table.get(name)
+    def resolveLocal(self, name: str) -> Optional[Symbol]:
+        # check current scope
+        return self.symbolTable.get(name)
 
     def resolve(self, name: str) -> Optional[Symbol]:
-        s = self.resolve_local(name)
-        if s is not None:
-            return s
-        if self.parent is not None:
-            return self.parent.resolve(name)
+        # check local first
+        resolvedSymbol = self.resolveLocal(name)
+
+        if resolvedSymbol is not None:
+            return resolvedSymbol
+
+        # check parent scope
+        if self.parentScope is not None:
+            return self.parentScope.resolve(name)
+
         return None

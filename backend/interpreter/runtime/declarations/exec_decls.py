@@ -1,98 +1,129 @@
 from __future__ import annotations
 
-from backend.ast.ast_nodes import OrdainDecl, SacredDecl, VarDecl
+from backend.ast.ast_nodes import OrdainDeclaration, SacredDeclaration, VariableDeclaration
 from backend.errors import RuntimeErrorBase
 from backend.interpreter.environment import Environment
 
-# VARIABLE DECLARATION
-def _exec_var_decl(self, declaration_node: VarDecl, current_environment: Environment):
-    declared_type_name = getattr(declaration_node, "type_name", "")
 
-    declared_items = getattr(declaration_node, "items", []) or []
-    for declared_item in declared_items:
-        materialized_value = self._materialize_var_item(
-            declared_type_name,
-            declared_item,
-            current_environment,
+# variable declaration
+def executeVariableDeclaration(
+    self,
+    declarationNode: VariableDeclaration,
+    currentEnvironment: Environment
+):
+    declaredTypeName = getattr(declarationNode, "typeName", "")
+    declaredItems = getattr(declarationNode, "items", []) or []
+
+    for declaredItem in declaredItems:
+        materializedValue = self.materializeVariableItem(
+            declaredTypeName,
+            declaredItem,
+            currentEnvironment
         )
 
-        dimension_nodes = getattr(declared_item, "dims", None) or []
+        dimensionNodes = getattr(declaredItem, "dimensions", None) or []
 
-        if dimension_nodes:
-            coerced_value = materialized_value
+        if dimensionNodes:
+            coercedValue = materializedValue
         else:
-            coerced_value = self._coerce_value_to_type(
-                declared_type_name,
-                materialized_value,
-                declared_item,
+            coercedValue = self.coerceValueToType(
+                declaredTypeName,
+                materializedValue,
+                declaredItem
             )
 
-        current_environment.declare(
-            declared_item.name,
-            coerced_value,
-            is_const=False,
-            node=declared_item,
+        currentEnvironment.declare(
+            declaredItem.name,
+            coercedValue,
+            isConstant=False,
+            node=declaredItem
         )
 
-# SACRED DECLARATION
-def _exec_sacred_decl(self, declaration_node: SacredDecl, current_environment: Environment):
-    declared_type_name = getattr(declaration_node, "type_name", "")
 
-    declared_items = getattr(declaration_node, "items", []) or []
-    for declared_item in declared_items:
-        value_node = getattr(declared_item, "value", None)
+# sacred declaration
+def executeSacredDeclaration(
+    self,
+    declarationNode: SacredDeclaration,
+    currentEnvironment: Environment
+):
+    declaredTypeName = getattr(declarationNode, "typeName", "")
+    declaredItems = getattr(declarationNode, "items", []) or []
 
-        if value_node is not None:
-            evaluated_value = self._eval_expr(value_node, current_environment)
+    for declaredItem in declaredItems:
+        valueNode = getattr(declaredItem, "value", None)
+
+        if valueNode is not None:
+            evaluatedValue = self.evaluateExpression(
+                valueNode,
+                currentEnvironment
+            )
         else:
-            evaluated_value = self._default_value_for_type(declared_type_name)
+            evaluatedValue = self.getDefaultValueForType(declaredTypeName)
 
-        coerced_value = self._coerce_value_to_type(
-            declared_type_name,
-            evaluated_value,
-            declared_item,
-        )
-        current_environment.declare(
-            declared_item.name,
-            coerced_value,
-            is_const=True,
-            node=declared_item,
+        coercedValue = self.coerceValueToType(
+            declaredTypeName,
+            evaluatedValue,
+            declaredItem
         )
 
-# ORDAIN DECLARATION
-def _exec_ordain_decl(self, declaration_node: OrdainDecl, current_environment: Environment):
-    order_name = declaration_node.name
-    order_declaration = self.orders.get(order_name)
+        currentEnvironment.declare(
+            declaredItem.name,
+            coercedValue,
+            isConstant=True,
+            node=declaredItem
+        )
 
-    if order_declaration is None:
-        raise RuntimeErrorBase(declaration_node, f"Unknown order type '{order_name}'.")
 
-    declared_items = getattr(declaration_node, "items", []) or []
-    for declared_item in declared_items:
-        dimension_nodes = getattr(declared_item, "dims", None) or []
-        initializer_node = getattr(declared_item, "init", None)
+# ordain declaration
+def executeOrdainDeclaration(
+    self,
+    declarationNode: OrdainDeclaration,
+    currentEnvironment: Environment
+):
+    orderName = declarationNode.name
+    orderDeclaration = self.orderDeclarations.get(orderName)
 
-        if dimension_nodes:
-            evaluated_shape = []
-            for dimension_node in dimension_nodes:
-                evaluated_shape.append(
-                    self._require_int_dim(dimension_node, current_environment, declared_item)
-                )
+    if orderDeclaration is None:
+        raise RuntimeErrorBase(
+            declarationNode,
+            f"Unknown order type '{orderName}'."
+        )
 
-            runtime_value = self._make_array_of(
-                lambda: self._make_order_instance(order_declaration),
-                evaluated_shape,
+    declaredItems = getattr(declarationNode, "items", []) or []
+
+    for declaredItem in declaredItems:
+        dimensionNodes = getattr(declaredItem, "dimensions", None) or []
+        initializerNode = getattr(declaredItem, "initialValue", None)
+
+        if dimensionNodes:
+            evaluatedShape = []
+
+            for dimensionNode in dimensionNodes:
+                evaluatedShape.extend([
+                    self.requireIntegerDimension(
+                        dimensionNode,
+                        currentEnvironment,
+                        declaredItem
+                    )
+                ])
+
+            runtimeValue = self.makeArrayOf(
+                lambda: self.makeOrderInstance(orderDeclaration),
+                evaluatedShape
             )
 
-        elif initializer_node is not None:
-            runtime_value = self._eval_expr(initializer_node, current_environment)
+        elif initializerNode is not None:
+            runtimeValue = self.evaluateExpression(
+                initializerNode,
+                currentEnvironment
+            )
 
         else:
-            runtime_value = self._make_order_instance(order_declaration)
+            runtimeValue = self.makeOrderInstance(orderDeclaration)
 
-        current_environment.declare(
-            declared_item.name,
-            runtime_value,
-            is_const=False,
-            node=declared_item,
+        currentEnvironment.declare(
+            declaredItem.name,
+            runtimeValue,
+            isConstant=False,
+            node=declaredItem
         )

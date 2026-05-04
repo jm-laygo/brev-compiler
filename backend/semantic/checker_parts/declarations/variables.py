@@ -1,82 +1,123 @@
 from __future__ import annotations
 from typing import Any
 
-from backend.semantic.symbols import VarSymbol
+from backend.semantic.symbols import VariableSymbol
 from backend.semantic.typesys import BaseType, Type
 
-from ..helpers import _class, _pos
+from ..helpers import getClassName, getNodePosition
 
 
 class VariableDeclarationsMixin:
-    def _declare_var_decl(self, declaration_node: Any, is_global: bool, force_const: bool = False) -> None:
-        declared_type_name = getattr(declaration_node, "type_name", "")
-        declared_type = Type.base_t(declared_type_name)
+    def declareVariableDeclaration(
+        self,
+        declarationNode: Any,
+        isGlobal: bool,
+        forceConstant: bool = False
+    ) -> None:
+        declaredTypeName = getattr(declarationNode, "typeName", "")
+        declaredType = Type.fromBaseType(declaredTypeName)
 
-        if declared_type.base == BaseType.UNKNOWN and isinstance(getattr(declaration_node, "type_name", None), str):
-            declared_type = Type.order(getattr(declaration_node, "type_name"))
+        if (
+            declaredType.baseType == BaseType.UNKNOWN
+            and isinstance(getattr(declarationNode, "typeName", None), str)
+        ):
+            declaredType = Type.fromOrder(getattr(declarationNode, "typeName"))
 
-        is_constant = force_const or (_class(declaration_node) == "SacredDecl")
-        declared_items = getattr(declaration_node, "items", []) or []
+        isConstant = forceConstant or getClassName(declarationNode) == "SacredDeclaration"
+        declaredItems = getattr(declarationNode, "items", []) or []
 
-        for declared_item in declared_items:
-            variable_name = getattr(declared_item, "name", None)
+        for declaredItem in declaredItems:
+            variableName = getattr(declaredItem, "name", None)
 
-            if not variable_name:
-                self._error(declared_item, "Variable item missing name.")
+            if not variableName:
+                self.addError(
+                    declaredItem,
+                    "Variable item missing name."
+                )
+
                 continue
 
-            dimension_nodes = getattr(declared_item, "dims", []) or []
-            array_sizes = self._extract_array_sizes(dimension_nodes, declared_item) if len(dimension_nodes) > 0 else None
-            variable_type = Type.array(declared_type, len(dimension_nodes)) if len(dimension_nodes) > 0 else declared_type
+            dimensionNodes = getattr(declaredItem, "dimensions", []) or []
 
-            if self.scope.resolve_local(variable_name):
-                self._error(declared_item, f"Redeclaration of '{variable_name}' in the same scope.")
+            if len(dimensionNodes) > 0:
+                arraySizes = self.extractArraySizes(dimensionNodes, declaredItem)
+                variableType = Type.fromArray(declaredType, len(dimensionNodes))
+            else:
+                arraySizes = None
+                variableType = declaredType
+
+            if self.currentScope.resolveLocal(variableName):
+                self.addError(
+                    declaredItem,
+                    f"Redeclaration of '{variableName}' in the same scope."
+                )
+
                 continue
 
-            self.scope.define(
-                VarSymbol(
-                    name=variable_name,
-                    typ=variable_type,
-                    pos=_pos(declared_item),
-                    is_const=is_constant,
-                    array_sizes=array_sizes,
+            self.currentScope.define(
+                VariableSymbol(
+                    name=variableName,
+                    symbolType=variableType,
+                    position=getNodePosition(declaredItem),
+                    isConstant=isConstant,
+                    arraySizes=arraySizes
                 )
             )
 
-    def _declare_ordain_decl(self, declaration_node: Any, is_global: bool) -> None:
-        order_name = getattr(declaration_node, "name", None)
+    def declareOrdainDeclaration(self, declarationNode: Any, isGlobal: bool) -> None:
+        orderName = getattr(declarationNode, "name", None)
 
-        if not order_name:
-            self._error(declaration_node, "ordain declaration missing order name.")
+        if not orderName:
+            self.addError(
+                declarationNode,
+                "ordain declaration missing order name."
+            )
+
             return
 
-        if order_name not in self.orders:
-            self._error(declaration_node, f"Unknown order type '{order_name}'.")
+        if orderName not in self.orders:
+            self.addError(
+                declarationNode,
+                f"Unknown order type '{orderName}'."
+            )
 
-        order_type = Type.order(order_name)
-        declared_items = getattr(declaration_node, "items", []) or []
+        orderType = Type.fromOrder(orderName)
+        declaredItems = getattr(declarationNode, "items", []) or []
 
-        for declared_item in declared_items:
-            variable_name = getattr(declared_item, "name", None)
+        for declaredItem in declaredItems:
+            variableName = getattr(declaredItem, "name", None)
 
-            if not variable_name:
-                self._error(declared_item, "ordain item missing name.")
+            if not variableName:
+                self.addError(
+                    declaredItem,
+                    "ordain item missing name."
+                )
+
                 continue
 
-            dimension_nodes = getattr(declared_item, "dims", []) or []
-            array_sizes = self._extract_array_sizes(dimension_nodes, declared_item) if len(dimension_nodes) > 0 else None
-            variable_type = Type.array(order_type, len(dimension_nodes)) if len(dimension_nodes) > 0 else order_type
+            dimensionNodes = getattr(declaredItem, "dimensions", []) or []
 
-            if self.scope.resolve_local(variable_name):
-                self._error(declared_item, f"Redeclaration of '{variable_name}' in the same scope.")
+            if len(dimensionNodes) > 0:
+                arraySizes = self.extractArraySizes(dimensionNodes, declaredItem)
+                variableType = Type.fromArray(orderType, len(dimensionNodes))
+            else:
+                arraySizes = None
+                variableType = orderType
+
+            if self.currentScope.resolveLocal(variableName):
+                self.addError(
+                    declaredItem,
+                    f"Redeclaration of '{variableName}' in the same scope."
+                )
+
                 continue
 
-            self.scope.define(
-                VarSymbol(
-                    name=variable_name,
-                    typ=variable_type,
-                    pos=_pos(declared_item),
-                    is_const=False,
-                    array_sizes=array_sizes,
+            self.currentScope.define(
+                VariableSymbol(
+                    name=variableName,
+                    symbolType=variableType,
+                    position=getNodePosition(declaredItem),
+                    isConstant=False,
+                    arraySizes=arraySizes
                 )
             )

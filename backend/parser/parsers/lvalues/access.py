@@ -5,71 +5,75 @@ from backend.tokens import *
 from backend.parser.predict_set import PREDICT, EPSILON
 from backend.ast.ast_nodes import *
 from backend.errors import ParserError
-from backend.parser.parser import Parser, _tok_lexeme, _tok_pos
+from backend.parser.parser import Parser, getTokenValue, getTokenPosition
 
 
-def parse_access_chain_opt(self: Parser, base_reference: LValue) -> Optional[LValue]:
-    lookahead_type = self.current_type(0)
+def parseAccessChainOptional(self: Parser, baseReference: LeftHandValue) -> Optional[LeftHandValue]:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<access_chain_opt>"]:
+    # check access chain
+    if currentTokenType not in PREDICT["<access_chain_opt>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<access_chain_opt>"].keys())
+            list(PREDICT["<access_chain_opt>"].keys())
         )
 
-    if PREDICT["<access_chain_opt>"][lookahead_type] == [EPSILON]:
+    # no access chain
+    if PREDICT["<access_chain_opt>"][currentTokenType] == [EPSILON]:
         return None
 
-    return self.parse_access_chain(base_reference)
+    return self.parseAccessChain(baseReference)
 
+def parseAccessChain(self: Parser, baseReference: LeftHandValue) -> LeftHandValue:
+    currentTokenType = self.currentType(0)
 
-def parse_access_chain(self: Parser, base_reference: LValue) -> LValue:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<access_chain>"]:
+    # check access chain
+    if currentTokenType not in PREDICT["<access_chain>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<access_chain>"].keys())
+            list(PREDICT["<access_chain>"].keys())
         )
 
-    current_reference = base_reference
+    currentReference = baseReference
 
-    while self.current_type(0) in (TK_SYM_OPBRACK, TK_SYM_DOT):
-        current_reference = self.parse_access_step(current_reference)
+    # read index or member access
+    while self.currentType(0) in (TK_SYM_OPBRACK, TK_SYM_DOT):
+        currentReference = self.parseAccessStep(currentReference)
 
-    return current_reference
+    return currentReference
 
+def parseAccessStep(self: Parser, baseReference: LeftHandValue) -> LeftHandValue:
+    currentTokenType = self.currentType(0)
 
-def parse_access_step(self: Parser, base_reference: LValue) -> LValue:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<access_step>"]:
+    # check access step
+    if currentTokenType not in PREDICT["<access_step>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<access_step>"].keys())
+            list(PREDICT["<access_step>"].keys())
         )
 
-    if lookahead_type == TK_SYM_OPBRACK:
-        opening_bracket_token = self.expect(TK_SYM_OPBRACK)
-        index_expression = self.parse_expr()
+    # array index
+    if currentTokenType == TK_SYM_OPBRACK:
+        openingBracketToken = self.expect(TK_SYM_OPBRACK)
+        indexExpression = self.parseExpression()
         self.expect(TK_SYM_CLSBRACK)
 
-        return IndexRef(
-            pos=_tok_pos(opening_bracket_token),
-            base=base_reference,
-            index=index_expression
+        return IndexReference(
+            position=getTokenPosition(openingBracketToken),
+            baseReference=baseReference,
+            indexExpression=indexExpression
         )
 
-    dot_token = self.expect(TK_SYM_DOT)
-    member_token = self.expect(TK_IDENTIFIER)
+    # member access
+    dotToken = self.expect(TK_SYM_DOT)
+    memberToken = self.expect(TK_IDENTIFIER)
 
-    return MemberRef(
-        pos=_tok_pos(dot_token),
-        base=base_reference,
-        member=_tok_lexeme(member_token)
+    return MemberReference(
+        position=getTokenPosition(dotToken),
+        baseReference=baseReference,
+        memberName=getTokenValue(memberToken)
     )
 
-
-Parser.parse_access_chain_opt = parse_access_chain_opt
-Parser.parse_access_chain = parse_access_chain
-Parser.parse_access_step = parse_access_step
+Parser.parseAccessChainOptional = parseAccessChainOptional
+Parser.parseAccessChain = parseAccessChain
+Parser.parseAccessStep = parseAccessStep

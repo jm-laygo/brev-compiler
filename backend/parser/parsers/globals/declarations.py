@@ -5,125 +5,137 @@ from backend.tokens import *
 from backend.errors import ParserError
 from backend.parser.predict_set import PREDICT, EPSILON
 from backend.ast.ast_nodes import *
-from backend.parser.parser import Parser, _tok_lexeme, _tok_pos
+from backend.parser.parser import Parser, getTokenValue, getTokenPosition
 
 
-def parse_global_dec_opt(self: Parser) -> List[Any]:
-    lookahead_type = self.current_type(0)
+def parseGlobalDeclarationOptional(self: Parser) -> List[Any]:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<global_dec_opt>"]:
+    # check global declaration
+    if currentTokenType not in PREDICT["<global_dec_opt>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<global_dec_opt>"].keys()),
+            list(PREDICT["<global_dec_opt>"].keys())
         )
 
-    if PREDICT["<global_dec_opt>"][lookahead_type] == [EPSILON]:
+    # no global declaration
+    if PREDICT["<global_dec_opt>"][currentTokenType] == [EPSILON]:
         return []
 
-    return self.parse_global_dec_list()
+    return self.parseGlobalDeclarationList()
 
+def parseGlobalDeclarationList(self: Parser) -> List[Any]:
+    currentTokenType = self.currentType(0)
 
-def parse_global_dec_list(self: Parser) -> List[Any]:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<global_dec_list>"]:
+    # check declaration list
+    if currentTokenType not in PREDICT["<global_dec_list>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<global_dec_list>"].keys()),
+            list(PREDICT["<global_dec_list>"].keys())
         )
 
-    global_declarations: List[Any] = []
-    global_declarations.append(self.parse_global_dec_item())
-    global_declarations.extend(self.parse_global_dec_list_tail())
-    return global_declarations
+    globalDeclarations: List[Any] = []
+    globalDeclarations.extend([self.parseGlobalDeclarationItem()])
+    globalDeclarations.extend(self.parseGlobalDeclarationListTail())
 
+    return globalDeclarations
 
-def parse_global_dec_list_tail(self: Parser) -> List[Any]:
-    lookahead_type = self.current_type(0)
+def parseGlobalDeclarationListTail(self: Parser) -> List[Any]:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<global_dec_list_tail>"]:
+    # check next declaration
+    if currentTokenType not in PREDICT["<global_dec_list_tail>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<global_dec_list_tail>"].keys()),
+            list(PREDICT["<global_dec_list_tail>"].keys())
         )
 
-    if PREDICT["<global_dec_list_tail>"][lookahead_type] == [EPSILON]:
+    # no more declaration
+    if PREDICT["<global_dec_list_tail>"][currentTokenType] == [EPSILON]:
         return []
 
-    remaining_global_declarations: List[Any] = []
-    remaining_global_declarations.append(self.parse_global_dec_item())
-    remaining_global_declarations.extend(self.parse_global_dec_list_tail())
-    return remaining_global_declarations
+    remainingGlobalDeclarations: List[Any] = []
+    remainingGlobalDeclarations.extend([self.parseGlobalDeclarationItem()])
+    remainingGlobalDeclarations.extend(self.parseGlobalDeclarationListTail())
 
+    return remainingGlobalDeclarations
 
-def parse_global_dec_item(self: Parser) -> Any:
-    lookahead_type = self.current_type(0)
+def parseGlobalDeclarationItem(self: Parser) -> Any:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<global_dec_item>"]:
+    # check declaration item
+    if currentTokenType not in PREDICT["<global_dec_item>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<global_dec_item>"].keys()),
+            list(PREDICT["<global_dec_item>"].keys())
         )
 
-    if lookahead_type == TK_SACRED:
-        sacred_token = self.expect(TK_SACRED)
-        type_name = self.parse_data_type()
-        declaration_items = self.parse_sacred_init_list()
+    # sacred declaration
+    if currentTokenType == TK_SACRED:
+        sacredToken = self.expect(TK_SACRED)
+        typeName = self.parseDataType()
+        declarationItems = self.parseSacredInitializationList()
         self.expect(TK_SYM_SEMICOL)
-        return SacredDecl(
-            pos=_tok_pos(sacred_token),
-            type_name=type_name,
-            items=declaration_items
+
+        return SacredDeclaration(
+            position=getTokenPosition(sacredToken),
+            typeName=typeName,
+            items=declarationItems
         )
 
-    if lookahead_type in (
+    # variable declaration
+    if currentTokenType in (
         TK_DTYPE_TALLY,
         TK_DTYPE_DIVINE,
         TK_DTYPE_SIGIL,
         TK_DTYPE_SCRIPTURE,
         TK_DTYPE_VERITY,
     ):
-        declaration_start_token = self.peek(0)
-        type_name = self.parse_data_type()
-        declaration_items = self.parse_var_decl_group()
+        declarationStartToken = self.peek(0)
+        typeName = self.parseDataType()
+        declarationItems = self.parseVariableDeclarationGroup()
         self.expect(TK_SYM_SEMICOL)
-        return VarDecl(
-            pos=_tok_pos(declaration_start_token),
-            type_name=type_name,
-            items=declaration_items
+
+        return VariableDeclaration(
+            position=getTokenPosition(declarationStartToken),
+            typeName=typeName,
+            items=declarationItems
         )
 
-    if lookahead_type == TK_OTHERS_ORDER:
-        order_token = self.expect(TK_OTHERS_ORDER)
-        identifier_name = _tok_lexeme(self.expect(TK_IDENTIFIER))
+    # order declaration
+    if currentTokenType == TK_OTHERS_ORDER:
+        orderToken = self.expect(TK_OTHERS_ORDER)
+        identifierName = getTokenValue(self.expect(TK_IDENTIFIER))
         self.expect(TK_SYM_OPBRACE)
-        member_list = self.parse_member_list_opt()
+        memberList = self.parseMemberListOptional()
         self.expect(TK_SYM_CLSBRACE)
         self.expect(TK_SYM_SEMICOL)
-        return OrderDecl(
-            pos=_tok_pos(order_token),
-            name=identifier_name,
-            members=member_list
+
+        return OrderDeclaration(
+            position=getTokenPosition(orderToken),
+            name=identifierName,
+            members=memberList
         )
 
-    if lookahead_type == TK_OTHERS_ORDAIN:
-        ordain_token = self.expect(TK_OTHERS_ORDAIN)
-        identifier_name = _tok_lexeme(self.expect(TK_IDENTIFIER))
-        declaration_items = self.parse_ordain_dec_list()
+    # ordain declaration
+    if currentTokenType == TK_OTHERS_ORDAIN:
+        ordainToken = self.expect(TK_OTHERS_ORDAIN)
+        identifierName = getTokenValue(self.expect(TK_IDENTIFIER))
+        declarationItems = self.parseOrdainDeclarationList()
         self.expect(TK_SYM_SEMICOL)
-        return OrdainDecl(
-            pos=_tok_pos(ordain_token),
-            name=identifier_name,
-            items=declaration_items
+
+        return OrdainDeclaration(
+            position=getTokenPosition(ordainToken),
+            name=identifierName,
+            items=declarationItems
         )
 
     raise ParserError(
         self.peek(0) or self.peek(-1),
-        expected=list(PREDICT["<global_dec_item>"].keys()),
+        list(PREDICT["<global_dec_item>"].keys())
     )
 
-
-Parser.parse_global_dec_opt = parse_global_dec_opt
-Parser.parse_global_dec_list = parse_global_dec_list
-Parser.parse_global_dec_list_tail = parse_global_dec_list_tail
-Parser.parse_global_dec_item = parse_global_dec_item
+Parser.parseGlobalDeclarationOptional = parseGlobalDeclarationOptional
+Parser.parseGlobalDeclarationList = parseGlobalDeclarationList
+Parser.parseGlobalDeclarationListTail = parseGlobalDeclarationListTail
+Parser.parseGlobalDeclarationItem = parseGlobalDeclarationItem

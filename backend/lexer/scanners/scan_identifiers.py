@@ -1,68 +1,95 @@
 from backend.tokens import Token, TK_IDENTIFIER
 from backend.errors import LexicalError
-from backend.delimiters import idnt_delim, format_expected_delims, ALPHABET, ALPHA_DIG
+from backend.delimiters import (
+    idnt_delim as identifierDelimiters,
+    format_expected_delims,
+    ALPHABET,
+    ALPHA_DIG,
+)
 
 MAX_IDENTIFIER_LENGTH = 48
 
-def scan_identifier(lexer, tokens, errors):
-    if lexer.current_char is None:
+
+def scanIdentifier(lexer, tokenList, errorList):
+    # no char to scan
+    if lexer.currentCharacter is None:
         return False
 
-    start_pos = lexer.pos.copy()
+    startingPosition = lexer.currentPosition.copy()
 
-    # invalid start: digit or underscore
-    if lexer.current_char.isdigit() or lexer.current_char == "_":
-        bad = ""
-        while lexer.current_char is not None and (
-            lexer.current_char in ALPHA_DIG or lexer.current_char == "_"
+    # invalid first char
+    if lexer.currentCharacter.isdigit() or lexer.currentCharacter == "_":
+        invalidIdentifier = ""
+
+        while lexer.currentCharacter is not None and (
+            lexer.currentCharacter in ALPHA_DIG or lexer.currentCharacter == "_"
         ):
-            bad += lexer.current_char
+            invalidIdentifier = invalidIdentifier + lexer.currentCharacter
             lexer.advance()
 
-        errors.append(
-            LexicalError(start_pos, f"Invalid identifier starting with '{bad[0]}' '{bad}'")
+        lexicalError = LexicalError(
+            startingPosition,
+            f"Invalid identifier starting with '{invalidIdentifier[0]}' '{invalidIdentifier}'"
         )
+
+        errorList.extend([lexicalError])
         return True
 
-    # must start with a letter
-    if lexer.current_char not in ALPHABET:
+    # must start with letter
+    if lexer.currentCharacter not in ALPHABET:
         return False
 
-    text = ""
-    while lexer.current_char is not None and (
-        lexer.current_char in ALPHA_DIG or lexer.current_char == "_"
+    identifierName = ""
+
+    # read identifier name
+    while lexer.currentCharacter is not None and (
+        lexer.currentCharacter in ALPHA_DIG or lexer.currentCharacter == "_"
     ):
-        # length limit
-        if len(text) >= MAX_IDENTIFIER_LENGTH:
-            # discard the rest of the identifier lexeme
-            while lexer.current_char is not None and (
-                lexer.current_char in ALPHA_DIG or lexer.current_char == "_"
+        # max length check
+        if len(identifierName) >= MAX_IDENTIFIER_LENGTH:
+            while lexer.currentCharacter is not None and (
+                lexer.currentCharacter in ALPHA_DIG or lexer.currentCharacter == "_"
             ):
                 lexer.advance()
 
-            errors.append(
-                LexicalError(start_pos, f"Identifier too long (max {MAX_IDENTIFIER_LENGTH}).")
+            lexicalError = LexicalError(
+                startingPosition,
+                f"Identifier too long (max {MAX_IDENTIFIER_LENGTH})."
             )
+
+            errorList.extend([lexicalError])
             return True
 
-        text += lexer.current_char
+        identifierName = identifierName + lexer.currentCharacter
         lexer.advance()
 
-    # delimiter validation
-    ch = lexer.current_char
-    expected = format_expected_delims(idnt_delim)
+    # check delimiter
+    currentCharacter = lexer.currentCharacter
+    expectedDelimiters = format_expected_delims(identifierDelimiters)
 
-    if ch is None and None not in idnt_delim:
-        errors.append(
-            LexicalError(start_pos, f"Missing delimiter after identifier '{text}'. Expected: {expected}")
+    if currentCharacter is None and None not in identifierDelimiters:
+        lexicalError = LexicalError(
+            startingPosition,
+            f"Missing delimiter after identifier '{identifierName}'. Expected: {expectedDelimiters}"
         )
+
+        errorList.extend([lexicalError])
         return True
 
-    if ch is not None and ch not in idnt_delim:
-        errors.append(
-            LexicalError(start_pos, f"Invalid delimiter {repr(ch)} after identifier '{text}'. Expected: {expected}")
+    if currentCharacter is not None and currentCharacter not in identifierDelimiters:
+        lexicalError = LexicalError(
+            startingPosition,
+            f"Invalid delimiter {repr(currentCharacter)} after identifier '{identifierName}'. Expected: {expectedDelimiters}"
         )
+
+        errorList.extend([lexicalError])
         return True
 
-    tokens.append(Token(TK_IDENTIFIER, text, start_pos))
+    identifierToken = Token(
+        TK_IDENTIFIER,
+        identifierName,
+        startingPosition
+    )
+
+    tokenList.extend([identifierToken])
     return True

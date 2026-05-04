@@ -1,41 +1,52 @@
 from __future__ import annotations
 from typing import Any
 
-from backend.semantic.typesys import is_bool
+from backend.semantic.typesys import isBooleanType
 
 
 class DecreeChainMixin:
-    def _check_decreestmt(self, statement_node: Any) -> None:
-        condition_expression = getattr(statement_node, "expr", None)
-        condition_type = self._expr_type(condition_expression)
+    def checkDecreeStatement(self, statementNode: Any) -> None:
+        conditionExpression = getattr(statementNode, "condition", None)
+        conditionType = self.getExpressionType(conditionExpression)
 
-        if not is_bool(condition_type):
-            self._error(condition_expression, f"Type error: decree condition must be verity, got {condition_type}.")
+        if not isBooleanType(conditionType):
+            self.addError(
+                conditionExpression,
+                f"Type error: decree condition must be verity, got {conditionType}."
+            )
 
-        body_statements = getattr(statement_node, "body", []) or []
-        for body_statement in body_statements:
-            self._check_stmt(body_statement)
+        bodyStatements = getattr(statementNode, "bodyStatements", []) or []
 
-        edict_nodes = getattr(statement_node, "edicts", []) or []
-        for edict_node in edict_nodes:
-            self._check_stmt(edict_node)
+        for bodyStatement in bodyStatements:
+            self.checkStatement(bodyStatement)
 
-        absolution_node = getattr(statement_node, "absolution", None)
-        if absolution_node:
-            self._check_stmt(absolution_node)
+        edictClauses = getattr(statementNode, "edictClauses", []) or []
 
-    def _check_edictclause(self, statement_node: Any) -> None:
-        condition_expression = getattr(statement_node, "expr", None)
-        condition_type = self._expr_type(condition_expression)
+        for edictClause in edictClauses:
+            self.checkStatement(edictClause)
 
-        if not is_bool(condition_type):
-            self._error(statement_node, f"edict condition must be verity, got {condition_type}.")
+        absolutionClause = getattr(statementNode, "absolutionClause", None)
 
-        body_statements = getattr(statement_node, "body", []) or []
-        for body_statement in body_statements:
-            self._check_stmt(body_statement)
+        if absolutionClause:
+            self.checkStatement(absolutionClause)
 
-    def _check_absolutionclause(self, statement_node: Any) -> None:
-        body_statements = getattr(statement_node, "body", []) or []
-        for body_statement in body_statements:
-            self._check_stmt(body_statement)
+    def checkEdictClause(self, statementNode: Any) -> None:
+        conditionExpression = getattr(statementNode, "condition", None)
+        conditionType = self.getExpressionType(conditionExpression)
+
+        if not isBooleanType(conditionType):
+            self.addError(
+                statementNode,
+                f"edict condition must be verity, got {conditionType}."
+            )
+
+        bodyStatements = getattr(statementNode, "bodyStatements", []) or []
+
+        for bodyStatement in bodyStatements:
+            self.checkStatement(bodyStatement)
+
+    def checkAbsolutionClause(self, statementNode: Any) -> None:
+        bodyStatements = getattr(statementNode, "bodyStatements", []) or []
+
+        for bodyStatement in bodyStatements:
+            self.checkStatement(bodyStatement)

@@ -5,113 +5,120 @@ from backend.tokens import *
 from backend.errors import ParserError
 from backend.parser.predict_set import PREDICT, EPSILON
 from backend.ast.ast_nodes import *
-from backend.parser.parser import Parser, _tok_lexeme, _tok_pos
+from backend.parser.parser import Parser, getTokenValue, getTokenPosition
 
 
-def parse_member_list_opt(self: Parser) -> List[OrderMember]:
-    lookahead_type = self.current_type(0)
+def parseMemberListOptional(self: Parser) -> List[OrderMember]:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<member_list_opt>"]:
+    # check member list
+    if currentTokenType not in PREDICT["<member_list_opt>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<member_list_opt>"].keys()),
+            list(PREDICT["<member_list_opt>"].keys())
         )
 
-    if PREDICT["<member_list_opt>"][lookahead_type] == [EPSILON]:
+    # no member
+    if PREDICT["<member_list_opt>"][currentTokenType] == [EPSILON]:
         return []
 
-    return self.parse_member_list()
+    return self.parseMemberList()
 
+def parseMemberList(self: Parser) -> List[OrderMember]:
+    currentTokenType = self.currentType(0)
 
-def parse_member_list(self: Parser) -> List[OrderMember]:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<member_list>"]:
+    # check first member
+    if currentTokenType not in PREDICT["<member_list>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<member_list>"].keys()),
+            list(PREDICT["<member_list>"].keys())
         )
 
-    member_list = [self.parse_member()]
-    member_list.extend(self.parse_member_list_tail())
-    return member_list
+    memberList = [self.parseMember()]
+    memberList.extend(self.parseMemberListTail())
 
+    return memberList
 
-def parse_member_list_tail(self: Parser) -> List[OrderMember]:
-    lookahead_type = self.current_type(0)
+def parseMemberListTail(self: Parser) -> List[OrderMember]:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<member_list_tail>"]:
+    # check next member
+    if currentTokenType not in PREDICT["<member_list_tail>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<member_list_tail>"].keys()),
+            list(PREDICT["<member_list_tail>"].keys())
         )
 
-    if PREDICT["<member_list_tail>"][lookahead_type] == [EPSILON]:
+    # no more member
+    if PREDICT["<member_list_tail>"][currentTokenType] == [EPSILON]:
         return []
 
-    remaining_members = [self.parse_member()]
-    remaining_members.extend(self.parse_member_list_tail())
-    return remaining_members
+    remainingMembers = [self.parseMember()]
+    remainingMembers.extend(self.parseMemberListTail())
 
+    return remainingMembers
 
-def parse_member(self: Parser) -> OrderMember:
-    lookahead_type = self.current_type(0)
+def parseMember(self: Parser) -> OrderMember:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<member>"]:
+    # check member
+    if currentTokenType not in PREDICT["<member>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<member>"].keys()),
+            list(PREDICT["<member>"].keys())
         )
 
-    type_name = self.parse_data_type_id()
-    member_name_token = self.expect(TK_IDENTIFIER)
-    array_dimensions = self.parse_array_dims_tail()
-    initializer = self.parse_member_init_opt()
+    typeName = self.parseDataTypeIdentifier()
+    memberNameToken = self.expect(TK_IDENTIFIER)
+    arrayDimensions = self.parseArrayDimensionsTail()
+    initialValue = self.parseMemberInitialValueOptional()
     self.expect(TK_SYM_SEMICOL)
 
     return OrderMember(
-        pos=_tok_pos(member_name_token),
-        type_name=type_name,
-        name=_tok_lexeme(member_name_token),
-        dims=array_dimensions,
-        init=initializer
+        position=getTokenPosition(memberNameToken),
+        typeName=typeName,
+        name=getTokenValue(memberNameToken),
+        dimensions=arrayDimensions,
+        initialValue=initialValue
     )
 
+def parseMemberInitialValueOptional(self: Parser) -> Optional[Expression]:
+    currentTokenType = self.currentType(0)
 
-def parse_member_init_opt(self: Parser) -> Optional[Expr]:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<member_init_opt>"]:
+    # check member init
+    if currentTokenType not in PREDICT["<member_init_opt>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<member_init_opt>"].keys()),
+            list(PREDICT["<member_init_opt>"].keys())
         )
 
-    if lookahead_type == TK_SYM_SEMICOL:
+    # no initial value
+    if currentTokenType == TK_SYM_SEMICOL:
         return None
 
     self.expect(TK_OP_ASSIGN)
-    return self.parse_member_init_val()
 
+    return self.parseMemberInitialValue()
 
-def parse_member_init_val(self: Parser) -> Expr:
-    lookahead_type = self.current_type(0)
+def parseMemberInitialValue(self: Parser) -> Expression:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<member_init_val>"]:
+    # check init value
+    if currentTokenType not in PREDICT["<member_init_val>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<member_init_val>"].keys()),
+            list(PREDICT["<member_init_val>"].keys())
         )
 
-    if lookahead_type == TK_SYM_OPBRACE:
-        return self.parse_array_init()
+    # array init
+    if currentTokenType == TK_SYM_OPBRACE:
+        return self.parseArrayInitialization()
 
-    return self.parse_expr()
+    return self.parseExpression()
 
-
-Parser.parse_member_list_opt = parse_member_list_opt
-Parser.parse_member_list = parse_member_list
-Parser.parse_member_list_tail = parse_member_list_tail
-Parser.parse_member = parse_member
-Parser.parse_member_init_opt = parse_member_init_opt
-Parser.parse_member_init_val = parse_member_init_val
+Parser.parseMemberListOptional = parseMemberListOptional
+Parser.parseMemberList = parseMemberList
+Parser.parseMemberListTail = parseMemberListTail
+Parser.parseMember = parseMember
+Parser.parseMemberInitialValueOptional = parseMemberInitialValueOptional
+Parser.parseMemberInitialValue = parseMemberInitialValue

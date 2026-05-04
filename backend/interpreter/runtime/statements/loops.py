@@ -1,61 +1,91 @@
 from __future__ import annotations
 
-from backend.ast.ast_nodes import EndureStmt, ProcessionStmt, RitualStmt
+from backend.ast.ast_nodes import EndureStatement, ProcessionStatement, RitualStatement
 from backend.interpreter.control import FallSignal, ProceedSignal
 from backend.interpreter.environment import Environment
 
 
-def _handle_loop_stmt(self, statement_node, current_environment):
-    if isinstance(statement_node, ProcessionStmt):
-        loop_environment = Environment(parent=current_environment)
+def handleLoopStatement(self, statementNode, currentEnvironment):
+    if isinstance(statementNode, ProcessionStatement):
+        loopEnvironment = Environment(parentEnvironment=currentEnvironment)
 
-        initialization_statement = getattr(statement_node, "init", None)
-        loop_condition_expression = getattr(statement_node, "condition", None)
-        update_statement = getattr(statement_node, "update", None)
-        body_statements = getattr(statement_node, "body", []) or []
+        initializerStatement = getattr(statementNode, "initializerStatement", None)
+        loopConditionExpression = getattr(statementNode, "condition", None)
+        updateStatement = getattr(statementNode, "updateStatement", None)
+        bodyStatements = getattr(statementNode, "bodyStatements", []) or []
 
-        if initialization_statement is not None:
-            self._exec_stmt(initialization_statement, loop_environment)
+        if initializerStatement is not None:
+            self.executeStatement(initializerStatement, loopEnvironment)
 
         while True:
-            if loop_condition_expression is not None:
-                loop_condition_value = self._eval_expr(loop_condition_expression, loop_environment)
-                if not self._truthy(loop_condition_value):
+            if loopConditionExpression is not None:
+                loopConditionValue = self.evaluateExpression(
+                    loopConditionExpression,
+                    loopEnvironment
+                )
+
+                if not self.isTruthy(loopConditionValue):
                     break
 
             try:
-                self._exec_block(body_statements, loop_environment, create_scope=True)
+                self.executeBlock(
+                    bodyStatements,
+                    loopEnvironment,
+                    createScope=True
+                )
+
             except ProceedSignal:
                 pass
+
             except FallSignal:
                 break
 
-            if update_statement is not None:
-                self._exec_stmt(update_statement, loop_environment)
+            if updateStatement is not None:
+                self.executeStatement(updateStatement, loopEnvironment)
 
         return True
 
-    if isinstance(statement_node, EndureStmt):
-        while self._truthy(self._eval_expr(statement_node.condition, current_environment)):
+    if isinstance(statementNode, EndureStatement):
+        while self.isTruthy(
+            self.evaluateExpression(
+                statementNode.condition,
+                currentEnvironment
+            )
+        ):
             try:
-                self._exec_block(statement_node.body, current_environment)
+                self.executeBlock(
+                    statementNode.bodyStatements,
+                    currentEnvironment
+                )
+
             except ProceedSignal:
                 continue
+
             except FallSignal:
                 break
+
         return True
 
-    if isinstance(statement_node, RitualStmt):
+    if isinstance(statementNode, RitualStatement):
         while True:
             try:
-                self._exec_block(statement_node.body, current_environment)
+                self.executeBlock(
+                    statementNode.bodyStatements,
+                    currentEnvironment
+                )
+
             except ProceedSignal:
                 pass
+
             except FallSignal:
                 break
 
-            ritual_condition_value = self._eval_expr(statement_node.condition, current_environment)
-            if not self._truthy(ritual_condition_value):
+            ritualConditionValue = self.evaluateExpression(
+                statementNode.condition,
+                currentEnvironment
+            )
+
+            if not self.isTruthy(ritualConditionValue):
                 break
 
         return True

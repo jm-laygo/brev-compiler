@@ -1,111 +1,213 @@
 from backend.tokens import Token, TK_LIT_INT, TK_LIT_DECIMAL
 from backend.errors import LexicalError
-from backend.delimiters import int_decdelim, format_expected_delims
+from backend.delimiters import int_decdelim as integerDecimalDelimiters
+from backend.delimiters import format_expected_delims as formatExpectedDelimiters
 
-MAX_INT_DIGITS = 9
-MAX_FRAC_DIGITS = 9
 
-def accept_number(lexer, tokens, errors, start_pos, raw_value, allowed_delims, has_dot):
-    if isinstance(allowed_delims, str):
-        allowed_delims = {allowed_delims}
+MAX_INTEGER_DIGITS = 9
+MAX_FRACTIONAL_DIGITS = 9
 
-    ch = lexer.current_char
-    if ch == "\r":
-        ch = "\n"
 
-    expected = format_expected_delims(allowed_delims)
+def acceptNumber(
+    lexer,
+    tokenList,
+    errorList,
+    startingPosition,
+    numberText,
+    allowedDelimiters,
+    hasDecimalPoint
+):
+    # check delimiter
+    if isinstance(allowedDelimiters, str):
+        allowedDelimiters = {allowedDelimiters}
 
-    if ch is None and None not in allowed_delims:
-        errors.append(LexicalError(start_pos, f"Missing delimiter after number '{raw_value}'. Expected: {expected}"))
+    currentCharacter = lexer.currentCharacter
+
+    if currentCharacter == "\r":
+        currentCharacter = "\n"
+
+    expectedDelimiters = formatExpectedDelimiters(allowedDelimiters)
+
+    if currentCharacter is None and None not in allowedDelimiters:
+        errorList.append(
+            LexicalError(
+                startingPosition,
+                f"Missing delimiter after number '{numberText}'. Expected: {expectedDelimiters}"
+            )
+        )
         return True
 
-    if ch is not None and ch not in allowed_delims:
-        errors.append(LexicalError(start_pos, f"Invalid delimiter {repr(ch)} after number '{raw_value}'. Expected: {expected}"))
+    if currentCharacter is not None and currentCharacter not in allowedDelimiters:
+        errorList.append(
+            LexicalError(
+                startingPosition,
+                f"Invalid delimiter {repr(currentCharacter)} after number '{numberText}'. Expected: {expectedDelimiters}"
+            )
+        )
         return True
 
-    tok_type = TK_LIT_DECIMAL if has_dot else TK_LIT_INT
-    tokens.append(Token(tok_type, raw_value, start_pos))
+    # pick token type
+    if hasDecimalPoint:
+        tokenType = TK_LIT_DECIMAL
+    else:
+        tokenType = TK_LIT_INT
+
+    tokenList.append(Token(tokenType, numberText, startingPosition))
     return True
 
-def _consume_number_tail(lexer):
-    while lexer.current_char is not None and (
-        lexer.current_char.isalnum()
-        or lexer.current_char in {".", "_", "~"}
+def consumeInvalidNumberTail(lexer):
+    # skip invalid number
+    while lexer.currentCharacter is not None and (
+        lexer.currentCharacter.isalnum()
+        or lexer.currentCharacter in {".", "_", "~"}
     ):
         lexer.advance()
 
-def scan_numbers(lexer, tokens, errors):
-    ch = lexer.current_char
-    if ch is None:
+def scanNumbers(lexer, tokenList, errorList):
+    currentCharacter = lexer.currentCharacter
+
+    # no char to scan
+    if currentCharacter is None:
         return False
 
-    if not (ch.isdigit() or (ch == "~" and (lexer.peek() or "").isdigit())):
+    # must start with digit or ~digit
+    if not (
+        currentCharacter.isdigit()
+        or (
+            currentCharacter == "~"
+            and (lexer.peek() or "").isdigit()
+        )
+    ):
         return False
 
-    start_pos = lexer.pos.copy()
-    text = ""
-    has_dot = False
-    int_digits = 0
-    frac_digits = 0
-    saw_digit_after_dot = False
+    startingPosition = lexer.currentPosition.copy()
+    numberText = ""
+    hasDecimalPoint = False
+    integerDigitCount = 0
+    fractionalDigitCount = 0
+    hasDigitAfterDecimalPoint = False
 
-    if lexer.current_char == "~":
-        text += "~"
+    # negative number marker
+    if lexer.currentCharacter == "~":
+        numberText += "~"
         lexer.advance()
-        if lexer.current_char is None or not lexer.current_char.isdigit():
-            errors.append(LexicalError(start_pos, "Invalid number literal '~' (expected digit after ~)"))
+
+        if lexer.currentCharacter is None or not lexer.currentCharacter.isdigit():
+            errorList.append(
+                LexicalError(
+                    startingPosition,
+                    "Invalid number literal '~' (expected digit after ~)"
+                )
+            )
             return True
 
-    while lexer.current_char is not None:
-        ch = lexer.current_char
+    # read number
+    while lexer.currentCharacter is not None:
+        currentCharacter = lexer.currentCharacter
 
-        if ch.isdigit():
-            if not has_dot:
-                int_digits += 1
-                if int_digits > MAX_INT_DIGITS:
-                    _consume_number_tail(lexer)
-                    errors.append(LexicalError(start_pos, f"Integer part exceeds {MAX_INT_DIGITS} digits"))
+        # digit part
+        if currentCharacter.isdigit():
+            if not hasDecimalPoint:
+                integerDigitCount += 1
+
+                # int limit
+                if integerDigitCount > MAX_INTEGER_DIGITS:
+                    consumeInvalidNumberTail(lexer)
+                    errorList.append(
+                        LexicalError(
+                            startingPosition,
+                            f"Integer part exceeds {MAX_INTEGER_DIGITS} digits"
+                        )
+                    )
                     return True
+
             else:
-                frac_digits += 1
-                saw_digit_after_dot = True
-                if frac_digits > MAX_FRAC_DIGITS:
-                    _consume_number_tail(lexer)
-                    errors.append(LexicalError(start_pos, f"Fractional part exceeds {MAX_FRAC_DIGITS} digits"))
+                fractionalDigitCount += 1
+                hasDigitAfterDecimalPoint = True
+
+                # decimal limit
+                if fractionalDigitCount > MAX_FRACTIONAL_DIGITS:
+                    consumeInvalidNumberTail(lexer)
+                    errorList.append(
+                        LexicalError(
+                            startingPosition,
+                            f"Fractional part exceeds {MAX_FRACTIONAL_DIGITS} digits"
+                        )
+                    )
                     return True
 
-            text += ch
+            numberText += currentCharacter
             lexer.advance()
             continue
 
-        if ch == ".":
-            if has_dot:
-                _consume_number_tail(lexer)
-                errors.append(LexicalError(start_pos, f"Multiple decimal points in number '{text + ch}'"))
+        # decimal point
+        if currentCharacter == ".":
+            if hasDecimalPoint:
+                consumeInvalidNumberTail(lexer)
+                errorList.append(
+                    LexicalError(
+                        startingPosition,
+                        f"Multiple decimal points in number '{numberText + currentCharacter}'"
+                    )
+                )
                 return True
-            if int_digits == 0:
-                _consume_number_tail(lexer)
-                errors.append(LexicalError(start_pos, "Decimal must have integer part before '.'"))
+
+            if integerDigitCount == 0:
+                consumeInvalidNumberTail(lexer)
+                errorList.append(
+                    LexicalError(
+                        startingPosition,
+                        "Decimal must have integer part before '.'"
+                    )
+                )
                 return True
-            has_dot = True
-            text += ch
+
+            hasDecimalPoint = True
+            numberText += currentCharacter
             lexer.advance()
             continue
 
-        if ch.isalpha() or ch == "_":
-            _consume_number_tail(lexer)
-            errors.append(LexicalError(start_pos, f"Invalid identifier starting with digit '{text + ch}'"))
+        # invalid identifier
+        if currentCharacter.isalpha() or currentCharacter == "_":
+            consumeInvalidNumberTail(lexer)
+            errorList.append(
+                LexicalError(
+                    startingPosition,
+                    f"Invalid identifier starting with digit '{numberText + currentCharacter}'"
+                )
+            )
             return True
 
-        if ch in int_decdelim:
+        # valid delimiter
+        if currentCharacter in integerDecimalDelimiters:
             break
 
-        _consume_number_tail(lexer)
-        errors.append(LexicalError(start_pos, f"Invalid character '{ch}' in number '{text}'"))
+        # invalid number char
+        consumeInvalidNumberTail(lexer)
+        errorList.append(
+            LexicalError(
+                startingPosition,
+                f"Invalid character '{currentCharacter}' in number '{numberText}'"
+            )
+        )
         return True
 
-    if has_dot and not saw_digit_after_dot:
-        errors.append(LexicalError(start_pos, f"Decimal point requires digits after '.' in '{text}'"))
+    # dot needs digit after
+    if hasDecimalPoint and not hasDigitAfterDecimalPoint:
+        errorList.append(
+            LexicalError(
+                startingPosition,
+                f"Decimal point requires digits after '.' in '{numberText}'"
+            )
+        )
         return True
 
-    return accept_number(lexer, tokens, errors, start_pos, text, int_decdelim, has_dot)
+    return acceptNumber(
+        lexer,
+        tokenList,
+        errorList,
+        startingPosition,
+        numberText,
+        integerDecimalDelimiters,
+        hasDecimalPoint
+    )

@@ -1,88 +1,206 @@
 from __future__ import annotations
+from typing import Any
 
 from backend.tokens import *
 from backend.errors import ParserError
+from backend.parser.predict_set import PREDICT
 from backend.ast.ast_nodes import *
-from backend.parser.parser import Parser, _tok_lexeme, _tok_pos
+from backend.parser.parser import Parser, getTokenValue, getTokenPosition
 
 
-def parse_literal_expr(self: Parser) -> LiteralExpr:
-    lookahead_type = self.current_type(0)
+def parseUnaryExpression(self: Parser) -> Expression:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in (
+    # reject minus
+    if currentTokenType == TK_OP_MINUS:
+        raise ParserError(
+            self.peek(0) or self.peek(-1),
+            [TK_OP_TILDE],
+            "Unary minus (-) is not allowed. Use ~ for negation."
+        )
+
+    # check unary expression
+    if currentTokenType not in PREDICT["<unary_expr>"]:
+        raise ParserError(
+            self.peek(0) or self.peek(-1),
+            list(PREDICT["<unary_expr>"].keys())
+        )
+
+    # prefix not or negation
+    if currentTokenType in (TK_OP_NOT, TK_OP_TILDE):
+        operatorToken = self.advance()
+        operandExpression = self.parseUnaryExpression()
+
+        operatorLexeme = getTokenValue(operatorToken) or (
+            "!" if currentTokenType == TK_OP_NOT else "~"
+        )
+
+        return UnaryExpression(
+            position=getTokenPosition(operatorToken),
+            operator=operatorLexeme,
+            operand=operandExpression,
+            isPrefix=True
+        )
+
+    # prefix increment or decrement
+    if currentTokenType in (TK_OP_INC, TK_OP_DEC):
+        operatorToken = self.advance()
+        targetReference = self.parseLeftHandValueCore()
+
+        return UnaryExpression(
+            position=getTokenPosition(operatorToken),
+            operator=getTokenValue(operatorToken) or (
+                "++" if currentTokenType == TK_OP_INC else "--"
+            ),
+            operand=VariableExpression(
+                position=getTokenPosition(operatorToken),
+                reference=targetReference
+            ),
+            isPrefix=True
+        )
+
+    return self.parsePostfixExpression()
+
+
+def parsePostfixExpression(self: Parser) -> Expression:
+    currentTokenType = self.currentType(0)
+
+    # check postfix expression
+    if currentTokenType not in PREDICT["<postfix_expr>"]:
+        raise ParserError(
+            self.peek(0) or self.peek(-1),
+            list(PREDICT["<postfix_expr>"].keys())
+        )
+
+    baseExpression = self.parsePrimaryExpression()
+
+    # postfix increment or decrement
+    if self.currentType(0) in (TK_OP_INC, TK_OP_DEC):
+        operatorToken = self.advance()
+
+        operatorLexeme = getTokenValue(operatorToken) or (
+            "++" if operatorToken.type == TK_OP_INC else "--"
+        )
+
+        return UnaryExpression(
+            position=getTokenPosition(operatorToken),
+            operator=operatorLexeme,
+            operand=baseExpression,
+            isPrefix=False
+        )
+
+    return baseExpression
+
+
+def parsePrimaryExpression(self: Parser) -> Expression:
+    currentTokenType = self.currentType(0)
+
+    # check primary expression
+    if currentTokenType not in PREDICT["<primary>"]:
+        raise ParserError(
+            self.peek(0) or self.peek(-1),
+            list(PREDICT["<primary>"].keys())
+        )
+
+    # literal
+    if currentTokenType in (
         TK_LIT_INT,
         TK_LIT_DECIMAL,
         TK_LIT_CHAR,
         TK_LIT_STRING,
         TK_LIT_BOOL
     ):
-        raise ParserError(
-            self.peek(0) or self.peek(-1),
-            expected=[TK_LIT_INT, TK_LIT_DECIMAL, TK_LIT_CHAR, TK_LIT_STRING, TK_LIT_BOOL]
+        return self.parseLiteralExpression()
+
+    # grouped expression
+    if currentTokenType == TK_SYM_OPPAREN:
+        openingParenthesisToken = self.expect(TK_SYM_OPPAREN)
+        innerExpression = self.parseExpression()
+        self.expect(TK_SYM_CLSPAREN)
+
+        return GroupExpression(
+            position=getTokenPosition(openingParenthesisToken),
+            expression=innerExpression
         )
 
-    literal_token = self.advance()
-    literal_lexeme = _tok_lexeme(literal_token)
+    # verseof expression
+    if currentTokenType == TK_OTHERS_VERSEOF:
+        verseOfToken = self.expect(TK_OTHERS_VERSEOF)
+        self.expect(TK_SYM_OPPAREN)
+        innerExpression = self.parseExpression()
+        self.expect(TK_SYM_CLSPAREN)
 
-    if lookahead_type == TK_LIT_INT:
-        try:
-            literal_value = int(literal_lexeme)
-        except Exception:
-            literal_value = literal_lexeme
-        return LiteralExpr(pos=_tok_pos(literal_token), value=literal_value, literal_type="int")
-
-    if lookahead_type == TK_LIT_DECIMAL:
-        try:
-            literal_value = float(literal_lexeme)
-        except Exception:
-            literal_value = literal_lexeme
-        return LiteralExpr(pos=_tok_pos(literal_token), value=literal_value, literal_type="decimal")
-
-    if lookahead_type == TK_LIT_CHAR:
-        char_value = literal_lexeme
-
-        if not isinstance(char_value, str):
-            self.error_expected([TK_LIT_CHAR], "Invalid sigil literal.")
-
-        if len(char_value) == 3 and char_value[0] == "'" and char_value[2] == "'":
-            char_value = char_value[1]
-        else:
-            self.error_expected([TK_LIT_CHAR], "Invalid sigil literal format.")
-
-        return LiteralExpr(
-            pos=_tok_pos(literal_token),
-            value=char_value,
-            literal_type="char",
+        return VerseOfExpression(
+            position=getTokenPosition(verseOfToken),
+            expression=innerExpression
         )
 
-    if lookahead_type == TK_LIT_STRING:
-        string_value = literal_lexeme
+    # identifier expression
+    if currentTokenType == TK_IDENTIFIER:
+        identifierToken = self.expect(TK_IDENTIFIER)
+        identifierName = getTokenValue(identifierToken)
 
-        if isinstance(string_value, str) and len(string_value) >= 2 and string_value[0] == '"' and string_value[-1] == '"':
-            string_value = string_value[1:-1]
-
-        return LiteralExpr(
-            pos=_tok_pos(literal_token),
-            value=string_value,
-            literal_type="string",
+        return self.parseIdentifierPrimaryTail(
+            identifierToken,
+            identifierName
         )
-
-    if lookahead_type == TK_LIT_BOOL:
-        normalized_bool_lexeme = (
-            literal_lexeme.lower() if isinstance(literal_lexeme, str) else literal_lexeme
-        )
-        if normalized_bool_lexeme in ("true", "false", "holy", "unholy"):
-            return LiteralExpr(
-                pos=_tok_pos(literal_token),
-                value=(normalized_bool_lexeme == "true" or normalized_bool_lexeme == "holy"),
-                literal_type="bool"
-            )
-        return LiteralExpr(pos=_tok_pos(literal_token), value=literal_lexeme, literal_type="bool")
 
     raise ParserError(
-        literal_token,
-        expected=[TK_LIT_INT, TK_LIT_DECIMAL, TK_LIT_CHAR, TK_LIT_STRING, TK_LIT_BOOL]
+        self.peek(0) or self.peek(-1),
+        list(PREDICT["<primary>"].keys())
     )
 
 
-Parser.parse_literal_expr = parse_literal_expr
+def parseIdentifierPrimaryTail(self: Parser, identifierToken: Any, identifierName: str) -> Expression:
+    currentTokenType = self.currentType(0)
+
+    # check identifier tail
+    if currentTokenType not in PREDICT["<id_primary_tail>"]:
+        raise ParserError(
+            self.peek(0) or self.peek(-1),
+            list(PREDICT["<id_primary_tail>"].keys())
+        )
+
+    # function call
+    if currentTokenType == TK_SYM_OPPAREN:
+        self.expect(TK_SYM_OPPAREN)
+        argumentList = self.parseArgumentListOptional()
+        self.expect(TK_SYM_CLSPAREN)
+
+        baseReference = NameReference(
+            position=getTokenPosition(identifierToken),
+            name=identifierName
+        )
+
+        accessChain = self.parseAccessChainOptional(baseReference)
+
+        return FunctionCallExpression(
+            position=getTokenPosition(identifierToken),
+            callee=identifierName,
+            arguments=argumentList,
+            accessChain=accessChain
+        )
+
+    # variable or member access
+    baseReference: LeftHandValue = NameReference(
+        position=getTokenPosition(identifierToken),
+        name=identifierName
+    )
+
+    accessChain = self.parseAccessChainOptional(baseReference)
+
+    if accessChain is not None:
+        resolvedReference = accessChain
+    else:
+        resolvedReference = baseReference
+
+    return VariableExpression(
+        position=getTokenPosition(identifierToken),
+        reference=resolvedReference
+    )
+
+
+Parser.parseUnaryExpression = parseUnaryExpression
+Parser.parsePostfixExpression = parsePostfixExpression
+Parser.parsePrimaryExpression = parsePrimaryExpression
+Parser.parseIdentifierPrimaryTail = parseIdentifierPrimaryTail

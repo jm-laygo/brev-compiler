@@ -1,38 +1,67 @@
 from __future__ import annotations
 
 from backend.ast.ast_nodes import (
-    ArrayInit,
-    BinaryExpr,
-    CallExpr,
-    GroupExpr,
-    LiteralExpr,
-    UnaryExpr,
-    VarExpr,
-    VerseOfExpr,
+    ArrayInitializationExpression,
+    BinaryExpression,
+    FunctionCallExpression,
+    GroupExpression,
+    LiteralExpression,
+    UnaryExpression,
+    VariableExpression,
+    VerseOfExpression,
 )
 from backend.errors import RuntimeErrorBase
 
-from .calls import _handle_call_expr
-from .operators import _handle_unary_expr, _handle_binary_expr
-from .primitives import _handle_primitive_expr
+from .calls import handleFunctionCallExpression
+from .operators import handleUnaryExpression, handleBinaryExpression
+from .primitives import handlePrimitiveExpression
 
-def _eval_expr(self, expression_node, current_environment):
-    if expression_node is None:
+
+def evaluateExpression(self, expressionNode, currentEnvironment):
+    if expressionNode is None:
         return None
 
-    if isinstance(expression_node, (LiteralExpr, GroupExpr, VarExpr, ArrayInit, VerseOfExpr)):
-        return _handle_primitive_expr(self, expression_node, current_environment)
+    if isinstance(
+        expressionNode,
+        (
+            LiteralExpression,
+            GroupExpression,
+            VariableExpression,
+            ArrayInitializationExpression,
+            VerseOfExpression,
+        )
+    ):
+        return handlePrimitiveExpression(
+            self,
+            expressionNode,
+            currentEnvironment
+        )
 
-    if isinstance(expression_node, CallExpr):
-        return _handle_call_expr(self, expression_node, current_environment)
+    if isinstance(expressionNode, FunctionCallExpression):
+        return handleFunctionCallExpression(
+            self,
+            expressionNode,
+            currentEnvironment
+        )
 
-    if isinstance(expression_node, UnaryExpr):
-        return _handle_unary_expr(self, expression_node, current_environment)
+    if isinstance(expressionNode, UnaryExpression):
+        return handleUnaryExpression(
+            self,
+            expressionNode,
+            currentEnvironment
+        )
 
-    if isinstance(expression_node, BinaryExpr):
-        return _handle_binary_expr(self, expression_node, current_environment)
+    if isinstance(expressionNode, BinaryExpression):
+        return handleBinaryExpression(
+            self,
+            expressionNode,
+            currentEnvironment
+        )
 
-    raise RuntimeErrorBase(expression_node, "This expression is not yet supported during execution.")
+    raise RuntimeErrorBase(
+        expressionNode,
+        "This expression is not yet supported during execution."
+    )
 
-def bind_expression_methods(cls):
-    cls._eval_expr = _eval_expr
+def bindExpressionMethods(interpreterClass):
+    interpreterClass.evaluateExpression = evaluateExpression

@@ -1,50 +1,63 @@
 from __future__ import annotations
 from typing import Any
 
-from backend.semantic.symbols import VarSymbol
-from backend.semantic.typesys import can_assign, is_numeric
+from backend.semantic.symbols import VariableSymbol
+from backend.semantic.typesys import canAssign, isNumericType
+
 
 class StatementMutationsMixin:
-    def _check_assignstmt(self, statement_node: Any) -> None:
-        target_reference = getattr(statement_node, "target", None)
-        value_expression = getattr(statement_node, "value", None)
-        operator_text = getattr(statement_node, "op", "=")
+    def checkAssignmentStatement(self, statementNode: Any) -> None:
+        targetReference = getattr(statementNode, "target", None)
+        valueExpression = getattr(statementNode, "value", None)
+        operatorText = getattr(statementNode, "operator", "=")
 
-        root_symbol = self._lvalue_root_symbol(target_reference)
-        if isinstance(root_symbol, VarSymbol) and getattr(root_symbol, "is_const", False):
-            self._error(
-                target_reference if target_reference is not None else statement_node,
-                f"Cannot modify sacred constant '{root_symbol.name}'."
-            )
-            return
+        rootSymbol = self.getLeftHandValueRootSymbol(targetReference)
 
-        target_type = self._lvalue_type(target_reference)
-        value_type = self._expr_type(value_expression)
-
-        if self._has_type_error(target_type) or self._has_type_error(value_type):
-            return
-
-        if operator_text != "=" and not is_numeric(target_type):
-            self._error(
-                target_reference if target_reference is not None else statement_node,
-                f"Type error: '{operator_text}' requires numeric target, got {self._tname(target_type)}."
-            )
-            return
-
-        if not can_assign(target_type, value_type):
-            self._error(
-                value_expression if value_expression is not None else statement_node,
-                f"Type mismatch: cannot assign {self._tname(value_type)} to {self._tname(target_type)}."
+        if isinstance(rootSymbol, VariableSymbol) and getattr(rootSymbol, "isConstant", False):
+            self.addError(
+                targetReference if targetReference is not None else statementNode,
+                f"Cannot modify sacred constant '{rootSymbol.name}'."
             )
 
-    def _check_incdecstmt(self, statement_node: Any) -> None:
-        target_reference = getattr(statement_node, "target", None)
-
-        root_symbol = self._lvalue_root_symbol(target_reference)
-        if isinstance(root_symbol, VarSymbol) and getattr(root_symbol, "is_const", False):
-            self._error(statement_node, f"Cannot increment/decrement sacred constant '{root_symbol.name}'.")
             return
 
-        target_type = self._lvalue_type(target_reference)
-        if not is_numeric(target_type):
-            self._error(statement_node, f"++/-- requires numeric lvalue, got {target_type}.")
+        targetType = self.getLeftHandValueType(targetReference)
+        valueType = self.getExpressionType(valueExpression)
+
+        if self.hasTypeError(targetType) or self.hasTypeError(valueType):
+            return
+
+        if operatorText != "=" and not isNumericType(targetType):
+            self.addError(
+                targetReference if targetReference is not None else statementNode,
+                f"Type error: '{operatorText}' requires numeric target, got {self.getTypeName(targetType)}."
+            )
+
+            return
+
+        if not canAssign(targetType, valueType):
+            self.addError(
+                valueExpression if valueExpression is not None else statementNode,
+                f"Type mismatch: cannot assign {self.getTypeName(valueType)} to {self.getTypeName(targetType)}."
+            )
+
+    def checkIncrementDecrementStatement(self, statementNode: Any) -> None:
+        targetReference = getattr(statementNode, "target", None)
+
+        rootSymbol = self.getLeftHandValueRootSymbol(targetReference)
+
+        if isinstance(rootSymbol, VariableSymbol) and getattr(rootSymbol, "isConstant", False):
+            self.addError(
+                statementNode,
+                f"Cannot increment/decrement sacred constant '{rootSymbol.name}'."
+            )
+
+            return
+
+        targetType = self.getLeftHandValueType(targetReference)
+
+        if not isNumericType(targetType):
+            self.addError(
+                statementNode,
+                f"++/-- requires numeric lvalue, got {targetType}."
+            )

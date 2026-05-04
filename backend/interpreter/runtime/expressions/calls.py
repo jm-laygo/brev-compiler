@@ -1,19 +1,32 @@
 from __future__ import annotations
 
-from backend.ast.ast_nodes import CallExpr
+from backend.ast.ast_nodes import FunctionCallExpression
 
-def _handle_call_expr(self, expression_node, current_environment):
-    if not isinstance(expression_node, CallExpr):
+
+def handleFunctionCallExpression(self, expressionNode, currentEnvironment):
+    if not isinstance(expressionNode, FunctionCallExpression):
         return None
 
-    evaluated_argument_values = []
-    for argument_node in expression_node.args:
-        evaluated_argument_values.append(self._eval_expr(argument_node, current_environment))
+    evaluatedArgumentValues = []
 
-    call_result = self._call_rite(expression_node.callee, evaluated_argument_values, call_node=expression_node)
+    for argumentNode in expressionNode.arguments:
+        evaluatedArgumentValues.extend([
+            self.evaluateExpression(argumentNode, currentEnvironment)
+        ])
 
-    call_access_chain = getattr(expression_node, "access", None)
-    if call_access_chain is not None:
-        return self._read_lvalue_from_value(call_access_chain, call_result, expression_node)
+    callResult = self.callRite(
+        expressionNode.calleeName,
+        evaluatedArgumentValues,
+        callNode=expressionNode
+    )
 
-    return call_result
+    callAccessChain = getattr(expressionNode, "accessChain", None)
+
+    if callAccessChain is not None:
+        return self.readLeftHandValueFromValue(
+            callAccessChain,
+            callResult,
+            expressionNode
+        )
+
+    return callResult

@@ -1,37 +1,54 @@
 class Token:
-    def __init__(self, type_, value=None, pos=None):
-        self.type = type_.strip() if isinstance(type_, str) else type_
-        self.value = value
-        self.pos = pos
+    def __init__(self, tokenType, tokenValue=None, tokenPosition=None):
+        if isinstance(tokenType, str):
+            self.type = tokenType.strip()
+        else:
+            self.type = tokenType
 
-    def display_name(self):
+        self.value = tokenValue
+        self.position = tokenPosition
+
+    def displayName(self):
         return TOKEN_DISPLAY_NAMES.get(self.type, self.type)
 
-    def to_dict(self):
-        pos_dict = None
-        if isinstance(self.pos, int):
-            pos_dict = {"index": self.pos, "line": None, "col": None}
-        elif self.pos:
-            pos_dict = {"index": self.pos.index, "line": self.pos.ln, "col": self.pos.col}
+    def toDictionary(self):
+        positionDictionary = None
+
+        # int position
+        if isinstance(self.position, int):
+            positionDictionary = {
+                "index": self.position,
+                "line": None,
+                "column": None
+            }
+
+        # normal position
+        elif self.position:
+            positionDictionary = {
+                "index": self.position.characterIndex,
+                "line": self.position.lineNumber,
+                "column": self.position.columnNumber
+            }
 
         return {
             "value": self.value,
-            "token": self.display_name(),
+            "token": self.displayName(),
             "type": self.type,
-            "pos": pos_dict,
+            "position": positionDictionary,
             "hidden": self.type == TK_EOF,
         }
 
     def __repr__(self):
         return f"{self.type}:{self.value}"
 
-# TOKEN TYPE 
 
-# I/O TOKENS
+# token type
+
+# i/o tokens
 TK_IO_RECEIVE = "TK_IO_RECEIVE"
 TK_IO_PROCLAIM = "TK_IO_PROCLAIM"
 
-# DATA TYPES
+# data types
 TK_DTYPE_SIGIL = "TK_DTYPE_SIGIL"
 TK_DTYPE_TALLY = "TK_DTYPE_TALLY"
 TK_DTYPE_DIVINE = "TK_DTYPE_DIVINE"
@@ -39,7 +56,7 @@ TK_DTYPE_SCRIPTURE = "TK_DTYPE_SCRIPTURE"
 TK_DTYPE_HOLLOW = "TK_DTYPE_HOLLOW"
 TK_DTYPE_VERITY = "TK_DTYPE_VERITY"
 
-# CONTROL FLOW
+# control flow
 TK_CF_DECREE = "TK_CF_DECREE"
 TK_CF_ABSOLUTION = "TK_CF_ABSOLUTION"
 TK_CF_EDICT = "TK_CF_EDICT"
@@ -55,10 +72,10 @@ TK_CF_RITUAL = "TK_CF_RITUAL"
 TK_CF_RITE = "TK_CF_RITE"
 TK_CF_DISMISS = "TK_CF_DISMISS"
 
-# QUALIFIERS
+# qualifiers
 TK_SACRED = "TK_SACRED"
 
-# MISC KEYWORDS
+# miscel keywords
 TK_OTHERS_GENESIS = "TK_OTHERS_GENESIS"
 # TK_OTHERS_HOLY = "TK_OTHERS_HOLY"
 # TK_OTHERS_UNHOLY = "TK_OTHERS_UNHOLY"
@@ -66,7 +83,7 @@ TK_OTHERS_ORDER = "TK_OTHERS_ORDER"
 TK_OTHERS_ORDAIN = "TK_OTHERS_ORDAIN"
 TK_OTHERS_VERSEOF = "TK_OTHERS_VERSEOF"
 
-# OPERATORS
+# operators
 TK_OP_PLUS = "TK_OP_PLUS"
 TK_OP_MINUS = "TK_OP_MINUS"
 TK_OP_MUL = "TK_OP_MUL"
@@ -98,7 +115,7 @@ TK_OP_INC = "TK_OP_INC"
 TK_OP_DEC = "TK_OP_DEC"
 TK_OP_CONCAT = "TK_OP_CONCAT"
 
-# SYMBOLS
+# symbols
 TK_SYM_SPACE = "TK_SYM_SPACE"
 TK_SYM_NEWLINE = "TK_SYM_NEWLINE"
 TK_SYM_TAB = "TK_SYM_TAB"
@@ -118,25 +135,26 @@ TK_SYM_CLSBRACK = "TK_SYM_CLSBRACK"
 TK_SYM_OPBRACE = "TK_SYM_OPBRACE"
 TK_SYM_CLSBRACE = "TK_SYM_CLSBRACE"
 
-# LITERALS
+# literals
 TK_LIT_INT = "TK_LIT_INT"
 TK_LIT_DECIMAL = "TK_LIT_DECIMAL"
 TK_LIT_CHAR = "TK_LIT_CHAR"
 TK_LIT_STRING = "TK_LIT_STRING"
 TK_LIT_BOOL = "TK_LIT_BOOL"
 
-# SPECIAL
+# special
 TK_IDENTIFIER = "TK_IDENTIFIER"
 TK_COMMENT = "TK_COMMENT"
 TK_COMMENT_BLOCK = "TK_COMMENT_BLOCK"
 TK_EOF = "TK_EOF"
 
+
 KEYWORD_MAP = {
-    # I/O
+    # i/o
     "receive": TK_IO_RECEIVE,
     "proclaim": TK_IO_PROCLAIM,
 
-    # DATA TYPES
+    # data types
     "sigil": TK_DTYPE_SIGIL,
     "tally": TK_DTYPE_TALLY,
     "divine": TK_DTYPE_DIVINE,
@@ -144,7 +162,7 @@ KEYWORD_MAP = {
     "hollow": TK_DTYPE_HOLLOW,
     "verity": TK_DTYPE_VERITY,
 
-    # CONTROL FLOW
+    # control flow
     "decree": TK_CF_DECREE,
     "absolution": TK_CF_ABSOLUTION,
     "edict": TK_CF_EDICT,
@@ -160,10 +178,10 @@ KEYWORD_MAP = {
     "rite": TK_CF_RITE,
     "dismiss": TK_CF_DISMISS,
 
-    # QUALIFIER
+    # qualifier
     "sacred": TK_SACRED,
 
-    # MISC
+    # misc
     "genesis": TK_OTHERS_GENESIS,
     # "holy": TK_OTHERS_HOLY,
     # "unholy": TK_OTHERS_UNHOLY,
@@ -172,7 +190,8 @@ KEYWORD_MAP = {
     "verseof": TK_OTHERS_VERSEOF,
 }
 
-# DISPLAY NAMES
+
+# display names
 TOKEN_DISPLAY_NAMES = {
     TK_IDENTIFIER: "identifier",
 

@@ -1,77 +1,145 @@
 from backend.tokens import Token, TK_LIT_STRING
 from backend.errors import LexicalError
-from backend.delimiters import str_delim, format_expected_delims
+from backend.delimiters import str_delim as stringDelimiters
+from backend.delimiters import format_expected_delims
 
-def accept_string(lexer, tokens, errors, start_pos, value, allowed_delims):
-    ch = lexer.current_char
-    expected = format_expected_delims(allowed_delims)
 
-    if ch is None and None not in allowed_delims:
-        errors.append(LexicalError(start_pos, f"Missing delimiter after string literal. Expected: {expected}"))
+def acceptStringLiteral(
+    lexer,
+    tokenList,
+    errorList,
+    startingPosition,
+    stringValue,
+    allowedDelimiters
+):
+    # check delimiter
+    currentCharacter = lexer.currentCharacter
+    expectedDelimiters = format_expected_delims(allowedDelimiters)
+
+    if currentCharacter is None and None not in allowedDelimiters:
+        lexicalError = LexicalError(
+            startingPosition,
+            f"Missing delimiter after string literal. Expected: {expectedDelimiters}"
+        )
+
+        errorList.extend([lexicalError])
         return True
 
-    if ch is not None and ch not in allowed_delims:
-        errors.append(LexicalError(start_pos, f"Invalid delimiter {repr(ch)} after string literal. Expected: {expected}"))
+    if currentCharacter is not None and currentCharacter not in allowedDelimiters:
+        lexicalError = LexicalError(
+            startingPosition,
+            f"Invalid delimiter {repr(currentCharacter)} after string literal. Expected: {expectedDelimiters}"
+        )
+
+        errorList.extend([lexicalError])
         return True
 
-    # Store interpreted value (no extra quotes)
-    tokens.append(Token(TK_LIT_STRING, value, start_pos))
+    stringToken = Token(
+        TK_LIT_STRING,
+        stringValue,
+        startingPosition
+    )
+
+    tokenList.extend([stringToken])
     return True
 
-def recover_string_literal(lexer):
-    while lexer.current_char is not None and lexer.current_char not in {'"', "\n"}:
-        lexer.advance()
-    if lexer.current_char == '"':
+def recoverStringLiteral(lexer):
+    # skip invalid string
+    while lexer.currentCharacter is not None and lexer.currentCharacter not in {'"', "\n"}:
         lexer.advance()
 
-def scan_string(lexer, tokens, errors):
-    if lexer.current_char != '"':
+    if lexer.currentCharacter == '"':
+        lexer.advance()
+
+def scanString(lexer, tokenList, errorList):
+    # must start with quote
+    if lexer.currentCharacter != '"':
         return False
 
-    start_pos = lexer.pos.copy()
-    value = ""
+    startingPosition = lexer.currentPosition.copy()
+    stringValue = ""
+
     lexer.advance()
 
-    while lexer.current_char is not None:
-        ch = lexer.current_char
+    # read string
+    while lexer.currentCharacter is not None:
+        currentCharacter = lexer.currentCharacter
 
-        if ch == "\n":
-            errors.append(LexicalError(start_pos, "Unterminated string literal"))
+        # newline not allowed
+        if currentCharacter == "\n":
+            lexicalError = LexicalError(
+                startingPosition,
+                "Unterminated string literal"
+            )
+
+            errorList.extend([lexicalError])
             return True
 
-        if ch == "\\":
+        # escape char
+        if currentCharacter == "\\":
             lexer.advance()
-            esc = lexer.current_char
+            escapeCharacter = lexer.currentCharacter
 
-            if esc is None:
-                errors.append(LexicalError(start_pos, "Unterminated escape sequence"))
+            if escapeCharacter is None:
+                lexicalError = LexicalError(
+                    startingPosition,
+                    "Unterminated escape sequence"
+                )
+
+                errorList.extend([lexicalError])
                 return True
 
-            if esc == "n":
-                value += "\n"
-            elif esc == "t":
-                value += "\t"
-            elif esc == "0":
-                value += "\0"
-            elif esc == "\\":
-                value += "\\"
-            elif esc == '"':
-                value += '"'
+            if escapeCharacter == "n":
+                stringValue += "\n"
+
+            elif escapeCharacter == "t":
+                stringValue += "\t"
+
+            elif escapeCharacter == "0":
+                stringValue += "\0"
+
+            elif escapeCharacter == "\\":
+                stringValue += "\\"
+
+            elif escapeCharacter == '"':
+                stringValue += '"'
+
             else:
-                errors.append(LexicalError(start_pos, f"Invalid escape sequence '\\{esc}'"))
+                lexicalError = LexicalError(
+                    startingPosition,
+                    f"Invalid escape sequence '\\{escapeCharacter}'"
+                )
+
+                errorList.extend([lexicalError])
                 lexer.advance()
-                recover_string_literal(lexer)
+                recoverStringLiteral(lexer)
+
                 return True
 
             lexer.advance()
             continue
 
-        if ch == '"':
+        # closing quote
+        if currentCharacter == '"':
             lexer.advance()
-            return accept_string(lexer, tokens, errors, start_pos, value, str_delim)
 
-        value += ch
+            return acceptStringLiteral(
+                lexer,
+                tokenList,
+                errorList,
+                startingPosition,
+                stringValue,
+                stringDelimiters
+            )
+
+        stringValue += currentCharacter
         lexer.advance()
 
-    errors.append(LexicalError(start_pos, "Unterminated string literal"))
+    # no closing quote
+    lexicalError = LexicalError(
+        startingPosition,
+        "Unterminated string literal"
+    )
+
+    errorList.extend([lexicalError])
     return True

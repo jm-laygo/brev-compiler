@@ -5,95 +5,102 @@ from backend.tokens import *
 from backend.errors import ParserError
 from backend.parser.predict_set import PREDICT
 from backend.ast.ast_nodes import *
-from backend.parser.parser import Parser, _tok_lexeme, _tok_pos
+from backend.parser.parser import Parser, getTokenValue, getTokenPosition
 
 
-def parse_var_decl_group(self: Parser) -> List[VarItem]:
-    lookahead_type = self.current_type(0)
+def parseVariableDeclarationGroup(self: Parser) -> List[VariableItem]:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<var_decl_group>"]:
+    # check variable group
+    if currentTokenType not in PREDICT["<var_decl_group>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<var_decl_group>"].keys()),
+            list(PREDICT["<var_decl_group>"].keys())
         )
 
-    variable_items = [self.parse_var_decl_item()]
-    variable_items.extend(self.parse_var_decl_tail())
-    return variable_items
+    variableItems = [self.parseVariableDeclarationItem()]
+    variableItems.extend(self.parseVariableDeclarationTail())
 
+    return variableItems
 
-def parse_var_decl_tail(self: Parser) -> List[VarItem]:
-    lookahead_type = self.current_type(0)
+def parseVariableDeclarationTail(self: Parser) -> List[VariableItem]:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<var_decl_tail>"]:
+    # check next variable
+    if currentTokenType not in PREDICT["<var_decl_tail>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<var_decl_tail>"].keys()),
+            list(PREDICT["<var_decl_tail>"].keys())
         )
 
-    if lookahead_type == TK_SYM_SEMICOL:
+    # end of variable list
+    if currentTokenType == TK_SYM_SEMICOL:
         return []
 
     self.expect(TK_SYM_COMMA)
-    remaining_variable_items = [self.parse_var_decl_item()]
-    remaining_variable_items.extend(self.parse_var_decl_tail())
-    return remaining_variable_items
 
+    remainingVariableItems = [self.parseVariableDeclarationItem()]
+    remainingVariableItems.extend(self.parseVariableDeclarationTail())
 
-def parse_var_decl_item(self: Parser) -> VarItem:
-    lookahead_type = self.current_type(0)
+    return remainingVariableItems
 
-    if lookahead_type not in PREDICT["<var_decl_item>"]:
+def parseVariableDeclarationItem(self: Parser) -> VariableItem:
+    currentTokenType = self.currentType(0)
+
+    # check variable item
+    if currentTokenType not in PREDICT["<var_decl_item>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<var_decl_item>"].keys()),
+            list(PREDICT["<var_decl_item>"].keys())
         )
 
-    variable_name_token = self.expect(TK_IDENTIFIER)
-    array_dimensions = self.parse_array_dims_tail()
-    initializer = self.parse_var_decl_item_tail()
+    variableNameToken = self.expect(TK_IDENTIFIER)
+    arrayDimensions = self.parseArrayDimensionsTail()
+    initialValue = self.parseVariableDeclarationItemTail()
 
-    return VarItem(
-        pos=_tok_pos(variable_name_token),
-        name=_tok_lexeme(variable_name_token),
-        dims=array_dimensions,
-        init=initializer
+    return VariableItem(
+        position=getTokenPosition(variableNameToken),
+        name=getTokenValue(variableNameToken),
+        dimensions=arrayDimensions,
+        initialValue=initialValue
     )
 
+def parseVariableDeclarationItemTail(self: Parser) -> Optional[Expression]:
+    currentTokenType = self.currentType(0)
 
-def parse_var_decl_item_tail(self: Parser) -> Optional[Expr]:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<var_decl_item_tail>"]:
+    # check variable init
+    if currentTokenType not in PREDICT["<var_decl_item_tail>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<var_decl_item_tail>"].keys()),
+            list(PREDICT["<var_decl_item_tail>"].keys())
         )
 
-    if lookahead_type in (TK_SYM_COMMA, TK_SYM_SEMICOL):
+    # no initial value
+    if currentTokenType in (TK_SYM_COMMA, TK_SYM_SEMICOL):
         return None
 
     self.expect(TK_OP_ASSIGN)
-    return self.parse_var_after_eq()
 
+    return self.parseVariableValueAfterAssignment()
 
-def parse_var_after_eq(self: Parser) -> Expr:
-    lookahead_type = self.current_type(0)
+def parseVariableValueAfterAssignment(self: Parser) -> Expression:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<var_after_eq>"]:
+    # check assigned value
+    if currentTokenType not in PREDICT["<var_after_eq>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<var_after_eq>"].keys()),
+            list(PREDICT["<var_after_eq>"].keys())
         )
 
-    if lookahead_type == TK_SYM_OPBRACE:
-        return self.parse_array_init()
+    # array init
+    if currentTokenType == TK_SYM_OPBRACE:
+        return self.parseArrayInitialization()
 
-    return self.parse_expr()
+    return self.parseExpression()
 
-
-Parser.parse_var_decl_group = parse_var_decl_group
-Parser.parse_var_decl_tail = parse_var_decl_tail
-Parser.parse_var_decl_item = parse_var_decl_item
-Parser.parse_var_decl_item_tail = parse_var_decl_item_tail
-Parser.parse_var_after_eq = parse_var_after_eq
+Parser.parseVariableDeclarationGroup = parseVariableDeclarationGroup
+Parser.parseVariableDeclarationTail = parseVariableDeclarationTail
+Parser.parseVariableDeclarationItem = parseVariableDeclarationItem
+Parser.parseVariableDeclarationItemTail = parseVariableDeclarationItemTail
+Parser.parseVariableValueAfterAssignment = parseVariableValueAfterAssignment

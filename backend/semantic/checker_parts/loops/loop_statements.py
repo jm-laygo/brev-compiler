@@ -1,60 +1,81 @@
 from __future__ import annotations
 from typing import Any
 
-from backend.semantic.typesys import is_bool, is_numeric
-from backend.semantic.typesys import is_bool
+from backend.semantic.typesys import isBooleanType, isNumericType
 
 
 class LoopStatementsMixin:
-    def _check_processionstmt(self, statement_node: Any) -> None:
-        self.in_loop += 1
+    def checkProcessionStatement(self, statementNode: Any) -> None:
+        self.loopDepth += 1
+
         try:
-            init_statement = getattr(statement_node, "init", None)
-            if init_statement:
-                self._check_stmt(init_statement)
+            initializerStatement = getattr(statementNode, "initializerStatement", None)
 
-            condition_expression = getattr(statement_node, "condition", None)
-            if condition_expression:
-                condition_type = self._expr_type(condition_expression)
-                if not is_bool(condition_type):
-                    self._error(statement_node, f"procession condition must be verity, got {condition_type}.")
+            if initializerStatement:
+                self.checkStatement(initializerStatement)
 
-            update_statement = getattr(statement_node, "update", None)
-            if update_statement:
-                self._check_stmt(update_statement)
+            conditionExpression = getattr(statementNode, "condition", None)
 
-            body_statements = getattr(statement_node, "body", []) or []
-            for body_statement in body_statements:
-                self._check_stmt(body_statement)
+            if conditionExpression:
+                conditionType = self.getExpressionType(conditionExpression)
+
+                if not isBooleanType(conditionType):
+                    self.addError(
+                        statementNode,
+                        f"procession condition must be verity, got {conditionType}."
+                    )
+
+            updateStatement = getattr(statementNode, "updateStatement", None)
+
+            if updateStatement:
+                self.checkStatement(updateStatement)
+
+            bodyStatements = getattr(statementNode, "bodyStatements", []) or []
+
+            for bodyStatement in bodyStatements:
+                self.checkStatement(bodyStatement)
+
         finally:
-            self.in_loop -= 1
+            self.loopDepth -= 1
 
-    def _check_endurestmt(self, statement_node: Any) -> None:
-        self.in_loop += 1
+    def checkEndureStatement(self, statementNode: Any) -> None:
+        self.loopDepth += 1
+
         try:
-            condition_expression = getattr(statement_node, "condition", None)
-            condition_type = self._expr_type(condition_expression)
+            conditionExpression = getattr(statementNode, "condition", None)
+            conditionType = self.getExpressionType(conditionExpression)
 
-            if not (is_bool(condition_type) or is_numeric(condition_type)):
-                self._error(statement_node, f"endure condition must be verity or numeric, got {condition_type}.")
+            if not (isBooleanType(conditionType) or isNumericType(conditionType)):
+                self.addError(
+                    statementNode,
+                    f"endure condition must be verity or numeric, got {conditionType}."
+                )
 
-            body_statements = getattr(statement_node, "body", []) or []
-            for body_statement in body_statements:
-                self._check_stmt(body_statement)
+            bodyStatements = getattr(statementNode, "bodyStatements", []) or []
+
+            for bodyStatement in bodyStatements:
+                self.checkStatement(bodyStatement)
+
         finally:
-            self.in_loop -= 1
+            self.loopDepth -= 1
 
-    def _check_ritualstmt(self, statement_node: Any) -> None:
-        self.in_loop += 1
+    def checkRitualStatement(self, statementNode: Any) -> None:
+        self.loopDepth += 1
+
         try:
-            body_statements = getattr(statement_node, "body", []) or []
-            for body_statement in body_statements:
-                self._check_stmt(body_statement)
+            bodyStatements = getattr(statementNode, "bodyStatements", []) or []
 
-            condition_expression = getattr(statement_node, "condition", None)
-            condition_type = self._expr_type(condition_expression)
+            for bodyStatement in bodyStatements:
+                self.checkStatement(bodyStatement)
 
-            if not is_bool(condition_type):
-                self._error(statement_node, f"ritual endure condition must be verity, got {condition_type}.")
+            conditionExpression = getattr(statementNode, "condition", None)
+            conditionType = self.getExpressionType(conditionExpression)
+
+            if not isBooleanType(conditionType):
+                self.addError(
+                    statementNode,
+                    f"ritual endure condition must be verity, got {conditionType}."
+                )
+
         finally:
-            self.in_loop -= 1
+            self.loopDepth -= 1

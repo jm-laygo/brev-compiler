@@ -1,109 +1,157 @@
 from __future__ import annotations
 from typing import Any, List, Optional
 
-from backend.semantic.typesys import Type, can_assign
-
-from ..helpers import _class
+from backend.semantic.typesys import Type, canAssign
+from ..helpers import getClassName
 
 
 class ArrayInitializerMixin:
-    def _dims_to_sizes(self, dimension_nodes: List[Any], owner_node: Any) -> Optional[List[int]]:
-        dimension_sizes: List[int] = []
+    def convertDimensionsToSizes(
+        self,
+        dimensionNodes: List[Any],
+        ownerNode: Any
+    ) -> Optional[List[int]]:
+        dimensionSizes: List[int] = []
 
-        for dimension_node in dimension_nodes:
-            if _class(dimension_node) != "LiteralExpr" or (getattr(dimension_node, "literal_type", "") or "").lower() != "int":
-                self._error(owner_node, "Array dimensions must be constant integer literals.")
+        for dimensionNode in dimensionNodes:
+            if (
+                getClassName(dimensionNode) != "LiteralExpression"
+                or (getattr(dimensionNode, "literalType", "") or "").lower() != "int"
+            ):
+                self.addError(
+                    ownerNode,
+                    "Array dimensions must be constant integer literals."
+                )
+
                 return None
 
             try:
-                dimension_value = int(getattr(dimension_node, "value"))
+                dimensionValue = int(getattr(dimensionNode, "value"))
+
             except Exception:
-                self._error(owner_node, "Array dimensions must be valid integer literals.")
+                self.addError(
+                    ownerNode,
+                    "Array dimensions must be valid integer literals."
+                )
+
                 return None
 
-            if dimension_value <= 0:
-                self._error(owner_node, f"Array dimension must be > 0, got {dimension_value}.")
+            if dimensionValue <= 0:
+                self.addError(
+                    ownerNode,
+                    f"Array dimension must be > 0, got {dimensionValue}."
+                )
+
                 return None
 
-            dimension_sizes.append(dimension_value)
+            dimensionSizes.extend([dimensionValue])
 
-        return dimension_sizes
+        return dimensionSizes
 
-    def _check_array_init_shape(self, initializer_node: Any, dimension_sizes: List[int], level: int, owner_node: Any) -> None:
-        initializer_items = getattr(initializer_node, "items", []) or []
-        expected_count = dimension_sizes[level]
+    def checkArrayInitializationShape(
+        self,
+        initializerNode: Any,
+        dimensionSizes: List[int],
+        level: int,
+        ownerNode: Any
+    ) -> None:
+        initializerItems = getattr(initializerNode, "items", []) or []
+        expectedItemCount = dimensionSizes[level]
 
-        if len(initializer_items) > expected_count:
-            self._error(
-                initializer_node,
-                f"Too many initializer elements at dimension {level + 1}: max {expected_count}, got {len(initializer_items)}."
+        # too many items
+        if len(initializerItems) > expectedItemCount:
+            self.addError(
+                initializerNode,
+                f"Too many initializer elements at dimension {level + 1}: max {expectedItemCount}, got {len(initializerItems)}."
             )
 
-        is_last_dimension = level == len(dimension_sizes) - 1
+        isLastDimension = level == len(dimensionSizes) - 1
 
-        if is_last_dimension:
-            for initializer_item in initializer_items[:expected_count]:
-                if _class(initializer_item) == "ArrayInit":
-                    self._error(
-                        initializer_item,
-                        f"Too many nested braces: array is {len(dimension_sizes)}D but initializer nests deeper."
+        # last dimension
+        if isLastDimension:
+            for initializerItem in initializerItems[:expectedItemCount]:
+                if getClassName(initializerItem) == "ArrayInitializationExpression":
+                    self.addError(
+                        initializerItem,
+                        f"Too many nested braces: array is {len(dimensionSizes)}D but initializer nests deeper."
                     )
+
             return
 
-        for item_index, initializer_item in enumerate(initializer_items[:expected_count]):
-            if _class(initializer_item) != "ArrayInit":
-                self._error(
-                    initializer_item,
-                    f"Missing nested braces at dimension {level + 1}: element {item_index + 1} must be a brace group."
+        # nested dimensions
+        for itemIndex, initializerItem in enumerate(initializerItems[:expectedItemCount]):
+            if getClassName(initializerItem) != "ArrayInitializationExpression":
+                self.addError(
+                    initializerItem,
+                    f"Missing nested braces at dimension {level + 1}: element {itemIndex + 1} must be a brace group."
                 )
+
                 continue
 
-            self._check_array_init_shape(initializer_item, dimension_sizes, level + 1, owner_node)
+            self.checkArrayInitializationShape(
+                initializerItem,
+                dimensionSizes,
+                level + 1,
+                ownerNode
+            )
 
-    def _check_array_init_types(
+    def checkArrayInitializationTypes(
         self,
-        initializer_node: Any,
-        target_type: Type,
+        initializerNode: Any,
+        targetType: Type,
         level: int,
         sizes: List[int],
-        owner_node: Any
+        ownerNode: Any
     ) -> None:
-        initializer_items = getattr(initializer_node, "items", []) or []
-        expected_count = sizes[level]
+        initializerItems = getattr(initializerNode, "items", []) or []
+        expectedItemCount = sizes[level]
 
-        if not initializer_items:
+        if not initializerItems:
             return
 
-        is_last_dimension = level == len(sizes) - 1
+        isLastDimension = level == len(sizes) - 1
 
-        if is_last_dimension:
-            element_type = target_type
-            while element_type.array_of is not None:
-                element_type = element_type.array_of
+        # check final values
+        if isLastDimension:
+            elementType = targetType
 
-            for initializer_item in initializer_items[:expected_count]:
-                if _class(initializer_item) == "ArrayInit":
-                    self._error(initializer_item, "Unexpected nested brace at last dimension.")
+            while elementType.arrayElementType is not None:
+                elementType = elementType.arrayElementType
+
+            for initializerItem in initializerItems[:expectedItemCount]:
+                if getClassName(initializerItem) == "ArrayInitializationExpression":
+                    self.addError(
+                        initializerItem,
+                        "Unexpected nested brace at last dimension."
+                    )
+
                     continue
 
-                initializer_item_type = self._expr_type(initializer_item)
-                if not can_assign(element_type, initializer_item_type):
-                    self._error(
-                        initializer_item,
-                        f"Cannot assign {initializer_item_type} to {element_type} in array initializer."
+                initializerItemType = self.getExpressionType(initializerItem)
+
+                if not canAssign(elementType, initializerItemType):
+                    self.addError(
+                        initializerItem,
+                        f"Cannot assign {initializerItemType} to {elementType} in array initializer."
                     )
+
             return
 
-        child_target_type = target_type.array_of if target_type.array_of is not None else target_type
+        childTargetType = (
+            targetType.arrayElementType
+            if targetType.arrayElementType is not None
+            else targetType
+        )
 
-        for initializer_item in initializer_items[:expected_count]:
-            if _class(initializer_item) != "ArrayInit":
+        # check nested values
+        for initializerItem in initializerItems[:expectedItemCount]:
+            if getClassName(initializerItem) != "ArrayInitializationExpression":
                 continue
 
-            self._check_array_init_types(
-                initializer_item,
-                child_target_type,
+            self.checkArrayInitializationTypes(
+                initializerItem,
+                childTargetType,
                 level + 1,
                 sizes,
-                owner_node
+                ownerNode
             )

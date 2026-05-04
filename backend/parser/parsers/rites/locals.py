@@ -6,127 +6,135 @@ from backend.errors import ParserError
 from backend.parser.parser import Parser
 
 
-def parse_func_local_dec_opt(self: Parser) -> List[Any]:
-    lookahead_type = self.current_type(0)
+def parseFunctionLocalDeclarationOptional(self: Parser) -> List[Any]:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<func_local_dec_opt>"]:
+    # check local declaration
+    if currentTokenType not in PREDICT["<func_local_dec_opt>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<func_local_dec_opt>"].keys()),
+            list(PREDICT["<func_local_dec_opt>"].keys())
         )
 
-    if PREDICT["<func_local_dec_opt>"][lookahead_type] == [EPSILON]:
+    # no local declaration
+    if PREDICT["<func_local_dec_opt>"][currentTokenType] == [EPSILON]:
         return []
 
-    return self.parse_func_local_dec()
+    return self.parseFunctionLocalDeclaration()
 
+def parseFunctionLocalDeclaration(self: Parser) -> List[Any]:
+    currentTokenType = self.currentType(0)
 
-def parse_func_local_dec(self: Parser) -> List[Any]:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<func_local_dec>"]:
+    # check declaration list
+    if currentTokenType not in PREDICT["<func_local_dec>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<func_local_dec>"].keys()),
+            list(PREDICT["<func_local_dec>"].keys())
         )
 
-    local_declarations = [self.parse_func_local_item()]
-    local_declarations.extend(self.parse_func_local_dec_tail())
-    return local_declarations
+    localDeclarations = [self.parseFunctionLocalItem()]
+    localDeclarations.extend(self.parseFunctionLocalDeclarationTail())
 
+    return localDeclarations
 
-def parse_func_local_dec_tail(self: Parser) -> List[Any]:
-    lookahead_type = self.current_type(0)
+def parseFunctionLocalDeclarationTail(self: Parser) -> List[Any]:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<func_local_dec_tail>"]:
+    # check next declaration
+    if currentTokenType not in PREDICT["<func_local_dec_tail>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<func_local_dec_tail>"].keys()),
+            list(PREDICT["<func_local_dec_tail>"].keys())
         )
 
-    if PREDICT["<func_local_dec_tail>"][lookahead_type] == [EPSILON]:
+    # no more declaration
+    if PREDICT["<func_local_dec_tail>"][currentTokenType] == [EPSILON]:
         return []
 
-    remaining_local_declarations = [self.parse_func_local_item()]
-    remaining_local_declarations.extend(self.parse_func_local_dec_tail())
-    return remaining_local_declarations
+    remainingLocalDeclarations = [self.parseFunctionLocalItem()]
+    remainingLocalDeclarations.extend(self.parseFunctionLocalDeclarationTail())
 
+    return remainingLocalDeclarations
 
-def parse_func_local_item(self: Parser) -> Any:
-    lookahead_type = self.current_type(0)
+def parseFunctionLocalItem(self: Parser) -> Any:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<func_local_item>"]:
+    # check local item
+    if currentTokenType not in PREDICT["<func_local_item>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<func_local_item>"].keys()),
+            list(PREDICT["<func_local_item>"].keys())
         )
 
-    return self.parse_global_dec_item()
+    return self.parseGlobalDeclarationItem()
 
+def parseMainLocalDeclarationOptional(self: Parser) -> List[Any]:
+    currentTokenType = self.currentType(0)
 
-def parse_main_local_dec_opt(self: Parser) -> List[Any]:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<main_local_dec_opt>"]:
+    # check main declaration
+    if currentTokenType not in PREDICT["<main_local_dec_opt>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<main_local_dec_opt>"].keys()),
+            list(PREDICT["<main_local_dec_opt>"].keys())
         )
 
-    if PREDICT["<main_local_dec_opt>"][lookahead_type] == [EPSILON]:
+    # no main declaration
+    if PREDICT["<main_local_dec_opt>"][currentTokenType] == [EPSILON]:
         return []
 
-    return self.parse_main_local_dec()
+    return self.parseMainLocalDeclaration()
 
+def parseMainLocalDeclaration(self: Parser) -> List[Any]:
+    currentTokenType = self.currentType(0)
 
-def parse_main_local_dec(self: Parser) -> List[Any]:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<main_local_dec>"]:
+    # check main declaration list
+    if currentTokenType not in PREDICT["<main_local_dec>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<main_local_dec>"].keys()),
+            list(PREDICT["<main_local_dec>"].keys())
         )
 
-    local_declarations = [self.parse_main_dec_item()]
-    local_declarations.extend(self.parse_main_local_dec_tail())
-    return local_declarations
+    localDeclarations = [self.parseMainDeclarationItem()]
+    localDeclarations.extend(self.parseMainLocalDeclarationTail())
 
+    return localDeclarations
 
-def parse_main_local_dec_tail(self: Parser) -> List[Any]:
-    lookahead_type = self.current_type(0)
+def parseMainLocalDeclarationTail(self: Parser) -> List[Any]:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<main_local_dec_tail>"]:
+    # check next main declaration
+    if currentTokenType not in PREDICT["<main_local_dec_tail>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<main_local_dec_tail>"].keys()),
+            list(PREDICT["<main_local_dec_tail>"].keys())
         )
 
-    if PREDICT["<main_local_dec_tail>"][lookahead_type] == [EPSILON]:
+    # no more declaration
+    if PREDICT["<main_local_dec_tail>"][currentTokenType] == [EPSILON]:
         return []
 
-    remaining_local_declarations = [self.parse_main_dec_item()]
-    remaining_local_declarations.extend(self.parse_main_local_dec_tail())
-    return remaining_local_declarations
+    remainingLocalDeclarations = [self.parseMainDeclarationItem()]
+    remainingLocalDeclarations.extend(self.parseMainLocalDeclarationTail())
 
+    return remainingLocalDeclarations
 
-def parse_main_dec_item(self: Parser) -> Any:
-    lookahead_type = self.current_type(0)
+def parseMainDeclarationItem(self: Parser) -> Any:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<main_dec_item>"]:
+    # check main item
+    if currentTokenType not in PREDICT["<main_dec_item>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<main_dec_item>"].keys()),
+            list(PREDICT["<main_dec_item>"].keys())
         )
 
-    return self.parse_func_local_item()
+    return self.parseFunctionLocalItem()
 
-
-Parser.parse_func_local_dec_opt = parse_func_local_dec_opt
-Parser.parse_func_local_dec = parse_func_local_dec
-Parser.parse_func_local_dec_tail = parse_func_local_dec_tail
-Parser.parse_func_local_item = parse_func_local_item
-Parser.parse_main_local_dec_opt = parse_main_local_dec_opt
-Parser.parse_main_local_dec = parse_main_local_dec
-Parser.parse_main_local_dec_tail = parse_main_local_dec_tail
-Parser.parse_main_dec_item = parse_main_dec_item
+Parser.parseFunctionLocalDeclarationOptional = parseFunctionLocalDeclarationOptional
+Parser.parseFunctionLocalDeclaration = parseFunctionLocalDeclaration
+Parser.parseFunctionLocalDeclarationTail = parseFunctionLocalDeclarationTail
+Parser.parseFunctionLocalItem = parseFunctionLocalItem
+Parser.parseMainLocalDeclarationOptional = parseMainLocalDeclarationOptional
+Parser.parseMainLocalDeclaration = parseMainLocalDeclaration
+Parser.parseMainLocalDeclarationTail = parseMainLocalDeclarationTail
+Parser.parseMainDeclarationItem = parseMainDeclarationItem

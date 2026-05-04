@@ -5,100 +5,128 @@ from backend.tokens import *
 from backend.errors import ParserError
 from backend.parser.predict_set import PREDICT
 from backend.ast.ast_nodes import *
-from backend.parser.parser import Parser, _tok_lexeme, _tok_pos
+from backend.parser.parser import Parser, getTokenValue, getTokenPosition
 
 
-def parse_prefix_incdec_stmt(self: Parser) -> IncDecStmt:
-    lookahead_type = self.current_type(0)
+def parsePrefixIncrementDecrementStatement(self: Parser) -> IncrementDecrementStatement:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<prefix_incdec_stmt>"]:
+    # check prefix incdec
+    if currentTokenType not in PREDICT["<prefix_incdec_stmt>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<prefix_incdec_stmt>"].keys())
+            list(PREDICT["<prefix_incdec_stmt>"].keys())
         )
 
-    operator_token = self.advance()
-    operator_lexeme = _tok_lexeme(operator_token) or ("++" if operator_token.type == TK_OP_INC else "--")
-    target_reference = self.parse_lvalue_core()
-    self.expect(TK_SYM_SEMICOL)
-
-    return IncDecStmt(
-        pos=_tok_pos(operator_token),
-        target=target_reference,
-        op=operator_lexeme,
-        prefix=True
+    operatorToken = self.advance()
+    operatorLexeme = getTokenValue(operatorToken) or (
+        "++" if operatorToken.type == TK_OP_INC else "--"
     )
 
+    targetReference = self.parseLeftHandValueCore()
+    self.expect(TK_SYM_SEMICOL)
 
-def parse_paren_postfix_incdec_stmt(self: Parser) -> IncDecStmt:
-    lookahead_type = self.current_type(0)
+    return IncrementDecrementStatement(
+        position=getTokenPosition(operatorToken),
+        target=targetReference,
+        operator=operatorLexeme,
+        isPrefix=True
+    )
 
-    if lookahead_type not in PREDICT["<paren_postfix_incdec_stmt>"]:
+def parseParenthesizedPostfixIncrementDecrementStatement(self: Parser) -> IncrementDecrementStatement:
+    currentTokenType = self.currentType(0)
+
+    # check paren postfix incdec
+    if currentTokenType not in PREDICT["<paren_postfix_incdec_stmt>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<paren_postfix_incdec_stmt>"].keys())
+            list(PREDICT["<paren_postfix_incdec_stmt>"].keys())
         )
 
-    opening_paren_token = self.expect(TK_SYM_OPPAREN)
-    target_reference = self.parse_lvalue_core()
+    openingParenthesisToken = self.expect(TK_SYM_OPPAREN)
+    targetReference = self.parseLeftHandValueCore()
     self.expect(TK_SYM_CLSPAREN)
 
-    if self.current_type(0) not in (TK_OP_INC, TK_OP_DEC):
+    # require incdec after paren
+    if self.currentType(0) not in (TK_OP_INC, TK_OP_DEC):
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=[TK_OP_INC, TK_OP_DEC]
+            [TK_OP_INC, TK_OP_DEC]
         )
 
-    operator_token = self.advance()
-    operator_lexeme = _tok_lexeme(operator_token) or ("++" if operator_token.type == TK_OP_INC else "--")
-    self.expect(TK_SYM_SEMICOL)
-
-    return IncDecStmt(
-        pos=_tok_pos(opening_paren_token),
-        target=target_reference,
-        op=operator_lexeme,
-        prefix=False
+    operatorToken = self.advance()
+    operatorLexeme = getTokenValue(operatorToken) or (
+        "++" if operatorToken.type == TK_OP_INC else "--"
     )
 
+    self.expect(TK_SYM_SEMICOL)
 
-def parse_stmt_id_tail(self: Parser, identifier_token: Any, identifier_name: str) -> Statement:
-    lookahead_type = self.current_type(0)
+    return IncrementDecrementStatement(
+        position=getTokenPosition(openingParenthesisToken),
+        target=targetReference,
+        operator=operatorLexeme,
+        isPrefix=False
+    )
 
-    if lookahead_type not in PREDICT["<stmt_id_tail>"]:
+def parseStatementIdentifierTail(self: Parser, identifierToken: Any, identifierName: str) -> Statement:
+    currentTokenType = self.currentType(0)
+
+    # check identifier statement
+    if currentTokenType not in PREDICT["<stmt_id_tail>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<stmt_id_tail>"].keys())
+            list(PREDICT["<stmt_id_tail>"].keys())
         )
 
-    if lookahead_type == TK_SYM_OPPAREN:
+    # function call
+    if currentTokenType == TK_SYM_OPPAREN:
         self.expect(TK_SYM_OPPAREN)
-        argument_list = self.parse_arg_list_opt()
+        argumentList = self.parseArgumentListOptional()
         self.expect(TK_SYM_CLSPAREN)
-        access_reference = self.parse_access_chain_opt(
-            base_reference=NameRef(pos=_tok_pos(identifier_token), name=identifier_name)
+
+        baseReference = NameReference(
+            position=getTokenPosition(identifierToken),
+            name=identifierName
         )
+
+        accessReference = self.parseAccessChainOptional(
+            baseReference=baseReference
+        )
+
         self.expect(TK_SYM_SEMICOL)
 
-        return CallStmt(
-            pos=_tok_pos(identifier_token),
-            callee=identifier_name,
-            args=argument_list,
-            access=access_reference
+        return FunctionCallStatement(
+            position=getTokenPosition(identifierToken),
+            calleeName=identifierName,
+            arguments=argumentList,
+            accessChain=accessReference
         )
 
-    base_reference: LValue = NameRef(pos=_tok_pos(identifier_token), name=identifier_name)
-    access_reference = self.parse_access_chain_opt(base_reference=base_reference)
-    target_reference = access_reference if access_reference is not None else base_reference
+    baseReference: LeftHandValue = NameReference(
+        position=getTokenPosition(identifierToken),
+        name=identifierName
+    )
 
-    lookahead_type = self.current_type(0)
+    accessReference = self.parseAccessChainOptional(
+        baseReference=baseReference
+    )
 
-    if lookahead_type not in PREDICT["<stmt_after_access>"]:
+    if accessReference is not None:
+        targetReference = accessReference
+    else:
+        targetReference = baseReference
+
+    currentTokenType = self.currentType(0)
+
+    # check assignment or postfix
+    if currentTokenType not in PREDICT["<stmt_after_access>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<stmt_after_access>"].keys())
+            list(PREDICT["<stmt_after_access>"].keys())
         )
 
-    if lookahead_type in (
+    # assignment
+    if currentTokenType in (
         TK_OP_ASSIGN,
         TK_OP_PLUS_EQ,
         TK_OP_MINUS_EQ,
@@ -107,37 +135,40 @@ def parse_stmt_id_tail(self: Parser, identifier_token: Any, identifier_name: str
         TK_OP_MOD_EQ,
         TK_OP_POW_EQ
     ):
-        operator_token = self.advance()
-        operator_lexeme = _tok_lexeme(operator_token) or self._assign_op_string(operator_token.type)
-        value_expression = self.parse_expr()
+        operatorToken = self.advance()
+        operatorLexeme = getTokenValue(operatorToken) or self.getAssignmentOperatorText(operatorToken.type)
+        valueExpression = self.parseExpression()
         self.expect(TK_SYM_SEMICOL)
 
-        return AssignStmt(
-            pos=_tok_pos(operator_token),
-            target=target_reference,
-            op=operator_lexeme,
-            value=value_expression
+        return AssignmentStatement(
+            position=getTokenPosition(operatorToken),
+            target=targetReference,
+            operator=operatorLexeme,
+            value=valueExpression
         )
 
-    if lookahead_type in (TK_OP_INC, TK_OP_DEC):
-        operator_token = self.advance()
-        operator_lexeme = _tok_lexeme(operator_token) or ("++" if operator_token.type == TK_OP_INC else "--")
+    # postfix incdec
+    if currentTokenType in (TK_OP_INC, TK_OP_DEC):
+        operatorToken = self.advance()
+        operatorLexeme = getTokenValue(operatorToken) or (
+            "++" if operatorToken.type == TK_OP_INC else "--"
+        )
+
         self.expect(TK_SYM_SEMICOL)
 
-        return IncDecStmt(
-            pos=_tok_pos(operator_token),
-            target=target_reference,
-            op=operator_lexeme,
-            prefix=False
+        return IncrementDecrementStatement(
+            position=getTokenPosition(operatorToken),
+            target=targetReference,
+            operator=operatorLexeme,
+            isPrefix=False
         )
 
     raise ParserError(
         self.peek(0) or self.peek(-1),
-        expected=list(PREDICT["<stmt_after_access>"].keys())
+        list(PREDICT["<stmt_after_access>"].keys())
     )
 
-
-def _assign_op_string(self: Parser, token_type: Any) -> str:
+def getAssignmentOperatorText(self: Parser, tokenType: Any) -> str:
     return {
         TK_OP_ASSIGN: "=",
         TK_OP_PLUS_EQ: "+=",
@@ -146,10 +177,9 @@ def _assign_op_string(self: Parser, token_type: Any) -> str:
         TK_OP_DIV_EQ: "/=",
         TK_OP_MOD_EQ: "%=",
         TK_OP_POW_EQ: "^=",
-    }.get(token_type, str(token_type))
+    }.get(tokenType, str(tokenType))
 
-
-Parser.parse_prefix_incdec_stmt = parse_prefix_incdec_stmt
-Parser.parse_paren_postfix_incdec_stmt = parse_paren_postfix_incdec_stmt
-Parser.parse_stmt_id_tail = parse_stmt_id_tail
-Parser._assign_op_string = _assign_op_string
+Parser.parsePrefixIncrementDecrementStatement = parsePrefixIncrementDecrementStatement
+Parser.parseParenthesizedPostfixIncrementDecrementStatement = parseParenthesizedPostfixIncrementDecrementStatement
+Parser.parseStatementIdentifierTail = parseStatementIdentifierTail
+Parser.getAssignmentOperatorText = getAssignmentOperatorText

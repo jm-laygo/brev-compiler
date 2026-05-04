@@ -3,51 +3,70 @@ from typing import Any
 
 
 class DiscernFlowMixin:
-    def _check_discernstmt(self, statement_node: Any) -> None:
-        self.in_discern += 1
+    def checkDiscernStatement(self, statementNode: Any) -> None:
+        self.discernDepth += 1
+
         try:
-            switch_expression = getattr(statement_node, "expr", None)
-            self._expr_type(switch_expression)
+            switchExpression = getattr(statementNode, "expression", None)
+            self.getExpressionType(switchExpression)
 
-            verse_nodes = getattr(statement_node, "verses", []) or []
-            for verse_node in verse_nodes:
-                self._check_stmt(verse_node)
+            verseCases = getattr(statementNode, "verseCases", []) or []
 
-            grace_node = getattr(statement_node, "grace", None)
-            if grace_node:
-                self._check_stmt(grace_node)
+            for verseCase in verseCases:
+                self.checkStatement(verseCase)
+
+            graceDefault = getattr(statementNode, "graceDefault", None)
+
+            if graceDefault:
+                self.checkStatement(graceDefault)
+
         finally:
-            self.in_discern -= 1
+            self.discernDepth -= 1
 
-    def _check_versecase(self, statement_node: Any) -> None:
-        match_expression = getattr(statement_node, "match", None)
-        self._expr_type(match_expression)
+    def checkVerseCase(self, statementNode: Any) -> None:
+        matchValue = getattr(statementNode, "matchValue", None)
+        self.getExpressionType(matchValue)
 
-        body_statements = getattr(statement_node, "body", []) or []
-        for body_statement in body_statements:
-            self._check_stmt(body_statement)
+        bodyStatements = getattr(statementNode, "bodyStatements", []) or []
 
-        end_node = getattr(statement_node, "end", None)
-        if end_node:
-            self._check_stmt(end_node)
+        for bodyStatement in bodyStatements:
+            self.checkStatement(bodyStatement)
 
-    def _check_verseend(self, statement_node: Any) -> None:
-        if self.in_discern <= 0:
-            self._error(statement_node, "absolve/fall verse-end used outside discern.")
+        verseEnd = getattr(statementNode, "verseEnd", None)
 
-    def _check_gracedefault(self, statement_node: Any) -> None:
-        body_statements = getattr(statement_node, "body", []) or []
-        for body_statement in body_statements:
-            self._check_stmt(body_statement)
+        if verseEnd:
+            self.checkStatement(verseEnd)
 
-    def _check_fallstmt(self, statement_node: Any) -> None:
-        if self.in_loop <= 0 and self.in_discern <= 0:
-            self._error(statement_node, "fall used outside loop/discern.")
+    def checkVerseEnd(self, statementNode: Any) -> None:
+        if self.discernDepth <= 0:
+            self.addError(
+                statementNode,
+                "absolve/fall verse-end used outside discern."
+            )
 
-    def _check_absolvestmt(self, statement_node: Any) -> None:
-        if self.in_loop <= 0 and self.in_discern <= 0:
-            self._error(statement_node, "absolve used outside loop/discern.")
+    def checkGraceDefault(self, statementNode: Any) -> None:
+        bodyStatements = getattr(statementNode, "bodyStatements", []) or []
 
-    def _check_proceedstmt(self, statement_node: Any) -> None:
-        if self.in_loop <= 0:
-            self._error(statement_node, "proceed used outside a loop.")
+        for bodyStatement in bodyStatements:
+            self.checkStatement(bodyStatement)
+
+    def checkFallStatement(self, statementNode: Any) -> None:
+        if self.loopDepth <= 0 and self.discernDepth <= 0:
+            self.addError(
+                statementNode,
+                "fall used outside loop/discern."
+            )
+
+    def checkAbsolveStatement(self, statementNode: Any) -> None:
+        if self.loopDepth <= 0 and self.discernDepth <= 0:
+            self.addError(
+                statementNode,
+                "absolve used outside loop/discern."
+            )
+
+    def checkProceedStatement(self, statementNode: Any) -> None:
+        if self.loopDepth <= 0:
+            self.addError(
+                statementNode,
+                "proceed used outside a loop."
+            )

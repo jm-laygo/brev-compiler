@@ -4,52 +4,64 @@ from backend.tokens import *
 from backend.parser.predict_set import PREDICT
 from backend.ast.ast_nodes import *
 from backend.errors import ParserError
-from backend.parser.parser import Parser, _tok_lexeme, _tok_pos
+from backend.parser.parser import Parser, getTokenValue, getTokenPosition
 
 
-def parse_lvalue(self: Parser) -> LValue:
-    lookahead_type = self.current_type(0)
+def parseLeftHandValue(self: Parser) -> LeftHandValue:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<lvalue>"]:
+    # check lvalue
+    if currentTokenType not in PREDICT["<lvalue>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<lvalue>"].keys())
+            list(PREDICT["<lvalue>"].keys())
         )
 
-    identifier_token = self.expect(TK_IDENTIFIER)
-    base_reference: LValue = NameRef(
-        pos=_tok_pos(identifier_token),
-        name=_tok_lexeme(identifier_token)
+    identifierToken = self.expect(TK_IDENTIFIER)
+
+    baseReference: LeftHandValue = NameReference(
+        position=getTokenPosition(identifierToken),
+        name=getTokenValue(identifierToken)
     )
 
-    access_reference = self.parse_access_chain_opt(base_reference=base_reference)
-    return access_reference if access_reference is not None else base_reference
+    accessReference = self.parseAccessChainOptional(baseReference=baseReference)
 
+    if accessReference is not None:
+        return accessReference
 
-def parse_lvalue_core(self: Parser) -> LValue:
-    lookahead_type = self.current_type(0)
+    return baseReference
 
-    if lookahead_type not in PREDICT["<lvalue_core>"]:
+def parseLeftHandValueCore(self: Parser) -> LeftHandValue:
+    currentTokenType = self.currentType(0)
+
+    # check lvalue core
+    if currentTokenType not in PREDICT["<lvalue_core>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<lvalue_core>"].keys())
+            list(PREDICT["<lvalue_core>"].keys())
         )
 
-    if lookahead_type == TK_SYM_OPPAREN:
+    # grouped lvalue
+    if currentTokenType == TK_SYM_OPPAREN:
         self.expect(TK_SYM_OPPAREN)
-        inner_reference = self.parse_lvalue_core()
+        innerReference = self.parseLeftHandValueCore()
         self.expect(TK_SYM_CLSPAREN)
-        return inner_reference
 
-    identifier_token = self.expect(TK_IDENTIFIER)
-    base_reference: LValue = NameRef(
-        pos=_tok_pos(identifier_token),
-        name=_tok_lexeme(identifier_token)
+        return innerReference
+
+    identifierToken = self.expect(TK_IDENTIFIER)
+
+    baseReference: LeftHandValue = NameReference(
+        position=getTokenPosition(identifierToken),
+        name=getTokenValue(identifierToken)
     )
 
-    access_reference = self.parse_access_chain_opt(base_reference=base_reference)
-    return access_reference if access_reference is not None else base_reference
+    accessReference = self.parseAccessChainOptional(baseReference=baseReference)
 
+    if accessReference is not None:
+        return accessReference
 
-Parser.parse_lvalue = parse_lvalue
-Parser.parse_lvalue_core = parse_lvalue_core
+    return baseReference
+
+Parser.parseLeftHandValue = parseLeftHandValue
+Parser.parseLeftHandValueCore = parseLeftHandValueCore

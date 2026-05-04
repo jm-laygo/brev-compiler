@@ -1,195 +1,388 @@
 from __future__ import annotations
 
-from backend.ast.ast_nodes import BinaryExpr, UnaryExpr, VarExpr
+from backend.ast.ast_nodes import BinaryExpression, UnaryExpression, VariableExpression
 from backend.errors import DivisionByZeroRuntimeError, RuntimeErrorBase, RuntimeTypeError
 
-# UNARY EXPRESSIONS
-def _runtime_type_name(value):
+
+def getRuntimeTypeName(value):
     if isinstance(value, bool):
         return "verity"
+
     if isinstance(value, int):
         return "tally"
+
     if isinstance(value, float):
         return "divine"
+
     if isinstance(value, str):
-        return "sigil" if len(value) == 1 else "scripture"
+        if len(value) == 1:
+            return "sigil"
+
+        return "scripture"
+
     if isinstance(value, list):
         return "array"
+
     if isinstance(value, dict):
-        order_name = value.get("__order__")
-        if order_name:
-            return f"order {order_name}"
+        orderName = value.get("__order__")
+
+        if orderName:
+            return f"order {orderName}"
+
         return "order"
+
     if value is None:
         return "hollow"
+
     return type(value).__name__
 
-# BINARY EXPRESSIONS
-def _is_numeric_runtime(value):
+def isNumericRuntimeValue(value):
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
-# SIGIL CHECK
-def _is_sigil_runtime(value):
+def isSigilRuntimeValue(value):
     return isinstance(value, str) and len(value) == 1
 
-# OPERAND CHECKS
-def _require_bool_operand(expression_node, operator_text, operand_value):
-    if not isinstance(operand_value, bool):
+def requireBooleanOperand(expressionNode, operatorText, operandValue):
+    if not isinstance(operandValue, bool):
         raise RuntimeTypeError(
-            expression_node,
-            f"Unary operator '{operator_text}' requires a verity operand, got {_runtime_type_name(operand_value)}.",
+            expressionNode,
+            f"Unary operator '{operatorText}' requires a verity operand, got {getRuntimeTypeName(operandValue)}."
         )
 
-def _require_logical_operands(expression_node, operator_text, left_value, right_value):
-    if not isinstance(left_value, bool) or not isinstance(right_value, bool):
+def requireLogicalOperands(expressionNode, operatorText, leftValue, rightValue):
+    if not isinstance(leftValue, bool) or not isinstance(rightValue, bool):
         raise RuntimeTypeError(
-            expression_node,
-            f"Logical operator '{operator_text}' requires verity operands, got {_runtime_type_name(left_value)} and {_runtime_type_name(right_value)}.",
+            expressionNode,
+            f"Logical operator '{operatorText}' requires verity operands, got {getRuntimeTypeName(leftValue)} and {getRuntimeTypeName(rightValue)}."
         )
-    
-def _require_relational_operands(expression_node, operator_text, left_value, right_value):
-    if _is_numeric_runtime(left_value) and _is_numeric_runtime(right_value):
+
+def requireRelationalOperands(expressionNode, operatorText, leftValue, rightValue):
+    if isNumericRuntimeValue(leftValue) and isNumericRuntimeValue(rightValue):
         return
-    if _is_sigil_runtime(left_value) and _is_sigil_runtime(right_value):
+
+    if isSigilRuntimeValue(leftValue) and isSigilRuntimeValue(rightValue):
         return
+
     raise RuntimeTypeError(
-        expression_node,
-        f"Relational operator '{operator_text}' requires two numeric operands or two sigils, got {_runtime_type_name(left_value)} and {_runtime_type_name(right_value)}.",
+        expressionNode,
+        f"Relational operator '{operatorText}' requires two numeric operands or two sigils, got {getRuntimeTypeName(leftValue)} and {getRuntimeTypeName(rightValue)}."
     )
 
-def _require_equality_operands(expression_node, operator_text, left_value, right_value):
-    if _is_numeric_runtime(left_value) and _is_numeric_runtime(right_value):
+def requireEqualityOperands(expressionNode, operatorText, leftValue, rightValue):
+    if isNumericRuntimeValue(leftValue) and isNumericRuntimeValue(rightValue):
         return
-    if _runtime_type_name(left_value) == _runtime_type_name(right_value):
+
+    if getRuntimeTypeName(leftValue) == getRuntimeTypeName(rightValue):
         return
+
     raise RuntimeTypeError(
-        expression_node,
-        f"Equality operator '{operator_text}' requires matching operand types or numeric operands, got {_runtime_type_name(left_value)} and {_runtime_type_name(right_value)}.",
+        expressionNode,
+        f"Equality operator '{operatorText}' requires matching operand types or numeric operands, got {getRuntimeTypeName(leftValue)} and {getRuntimeTypeName(rightValue)}."
     )
 
-# ORDERS 
-def _run_binary_operation(expression_node, operator_text, operation):
+def runBinaryOperation(expressionNode, operatorText, operation):
     try:
         return operation()
-    except TypeError as exc:
+
+    except TypeError as typeError:
         raise RuntimeTypeError(
-            expression_node,
-            f"Operator '{operator_text}' cannot be applied to the given operands.",
-        ) from exc
+            expressionNode,
+            f"Operator '{operatorText}' cannot be applied to the given operands."
+        ) from typeError
 
-# TYPE CHECKS
-def _handle_unary_expr(self, expression_node, current_environment):
-    if not isinstance(expression_node, UnaryExpr):
+def handleUnaryExpression(self, expressionNode, currentEnvironment):
+    if not isinstance(expressionNode, UnaryExpression):
         return None
 
-    operator_text = expression_node.op
-    operand_value = self._eval_expr(expression_node.operand, current_environment)
+    operatorText = expressionNode.operator
+    operandValue = self.evaluateExpression(
+        expressionNode.operand,
+        currentEnvironment
+    )
 
-    if operator_text in ("!", "!!", "not"):
-        _require_bool_operand(expression_node, operator_text, operand_value)
-        return not operand_value
+    # boolean not
+    if operatorText in ("!", "!!", "not"):
+        requireBooleanOperand(
+            expressionNode,
+            operatorText,
+            operandValue
+        )
 
-    if operator_text == "~":
-        if not isinstance(operand_value, (int, float)):
-            raise RuntimeTypeError(expression_node, "Unary negation requires a numeric operand.")
-        return _run_binary_operation(expression_node, operator_text, lambda: -operand_value)
+        return not operandValue
 
-    if operator_text == "++":
-        if not isinstance(expression_node.operand, VarExpr):
-            raise RuntimeTypeError(expression_node, "Increment requires a variable target.")
+    # numeric negation
+    if operatorText == "~":
+        if not isinstance(operandValue, (int, float)):
+            raise RuntimeTypeError(
+                expressionNode,
+                "Unary negation requires a numeric operand."
+            )
 
-        target_reference = expression_node.operand.ref
-        current_value = self._read_lvalue(target_reference, current_environment)
+        return runBinaryOperation(
+            expressionNode,
+            operatorText,
+            lambda: -operandValue
+        )
 
-        if not isinstance(current_value, (int, float)):
-            raise RuntimeTypeError(expression_node, "Increment requires a numeric variable.")
+    # increment expression
+    if operatorText == "++":
+        if not isinstance(expressionNode.operand, VariableExpression):
+            raise RuntimeTypeError(
+                expressionNode,
+                "Increment requires a variable target."
+            )
 
-        incremented_value = current_value + 1
-        self._assign_lvalue(target_reference, incremented_value, current_environment, expression_node)
-        return incremented_value
+        targetReference = expressionNode.operand.reference
+        currentValue = self.readLeftHandValue(
+            targetReference,
+            currentEnvironment
+        )
 
-    if operator_text == "--":
-        if not isinstance(expression_node.operand, VarExpr):
-            raise RuntimeTypeError(expression_node, "Decrement requires a variable target.")
+        if not isinstance(currentValue, (int, float)):
+            raise RuntimeTypeError(
+                expressionNode,
+                "Increment requires a numeric variable."
+            )
 
-        target_reference = expression_node.operand.ref
-        current_value = self._read_lvalue(target_reference, current_environment)
+        incrementedValue = currentValue + 1
 
-        if not isinstance(current_value, (int, float)):
-            raise RuntimeTypeError(expression_node, "Decrement requires a numeric variable.")
+        self.assignLeftHandValue(
+            targetReference,
+            incrementedValue,
+            currentEnvironment,
+            expressionNode
+        )
 
-        decremented_value = current_value - 1
-        self._assign_lvalue(target_reference, decremented_value, current_environment, expression_node)
-        return decremented_value
+        return incrementedValue
 
-    raise RuntimeErrorBase(expression_node, "This unary expression is not yet supported during execution.")
+    # decrement expression
+    if operatorText == "--":
+        if not isinstance(expressionNode.operand, VariableExpression):
+            raise RuntimeTypeError(
+                expressionNode,
+                "Decrement requires a variable target."
+            )
 
-# BINARY EXPRESSIONS
-def _handle_binary_expr(self, expression_node, current_environment):
-    if not isinstance(expression_node, BinaryExpr):
+        targetReference = expressionNode.operand.reference
+        currentValue = self.readLeftHandValue(
+            targetReference,
+            currentEnvironment
+        )
+
+        if not isinstance(currentValue, (int, float)):
+            raise RuntimeTypeError(
+                expressionNode,
+                "Decrement requires a numeric variable."
+            )
+
+        decrementedValue = currentValue - 1
+
+        self.assignLeftHandValue(
+            targetReference,
+            decrementedValue,
+            currentEnvironment,
+            expressionNode
+        )
+
+        return decrementedValue
+
+    raise RuntimeErrorBase(
+        expressionNode,
+        "This unary expression is not yet supported during execution."
+    )
+
+def handleBinaryExpression(self, expressionNode, currentEnvironment):
+    if not isinstance(expressionNode, BinaryExpression):
         return None
 
-    left_value = self._eval_expr(expression_node.left, current_environment)
-    right_value = self._eval_expr(expression_node.right, current_environment)
-    operator_text = expression_node.op
+    leftValue = self.evaluateExpression(
+        expressionNode.leftExpression,
+        currentEnvironment
+    )
 
-    if operator_text == "+":
-        return _run_binary_operation(expression_node, operator_text, lambda: left_value + right_value)
+    rightValue = self.evaluateExpression(
+        expressionNode.rightExpression,
+        currentEnvironment
+    )
 
-    if operator_text == "-":
-        return _run_binary_operation(expression_node, operator_text, lambda: left_value - right_value)
+    operatorText = expressionNode.operator
 
-    if operator_text == "*":
-        return _run_binary_operation(expression_node, operator_text, lambda: left_value * right_value)
+    # addition
+    if operatorText == "+":
+        return runBinaryOperation(
+            expressionNode,
+            operatorText,
+            lambda: leftValue + rightValue
+        )
 
-    if operator_text == "/":
-        if right_value == 0:
-            raise DivisionByZeroRuntimeError(expression_node, "Division by zero.")
-        if isinstance(left_value, int) and isinstance(right_value, int):
-            return _run_binary_operation(expression_node, operator_text, lambda: left_value // right_value)
-        return _run_binary_operation(expression_node, operator_text, lambda: left_value / right_value)
+    # subtraction
+    if operatorText == "-":
+        return runBinaryOperation(
+            expressionNode,
+            operatorText,
+            lambda: leftValue - rightValue
+        )
 
-    if operator_text == "%":
-        if right_value == 0:
-            raise DivisionByZeroRuntimeError(expression_node, "Modulo by zero.")
-        return _run_binary_operation(expression_node, operator_text, lambda: left_value % right_value)
+    # multiplication
+    if operatorText == "*":
+        return runBinaryOperation(
+            expressionNode,
+            operatorText,
+            lambda: leftValue * rightValue
+        )
 
-    if operator_text in ("^", "**"):
-        return _run_binary_operation(expression_node, operator_text, lambda: left_value ** right_value)
+    # division
+    if operatorText == "/":
+        if rightValue == 0:
+            raise DivisionByZeroRuntimeError(
+                expressionNode,
+                "Division by zero."
+            )
 
-    if operator_text == "==":
-        _require_equality_operands(expression_node, operator_text, left_value, right_value)
-        return left_value == right_value
+        if isinstance(leftValue, int) and isinstance(rightValue, int):
+            return runBinaryOperation(
+                expressionNode,
+                operatorText,
+                lambda: leftValue // rightValue
+            )
 
-    if operator_text == "!=":
-        _require_equality_operands(expression_node, operator_text, left_value, right_value)
-        return left_value != right_value
+        return runBinaryOperation(
+            expressionNode,
+            operatorText,
+            lambda: leftValue / rightValue
+        )
 
-    if operator_text == ">":
-        _require_relational_operands(expression_node, operator_text, left_value, right_value)
-        return _run_binary_operation(expression_node, operator_text, lambda: left_value > right_value)
+    # modulo
+    if operatorText == "%":
+        if rightValue == 0:
+            raise DivisionByZeroRuntimeError(
+                expressionNode,
+                "Modulo by zero."
+            )
 
-    if operator_text == "<":
-        _require_relational_operands(expression_node, operator_text, left_value, right_value)
-        return _run_binary_operation(expression_node, operator_text, lambda: left_value < right_value)
+        return runBinaryOperation(
+            expressionNode,
+            operatorText,
+            lambda: leftValue % rightValue
+        )
 
-    if operator_text == ">=":
-        _require_relational_operands(expression_node, operator_text, left_value, right_value)
-        return _run_binary_operation(expression_node, operator_text, lambda: left_value >= right_value)
+    # power
+    if operatorText in ("^", "**"):
+        return runBinaryOperation(
+            expressionNode,
+            operatorText,
+            lambda: leftValue ** rightValue
+        )
 
-    if operator_text == "<=":
-        _require_relational_operands(expression_node, operator_text, left_value, right_value)
-        return _run_binary_operation(expression_node, operator_text, lambda: left_value <= right_value)
+    # equality
+    if operatorText == "==":
+        requireEqualityOperands(
+            expressionNode,
+            operatorText,
+            leftValue,
+            rightValue
+        )
 
-    if operator_text in ("&&", "and"):
-        _require_logical_operands(expression_node, operator_text, left_value, right_value)
-        return left_value and right_value
+        return leftValue == rightValue
 
-    if operator_text in ("||", "or"):
-        _require_logical_operands(expression_node, operator_text, left_value, right_value)
-        return left_value or right_value
+    # inequality
+    if operatorText == "!=":
+        requireEqualityOperands(
+            expressionNode,
+            operatorText,
+            leftValue,
+            rightValue
+        )
 
-    if operator_text in ("&", "concat"):
-        return self.stringify(left_value) + self.stringify(right_value)
+        return leftValue != rightValue
 
-    raise RuntimeErrorBase(expression_node, "This binary expression is not yet supported during execution.")
+    # greater than
+    if operatorText == ">":
+        requireRelationalOperands(
+            expressionNode,
+            operatorText,
+            leftValue,
+            rightValue
+        )
+
+        return runBinaryOperation(
+            expressionNode,
+            operatorText,
+            lambda: leftValue > rightValue
+        )
+
+    # less than
+    if operatorText == "<":
+        requireRelationalOperands(
+            expressionNode,
+            operatorText,
+            leftValue,
+            rightValue
+        )
+
+        return runBinaryOperation(
+            expressionNode,
+            operatorText,
+            lambda: leftValue < rightValue
+        )
+
+    # greater than or equal
+    if operatorText == ">=":
+        requireRelationalOperands(
+            expressionNode,
+            operatorText,
+            leftValue,
+            rightValue
+        )
+
+        return runBinaryOperation(
+            expressionNode,
+            operatorText,
+            lambda: leftValue >= rightValue
+        )
+
+    # less than or equal
+    if operatorText == "<=":
+        requireRelationalOperands(
+            expressionNode,
+            operatorText,
+            leftValue,
+            rightValue
+        )
+
+        return runBinaryOperation(
+            expressionNode,
+            operatorText,
+            lambda: leftValue <= rightValue
+        )
+
+    # logical and
+    if operatorText in ("&&", "and"):
+        requireLogicalOperands(
+            expressionNode,
+            operatorText,
+            leftValue,
+            rightValue
+        )
+
+        return leftValue and rightValue
+
+    # logical or
+    if operatorText in ("||", "or"):
+        requireLogicalOperands(
+            expressionNode,
+            operatorText,
+            leftValue,
+            rightValue
+        )
+
+        return leftValue or rightValue
+
+    # concat
+    if operatorText in ("&", "concat"):
+        return self.stringifyRuntimeValue(leftValue) + self.stringifyRuntimeValue(rightValue)
+
+    raise RuntimeErrorBase(
+        expressionNode,
+        "This binary expression is not yet supported during execution."
+    )

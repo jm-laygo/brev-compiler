@@ -1,46 +1,70 @@
 from __future__ import annotations
 from typing import Any
 
-from backend.semantic.symbols import VarSymbol
-from backend.semantic.typesys import BaseType, can_assign
+from backend.semantic.symbols import VariableSymbol
+from backend.semantic.typesys import BaseType, canAssign
+
 
 class StatementActionsMixin:
-    def _check_callstmt(self, statement_node: Any) -> None:
-        function_name = getattr(statement_node, "callee", None)
-        argument_nodes = getattr(statement_node, "args", []) or []
-        self._check_call(function_name, argument_nodes, statement_node)
+    def checkFunctionCallStatement(self, statementNode: Any) -> None:
+        functionName = getattr(statementNode, "calleeName", None)
+        argumentNodes = getattr(statementNode, "arguments", []) or []
 
-    def _check_receivestmt(self, statement_node: Any) -> None:
-        target_reference = getattr(statement_node, "target", None)
+        self.checkFunctionCall(
+            functionName,
+            argumentNodes,
+            statementNode
+        )
 
-        root_symbol = self._lvalue_root_symbol(target_reference)
-        if isinstance(root_symbol, VarSymbol) and getattr(root_symbol, "is_const", False):
-            self._error(statement_node, f"Cannot store input into sacred constant '{root_symbol.name}'.")
+    def checkReceiveStatement(self, statementNode: Any) -> None:
+        targetReference = getattr(statementNode, "target", None)
+
+        rootSymbol = self.getLeftHandValueRootSymbol(targetReference)
+
+        if isinstance(rootSymbol, VariableSymbol) and getattr(rootSymbol, "isConstant", False):
+            self.addError(
+                statementNode,
+                f"Cannot store input into sacred constant '{rootSymbol.name}'."
+            )
+
             return
 
-        self._lvalue_type(target_reference)
+        self.getLeftHandValueType(targetReference)
 
-    def _check_proclaimstmt(self, statement_node: Any) -> None:
-        argument_nodes = getattr(statement_node, "args", []) or []
-        for argument_node in argument_nodes:
-            self._expr_type(argument_node)
+    def checkProclaimStatement(self, statementNode: Any) -> None:
+        argumentNodes = getattr(statementNode, "arguments", []) or []
 
-    def _check_dismissstmt(self, statement_node: Any) -> None:
-        if self.current_func is None:
+        for argumentNode in argumentNodes:
+            self.getExpressionType(argumentNode)
+
+    def checkDismissStatement(self, statementNode: Any) -> None:
+        if self.currentFunction is None:
             return
 
-        return_type = self.current_func.return_type
-        return_value = getattr(statement_node, "value", None)
+        returnType = self.currentFunction.returnType
+        returnValue = getattr(statementNode, "value", None)
 
-        if return_type.is_base(BaseType.HOLLOW):
-            if return_value is not None:
-                self._error(statement_node, "hollow function cannot dismiss a value.")
+        if returnType.isBaseType(BaseType.HOLLOW):
+            if returnValue is not None:
+                self.addError(
+                    statementNode,
+                    "hollow function cannot dismiss a value."
+                )
+
             return
 
-        if return_value is None:
-            self._error(statement_node, f"Function must dismiss a value of type {return_type}.")
+        if returnValue is None:
+            self.addError(
+                statementNode,
+                f"Function must dismiss a value of type {returnType}."
+            )
+
             return
 
-        value_type = self._expr_type(return_value)
-        if not can_assign(return_type, value_type):
-            self._error(statement_node, f"Cannot dismiss {value_type} from function returning {return_type}.")
+        valueType = self.getExpressionType(returnValue)
+
+        if not canAssign(returnType, valueType):
+            self.addError(
+                statementNode,
+                f"Cannot dismiss {valueType} from function returning {returnType}."
+            )

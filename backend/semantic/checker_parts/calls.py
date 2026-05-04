@@ -1,44 +1,58 @@
 from __future__ import annotations
 from typing import Any, List
 
-from backend.semantic.typesys import Type, BaseType, can_assign
+from backend.semantic.typesys import Type, BaseType, canAssign
 
 
 class CallsMixin:
-    def _check_call(self, function_name: str, argument_nodes: List[Any], call_node: Any) -> Type:
-        if not function_name:
-            self._error(call_node, "Call missing function name.")
+    def checkFunctionCall(
+        self,
+        functionName: str,
+        argumentNodes: List[Any],
+        callNode: Any
+    ) -> Type:
+        if not functionName:
+            self.addError(callNode, "Call missing function name.")
             return Type.error()
 
-        function_symbol = self.funcs.get(function_name)
-        if function_symbol is None:
-            suggestion_text = self._did_you_mean_from(function_name, list(self.funcs.keys()))
-            self._error(call_node, f"Call to undeclared function '{function_name}'.{suggestion_text}")
-            return Type.error()
+        functionSymbol = self.functions.get(functionName)
 
-        expected_argument_count = len(function_symbol.params)
-        actual_argument_count = len(argument_nodes)
-
-        if actual_argument_count != expected_argument_count:
-            self._error(
-                call_node,
-                f"Function '{function_name}' expects {expected_argument_count} args, got {actual_argument_count}."
+        if functionSymbol is None:
+            suggestionText = self.getSuggestionFromCandidates(
+                functionName,
+                list(self.functions.keys())
             )
 
-        arguments_to_check = min(actual_argument_count, expected_argument_count)
+            self.addError(
+                callNode,
+                f"Call to undeclared function '{functionName}'.{suggestionText}"
+            )
 
-        for argument_index in range(arguments_to_check):
-            argument_node = argument_nodes[argument_index]
-            argument_type = self._expr_type(argument_node)
-            parameter_type = function_symbol.params[argument_index].typ
+            return Type.error()
 
-            if argument_type.base == BaseType.ERROR:
+        expectedArgumentCount = len(functionSymbol.parameters)
+        actualArgumentCount = len(argumentNodes)
+
+        if actualArgumentCount != expectedArgumentCount:
+            self.addError(
+                callNode,
+                f"Function '{functionName}' expects {expectedArgumentCount} args, got {actualArgumentCount}."
+            )
+
+        argumentsToCheck = min(actualArgumentCount, expectedArgumentCount)
+
+        for argumentIndex in range(argumentsToCheck):
+            argumentNode = argumentNodes[argumentIndex]
+            argumentType = self.getExpressionType(argumentNode)
+            parameterType = functionSymbol.parameters[argumentIndex].symbolType
+
+            if argumentType.baseType == BaseType.ERROR:
                 continue
 
-            if not can_assign(parameter_type, argument_type):
-                self._error(
-                    argument_node if argument_node is not None else call_node,
-                    f"Arg {argument_index + 1} of '{function_name}': cannot pass {self._fmt_type(argument_type)} to {self._fmt_type(parameter_type)}."
+            if not canAssign(parameterType, argumentType):
+                self.addError(
+                    argumentNode if argumentNode is not None else callNode,
+                    f"Arg {argumentIndex + 1} of '{functionName}': cannot pass {self.formatType(argumentType)} to {self.formatType(parameterType)}."
                 )
 
-        return function_symbol.return_type
+        return functionSymbol.returnType

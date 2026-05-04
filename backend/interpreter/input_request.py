@@ -1,5 +1,6 @@
 class InputRequest(Exception):
-    def __init__(self, target_node=None):
+    def __init__(self, targetNode=None):
         super().__init__("Interpreter is waiting for input.")
-        self.target_node = target_node
-        self.interpreter_output = []
+
+        self.targetNode = targetNode
+        self.interpreterOutput = []

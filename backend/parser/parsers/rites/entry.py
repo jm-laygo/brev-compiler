@@ -5,109 +5,118 @@ from backend.tokens import *
 from backend.parser.predict_set import PREDICT
 from backend.ast.ast_nodes import *
 from backend.errors import ParserError
-from backend.parser.parser import Parser, _tok_lexeme, _tok_pos
+from backend.parser.parser import Parser, getTokenValue, getTokenPosition
 
 
-def parse_rite_seq(self: Parser) -> Tuple[Optional[RiteDecl], List[RiteDecl]]:
-    lookahead_type = self.current_type(0)
+def parseRiteSequence(self: Parser) -> Tuple[Optional[RiteDeclaration], List[RiteDeclaration]]:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<rite_seq>"]:
+    # check rite sequence
+    if currentTokenType not in PREDICT["<rite_seq>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<rite_seq>"].keys()),
+            list(PREDICT["<rite_seq>"].keys())
         )
 
     self.expect(TK_CF_RITE)
-    return_type_name = self.parse_return_type_any()
+    returnTypeName = self.parseAnyReturnType()
 
-    lookahead_type = self.current_type(0)
-    if lookahead_type not in PREDICT["<rite_after_type>"]:
+    currentTokenType = self.currentType(0)
+
+    # check rite name
+    if currentTokenType not in PREDICT["<rite_after_type>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<rite_after_type>"].keys()),
+            list(PREDICT["<rite_after_type>"].keys())
         )
 
-    entry_rite: Optional[RiteDecl] = None
-    rite_declarations: List[RiteDecl] = []
+    entryRite: Optional[RiteDeclaration] = None
+    riteDeclarations: List[RiteDeclaration] = []
 
-    if lookahead_type == TK_OTHERS_GENESIS:
-        genesis_token = self.expect(TK_OTHERS_GENESIS)
+    # genesis rite
+    if currentTokenType == TK_OTHERS_GENESIS:
+        genesisToken = self.expect(TK_OTHERS_GENESIS)
         self.expect(TK_SYM_OPPAREN)
         self.expect(TK_SYM_CLSPAREN)
         self.expect(TK_SYM_OPBRACE)
 
-        local_declarations = self.parse_main_local_dec_opt()
-        statement_list = self.parse_statement_list()
-        dismiss_stmt = self.parse_dismiss_opt()
+        localDeclarations = self.parseMainLocalDeclarationOptional()
+        statementList = self.parseStatementList()
+        dismissStatement = self.parseDismissOptional()
 
         self.expect(TK_SYM_CLSBRACE)
 
-        entry_rite = RiteDecl(
-            pos=_tok_pos(genesis_token),
+        entryRite = RiteDeclaration(
+            position=getTokenPosition(genesisToken),
             name="genesis",
-            return_type=return_type_name,
-            params=[],
-            local_decls=local_declarations,
-            body=statement_list,
-            dismiss=dismiss_stmt,
+            returnType=returnTypeName,
+            parameters=[],
+            localDeclarations=localDeclarations,
+            bodyStatements=statementList,
+            dismissStatement=dismissStatement
         )
-        return entry_rite, rite_declarations
 
-    if lookahead_type == TK_IDENTIFIER:
-        identifier_token = self.expect(TK_IDENTIFIER)
-        rite_name = _tok_lexeme(identifier_token)
+        return entryRite, riteDeclarations
+
+    # normal rite
+    if currentTokenType == TK_IDENTIFIER:
+        identifierToken = self.expect(TK_IDENTIFIER)
+        riteName = getTokenValue(identifierToken)
 
         self.expect(TK_SYM_OPPAREN)
-        parameter_list = self.parse_param_list_opt()
+        parameterList = self.parseParameterListOptional()
         self.expect(TK_SYM_CLSPAREN)
 
         self.expect(TK_SYM_OPBRACE)
-        local_declarations = self.parse_func_local_dec_opt()
-        statement_list = self.parse_statement_list()
-        dismiss_stmt = self.parse_dismiss_opt()
+        localDeclarations = self.parseFunctionLocalDeclarationOptional()
+        statementList = self.parseStatementList()
+        dismissStatement = self.parseDismissOptional()
         self.expect(TK_SYM_CLSBRACE)
 
-        rite_decl = RiteDecl(
-            pos=_tok_pos(identifier_token),
-            name=rite_name,
-            return_type=return_type_name,
-            params=parameter_list,
-            local_decls=local_declarations,
-            body=statement_list,
-            dismiss=dismiss_stmt,
+        riteDeclaration = RiteDeclaration(
+            position=getTokenPosition(identifierToken),
+            name=riteName,
+            returnType=returnTypeName,
+            parameters=parameterList,
+            localDeclarations=localDeclarations,
+            bodyStatements=statementList,
+            dismissStatement=dismissStatement
         )
 
-        rite_declarations.append(rite_decl)
+        riteDeclarations.extend([riteDeclaration])
 
-        if self.current_type(0) == TK_CF_RITE:
-            next_entry_rite, next_rite_declarations = self.parse_rite_seq()
-            if next_entry_rite is not None and entry_rite is None:
-                entry_rite = next_entry_rite
-            rite_declarations.extend(next_rite_declarations)
+        # next rite
+        if self.currentType(0) == TK_CF_RITE:
+            nextEntryRite, nextRiteDeclarations = self.parseRiteSequence()
 
-        return entry_rite, rite_declarations
+            if nextEntryRite is not None and entryRite is None:
+                entryRite = nextEntryRite
+
+            riteDeclarations.extend(nextRiteDeclarations)
+
+        return entryRite, riteDeclarations
 
     raise ParserError(
         self.peek(0) or self.peek(-1),
-        expected=list(PREDICT["<rite_after_type>"].keys()),
+        list(PREDICT["<rite_after_type>"].keys())
     )
 
+def parseAnyReturnType(self: Parser) -> str:
+    currentTokenType = self.currentType(0)
 
-def parse_return_type_any(self: Parser) -> str:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<return_type_any>"]:
+    # check return type
+    if currentTokenType not in PREDICT["<return_type_any>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<return_type_any>"].keys()),
+            list(PREDICT["<return_type_any>"].keys())
         )
 
-    if lookahead_type == TK_DTYPE_HOLLOW:
+    # hollow return
+    if currentTokenType == TK_DTYPE_HOLLOW:
         self.expect(TK_DTYPE_HOLLOW)
         return "hollow"
 
-    return self.parse_data_type_id()
+    return self.parseDataTypeIdentifier()
 
-
-Parser.parse_rite_seq = parse_rite_seq
-Parser.parse_return_type_any = parse_return_type_any
+Parser.parseRiteSequence = parseRiteSequence
+Parser.parseAnyReturnType = parseAnyReturnType

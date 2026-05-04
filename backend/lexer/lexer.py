@@ -2,118 +2,141 @@ from backend.tokens import *
 from backend.errors import LexicalError
 from backend.positions import Position
 
-from backend.lexer.scanners.scan_identifiers import scan_identifier
-from backend.lexer.scanners.scan_comments import scan_comment
-from backend.lexer.scanners.scan_numbers import scan_numbers
-from backend.lexer.scanners.scan_chars import scan_char
-from backend.lexer.scanners.scan_strings import scan_string
-from backend.lexer.scanners.scan_operator import scan_operator
-from backend.lexer.scanners.scan_symbol import scan_symbol
-from backend.lexer.scanners.scan_keywords import scan_keywords
+from backend.lexer.scanners.scan_identifiers import scanIdentifier
+from backend.lexer.scanners.scan_comments import scanComment
+from backend.lexer.scanners.scan_numbers import scanNumbers
+from backend.lexer.scanners.scan_chars import scanCharacter
+from backend.lexer.scanners.scan_strings import scanString
+from backend.lexer.scanners.scan_operator import scanOperator
+from backend.lexer.scanners.scan_symbol import scanSymbol
+from backend.lexer.scanners.scan_keywords import scanKeywords
+
 
 class Lexer:
-    def __init__(self, source_code):
-        self.source_code = source_code.replace("\r", "")
-        self.pos = Position(-1, 1)
-        self.current_char = None
+    def __init__(self, sourceCode):
+        self.sourceCode = sourceCode.replace("\r", "")
+        self.currentPosition = Position(-1, 1)
+        self.currentCharacter = None
         self.advance()
 
-    def peek_non_ws(self):
-        i = self.pos.index + 1
-        while i < len(self.source_code):
-            c = self.source_code[i]
-            if c in (" ", "\t", "\n", "\r"):
-                i += 1
+    def peek_Non_Whitespace(self):
+        nextCharacterIndex = self.currentPosition.index + 1
+
+        while nextCharacterIndex < len(self.sourceCode):
+            nextCharacter = self.sourceCode[nextCharacterIndex]
+
+            if nextCharacter in (" ", "\t", "\n", "\r"):
+                nextCharacterIndex = nextCharacterIndex + 1
                 continue
-            return c
+
+            return nextCharacter
+
         return None
 
     def advance(self):
-        self.pos.advance(self.current_char)
-        self.current_char = (
-            self.source_code[self.pos.index]
-            if self.pos.index < len(self.source_code)
-            else None
-        )
+        self.currentPosition.advance(self.currentCharacter)
+
+        if self.currentPosition.index < len(self.sourceCode):
+            self.currentCharacter = self.sourceCode[self.currentPosition.index]
+        else:
+            self.currentCharacter = None
 
     def peek(self):
-        next_pos = self.pos.index + 1
-        return self.source_code[next_pos] if next_pos < len(self.source_code) else None
+        nextCharacterIndex = self.currentPosition.index + 1
 
-    def make_tokens(self):
-        tokens = []
-        errors = []
+        if nextCharacterIndex < len(self.sourceCode):
+            return self.sourceCode[nextCharacterIndex]
 
-        while self.current_char is not None:
+        return None
 
-            # SPACES AND NEWLINES 
-            if self.current_char == " ":
-                tokens.append(Token(TK_SYM_SPACE, " ", self.pos.copy()))
+    def make_Tokens(self):
+        tokenList = []
+        errorList = []
+
+        while self.currentCharacter is not None:
+
+            # SPACES AND NEWLINES
+            if self.currentCharacter == " ":
+                tokenList.append(Token(TK_SYM_SPACE, " ", self.currentPosition.copy()))
                 self.advance()
                 continue
 
-            if self.current_char == "\t":
-                tokens.append(Token(TK_SYM_TAB, "\t", self.pos.copy()))
+            if self.currentCharacter == "\t":
+                tokenList.append(Token(TK_SYM_TAB, "\t", self.currentPosition.copy()))
                 self.advance()
                 continue
 
-            if self.current_char == "\n":
-                tokens.append(Token(TK_SYM_NEWLINE, "\n", self.pos.copy()))
+            if self.currentCharacter == "\n":
+                tokenList.append(Token(TK_SYM_NEWLINE, "\n", self.currentPosition.copy()))
                 self.advance()
                 continue
 
             # COMMENTS
-            if scan_comment(self, tokens, errors):
+            if scanComment(self, tokenList, errorList):
                 continue
 
-            # NUMBERS 
-            if scan_numbers(self, tokens, errors):
+            # NUMBERS
+            if scanNumbers(self, tokenList, errorList):
                 continue
 
-            # STRINGS 
-            if self.current_char == '"':
-                if scan_string(self, tokens, errors):
+            # STRINGS
+            if self.currentCharacter == '"':
+                if scanString(self, tokenList, errorList):
                     continue
 
-            # CHARS 
-            if self.current_char == "'":
-                if scan_char(self, tokens, errors):
+            # CHARACTERS
+            if self.currentCharacter == "'":
+                if scanCharacter(self, tokenList, errorList):
                     continue
 
-            # KEYWORDS 
-            if self.current_char.isalpha():
-                if scan_keywords(self, tokens, errors):
+            # KEYWORDS
+            if self.currentCharacter.isalpha():
+                if scanKeywords(self, tokenList, errorList):
                     continue
 
-            # IDENTIFIERS 
-            if scan_identifier(self, tokens, errors):
+            # IDENTIFIERS
+            if scanIdentifier(self, tokenList, errorList):
                 continue
 
-            # OPERATORS 
+            # OPERATORS
             try:
-                if scan_operator(self, tokens, errors):
+                if scanOperator(self, tokenList, errorList):
                     continue
-            except LexicalError as e:
-                errors.append(e)
-                if self.current_char is not None:
+
+            except LexicalError as lexicalError:
+                errorList.append(lexicalError)
+
+                if self.currentCharacter is not None:
                     self.advance()
+
                 continue
 
-            # SYMBOLS 
+            # SYMBOLS
             try:
-                if scan_symbol(self, tokens, errors):
+                if scanSymbol(self, tokenList, errorList):
                     continue
-            except LexicalError as e:
-                errors.append(e)
-                if self.current_char is not None:
+
+            except LexicalError as lexicalError:
+                errorList.append(lexicalError)
+
+                if self.currentCharacter is not None:
                     self.advance()
+
                 continue
 
-            # INVALID / UNRECOGNIZED 
-            bad_pos = self.pos.copy()
-            bad_char = self.current_char
-            errors.append(LexicalError(bad_pos, f"Unexpected character '{bad_char}'"))
+            # INVALID OR UNRECOGNIZED CHARACTER
+            errorPosition = self.currentPosition.copy()
+            unexpectedCharacter = self.currentCharacter
+
+            errorList.append(
+                LexicalError(
+                    errorPosition,
+                    f"Unexpected character '{unexpectedCharacter}'"
+                )
+            )
+
             self.advance()
 
-        tokens.append(Token(TK_EOF, None, self.pos.copy()))
-        return tokens, errors
+        tokenList.append(Token(TK_EOF, None, self.currentPosition.copy()))
+
+        return tokenList, errorList

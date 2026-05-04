@@ -2,45 +2,68 @@ from __future__ import annotations
 
 from backend.errors import RuntimeNameError, ConstAssignmentRuntimeError
 
-_UNSET = object()
+
+UNSET_VALUE = object()
+
 
 class Environment:
-    def __init__(self, parent=None):
-        self.parent = parent
-        self.values = {}
-        self.constants = set()
+    def __init__(self, parentEnvironment=None):
+        self.parentEnvironment = parentEnvironment
+        self.storedValues = {}
+        self.constantNames = set()
 
-    def declare(self, name, value=None, *, is_const=False, node=None):
-        if name in self.values:
-            raise RuntimeNameError(node, f"Runtime redeclaration of '{name}'.")
-        self.values[name] = value
-        if is_const:
-            self.constants.add(name)
+    def declare(self, name, value=None, *, isConstant=False, node=None):
+        if name in self.storedValues:
+            raise RuntimeNameError(
+                node,
+                f"Runtime redeclaration of '{name}'."
+            )
 
-    def contains_local(self, name: str) -> bool:
-        return name in self.values
+        self.storedValues[name] = value
+
+        if isConstant:
+            self.constantNames.add(name)
+
+    def containsLocal(self, name: str) -> bool:
+        return name in self.storedValues
 
     def assign(self, name, value, *, node=None):
-        if name in self.values:
-            if name in self.constants:
-                raise ConstAssignmentRuntimeError(node, f"Cannot modify sacred constant '{name}'.")
-            self.values[name] = value
+        if name in self.storedValues:
+            if name in self.constantNames:
+                raise ConstAssignmentRuntimeError(
+                    node,
+                    f"Cannot modify sacred constant '{name}'."
+                )
+
+            self.storedValues[name] = value
             return
-        if self.parent is not None:
-            self.parent.assign(name, value, node=node)
+
+        if self.parentEnvironment is not None:
+            self.parentEnvironment.assign(name, value, node=node)
             return
-        raise RuntimeNameError(node, f"Undefined variable '{name}'.")
+
+        raise RuntimeNameError(
+            node,
+            f"Undefined variable '{name}'."
+        )
 
     def get(self, name, *, node=None):
-        if name in self.values:
-            return self.values[name]
-        if self.parent is not None:
-            return self.parent.get(name, node=node)
-        raise RuntimeNameError(node, f"Undefined variable '{name}'.")
+        if name in self.storedValues:
+            return self.storedValues[name]
 
-    def is_const(self, name: str) -> bool:
-        if name in self.values:
-            return name in self.constants
-        if self.parent is not None:
-            return self.parent.is_const(name)
+        if self.parentEnvironment is not None:
+            return self.parentEnvironment.get(name, node=node)
+
+        raise RuntimeNameError(
+            node,
+            f"Undefined variable '{name}'."
+        )
+
+    def isConstant(self, name: str) -> bool:
+        if name in self.storedValues:
+            return name in self.constantNames
+
+        if self.parentEnvironment is not None:
+            return self.parentEnvironment.isConstant(name)
+
         return False

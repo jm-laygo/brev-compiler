@@ -1,19 +1,32 @@
 from __future__ import annotations
 
-from backend.ast.ast_nodes import OrdainStmt, OrderStmt, VarDeclStmt
+from backend.ast.ast_nodes import (
+    OrdainDeclarationStatement,
+    OrderDeclarationStatement,
+    VariableDeclarationStatement,
+)
 
 
-def _handle_decl_stmt(self, statement_node, current_environment):
-    if isinstance(statement_node, VarDeclStmt):
-        self._exec_var_decl(statement_node.decl, current_environment)
+def handleDeclarationStatement(self, statementNode, currentEnvironment):
+    if isinstance(statementNode, VariableDeclarationStatement):
+        self.executeVariableDeclaration(
+            statementNode.declaration,
+            currentEnvironment
+        )
+
         return True
 
-    if isinstance(statement_node, OrderStmt):
-        self.orders[statement_node.decl.name] = statement_node.decl
+    if isinstance(statementNode, OrderDeclarationStatement):
+        self.orderDeclarations[statementNode.declaration.name] = statementNode.declaration
+
         return True
 
-    if isinstance(statement_node, OrdainStmt):
-        self._exec_ordain_decl(statement_node.decl, current_environment)
+    if isinstance(statementNode, OrdainDeclarationStatement):
+        self.executeOrdainDeclaration(
+            statementNode.declaration,
+            currentEnvironment
+        )
+
         return True
 
     return False

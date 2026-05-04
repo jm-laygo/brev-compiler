@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from .readers import _read_lvalue, _read_lvalue_from_value
-from .writers import _assign_lvalue, _resolve_index_target
+from .readers import readLeftHandValue, readLeftHandValueFromValue
+from .writers import assignLeftHandValue, resolveIndexTarget
 
-def bind_reference_methods(cls):
-    cls._read_lvalue = _read_lvalue
-    cls._assign_lvalue = _assign_lvalue
-    cls._resolve_index_target = _resolve_index_target
-    cls._read_lvalue_from_value = _read_lvalue_from_value
+
+def bindReferenceMethods(interpreterClass):
+    interpreterClass.readLeftHandValue = readLeftHandValue
+    interpreterClass.assignLeftHandValue = assignLeftHandValue
+    interpreterClass.resolveIndexTarget = resolveIndexTarget
+    interpreterClass.readLeftHandValueFromValue = readLeftHandValueFromValue

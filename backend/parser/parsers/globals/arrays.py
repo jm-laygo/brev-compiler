@@ -5,118 +5,128 @@ from backend.tokens import *
 from backend.errors import ParserError
 from backend.parser.predict_set import PREDICT, EPSILON
 from backend.ast.ast_nodes import *
-from backend.parser.parser import Parser, _tok_pos
+from backend.parser.parser import Parser, getTokenPosition
 
 
-def parse_array_dims_tail(self: Parser) -> List[Expr]:
-    lookahead_type = self.current_type(0)
+def parseArrayDimensionsTail(self: Parser) -> List[Expression]:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<array_dims_tail>"]:
+    # check array dimension
+    if currentTokenType not in PREDICT["<array_dims_tail>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<array_dims_tail>"].keys()),
+            list(PREDICT["<array_dims_tail>"].keys())
         )
 
-    if PREDICT["<array_dims_tail>"][lookahead_type] == [EPSILON]:
+    # no more dimension
+    if PREDICT["<array_dims_tail>"][currentTokenType] == [EPSILON]:
         return []
 
     self.expect(TK_SYM_OPBRACK)
-    dimension_expr = self.parse_expr()
+    dimensionExpression = self.parseExpression()
     self.expect(TK_SYM_CLSBRACK)
-    remaining_dimensions = self.parse_array_dims_tail()
-    return [dimension_expr] + remaining_dimensions
 
+    remainingDimensions = self.parseArrayDimensionsTail()
 
-def parse_array_init(self: Parser) -> ArrayInit:
-    lookahead_type = self.current_type(0)
+    return [dimensionExpression] + remainingDimensions
 
-    if lookahead_type not in PREDICT["<array_init>"]:
+def parseArrayInitialization(self: Parser) -> ArrayInitializationExpression:
+    currentTokenType = self.currentType(0)
+
+    # check array init
+    if currentTokenType not in PREDICT["<array_init>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<array_init>"].keys()),
+            list(PREDICT["<array_init>"].keys())
         )
 
-    opening_brace_token = self.expect(TK_SYM_OPBRACE)
-    array_items = self.parse_array_vals_opt()
+    openingBraceToken = self.expect(TK_SYM_OPBRACE)
+    arrayItems = self.parseArrayValuesOptional()
     self.expect(TK_SYM_CLSBRACE)
 
-    return ArrayInit(
-        pos=_tok_pos(opening_brace_token),
-        items=array_items
+    return ArrayInitializationExpression(
+        position=getTokenPosition(openingBraceToken),
+        items=arrayItems
     )
 
+def parseArrayValuesOptional(self: Parser) -> List[Expression]:
+    currentTokenType = self.currentType(0)
 
-def parse_array_vals_opt(self: Parser) -> List[Expr]:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<array_vals_opt>"]:
+    # check array values
+    if currentTokenType not in PREDICT["<array_vals_opt>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<array_vals_opt>"].keys()),
+            list(PREDICT["<array_vals_opt>"].keys())
         )
 
-    if lookahead_type == TK_SYM_CLSBRACE:
+    # empty array
+    if currentTokenType == TK_SYM_CLSBRACE:
         return []
 
-    return self.parse_array_vals()
+    return self.parseArrayValues()
 
+def parseArrayValues(self: Parser) -> List[Expression]:
+    currentTokenType = self.currentType(0)
 
-def parse_array_vals(self: Parser) -> List[Expr]:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<array_vals>"]:
+    # check first value
+    if currentTokenType not in PREDICT["<array_vals>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<array_vals>"].keys()),
+            list(PREDICT["<array_vals>"].keys())
         )
 
-    array_values = [self.parse_array_val()]
-    array_values.extend(self.parse_array_vals_tail())
-    return array_values
+    arrayValues = [self.parseArrayValue()]
+    arrayValues.extend(self.parseArrayValuesTail())
 
+    return arrayValues
 
-def parse_array_vals_tail(self: Parser) -> List[Expr]:
-    lookahead_type = self.current_type(0)
+def parseArrayValuesTail(self: Parser) -> List[Expression]:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<array_vals_tail>"]:
+    # check next value
+    if currentTokenType not in PREDICT["<array_vals_tail>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<array_vals_tail>"].keys()),
+            list(PREDICT["<array_vals_tail>"].keys())
         )
 
-    if lookahead_type == TK_SYM_CLSBRACE:
+    # end of array
+    if currentTokenType == TK_SYM_CLSBRACE:
         return []
 
     self.expect(TK_SYM_COMMA)
-    remaining_array_values = [self.parse_array_val()]
-    remaining_array_values.extend(self.parse_array_vals_tail())
-    return remaining_array_values
 
+    remainingArrayValues = [self.parseArrayValue()]
+    remainingArrayValues.extend(self.parseArrayValuesTail())
 
-def parse_array_val(self: Parser) -> Expr:
-    lookahead_type = self.current_type(0)
+    return remainingArrayValues
 
-    if lookahead_type not in PREDICT["<array_val>"]:
+def parseArrayValue(self: Parser) -> Expression:
+    currentTokenType = self.currentType(0)
+
+    # check array value
+    if currentTokenType not in PREDICT["<array_val>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<array_val>"].keys()),
+            list(PREDICT["<array_val>"].keys())
         )
 
-    if lookahead_type == TK_SYM_OPBRACE:
-        opening_brace_token = self.expect(TK_SYM_OPBRACE)
-        nested_array_items = self.parse_array_vals_opt()
+    # nested array
+    if currentTokenType == TK_SYM_OPBRACE:
+        openingBraceToken = self.expect(TK_SYM_OPBRACE)
+        nestedArrayItems = self.parseArrayValuesOptional()
         self.expect(TK_SYM_CLSBRACE)
-        return ArrayInit(
-            pos=_tok_pos(opening_brace_token),
-            items=nested_array_items
+
+        return ArrayInitializationExpression(
+            position=getTokenPosition(openingBraceToken),
+            items=nestedArrayItems
         )
 
-    return self.parse_expr()
+    return self.parseExpression()
 
-
-Parser.parse_array_dims_tail = parse_array_dims_tail
-Parser.parse_array_init = parse_array_init
-Parser.parse_array_vals_opt = parse_array_vals_opt
-Parser.parse_array_vals = parse_array_vals
-Parser.parse_array_vals_tail = parse_array_vals_tail
-Parser.parse_array_val = parse_array_val
+Parser.parseArrayDimensionsTail = parseArrayDimensionsTail
+Parser.parseArrayInitialization = parseArrayInitialization
+Parser.parseArrayValuesOptional = parseArrayValuesOptional
+Parser.parseArrayValues = parseArrayValues
+Parser.parseArrayValuesTail = parseArrayValuesTail
+Parser.parseArrayValue = parseArrayValue

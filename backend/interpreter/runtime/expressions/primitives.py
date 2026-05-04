@@ -1,34 +1,57 @@
 from __future__ import annotations
 
-from backend.ast.ast_nodes import ArrayInit, GroupExpr, LiteralExpr, VarExpr, VerseOfExpr
+from backend.ast.ast_nodes import (
+    ArrayInitializationExpression,
+    GroupExpression,
+    LiteralExpression,
+    VariableExpression,
+    VerseOfExpression,
+)
 from backend.errors import RuntimeTypeError
 
-# PRIMITIVE EXPRESSIONS
-def _handle_primitive_expr(self, expression_node, current_environment):
-    if isinstance(expression_node, LiteralExpr):
-        return expression_node.value
 
-    if isinstance(expression_node, GroupExpr):
-        return self._eval_expr(expression_node.expr, current_environment)
+# primitive expressions
+def handlePrimitiveExpression(self, expressionNode, currentEnvironment):
+    if isinstance(expressionNode, LiteralExpression):
+        return expressionNode.value
 
-    if isinstance(expression_node, VarExpr):
-        return self._read_lvalue(expression_node.ref, current_environment)
+    if isinstance(expressionNode, GroupExpression):
+        return self.evaluateExpression(
+            expressionNode.expression,
+            currentEnvironment
+        )
 
-    if isinstance(expression_node, ArrayInit):
-        evaluated_items = []
-        for item_node in expression_node.items:
-            evaluated_items.append(self._eval_expr(item_node, current_environment))
-        return evaluated_items
+    if isinstance(expressionNode, VariableExpression):
+        return self.readLeftHandValue(
+            expressionNode.reference,
+            currentEnvironment
+        )
 
-    if isinstance(expression_node, VerseOfExpr):
-        inner_value = self._eval_expr(expression_node.expr, current_environment)
+    if isinstance(expressionNode, ArrayInitializationExpression):
+        evaluatedItems = []
 
-        if isinstance(inner_value, list):
-            return len(inner_value)
+        for itemNode in expressionNode.items:
+            evaluatedItems.extend([
+                self.evaluateExpression(itemNode, currentEnvironment)
+            ])
 
-        if isinstance(inner_value, str):
-            return len(inner_value)
+        return evaluatedItems
 
-        raise RuntimeTypeError(expression_node, "The verseof operator requires an array or scripture value.")
+    if isinstance(expressionNode, VerseOfExpression):
+        innerValue = self.evaluateExpression(
+            expressionNode.expression,
+            currentEnvironment
+        )
+
+        if isinstance(innerValue, list):
+            return len(innerValue)
+
+        if isinstance(innerValue, str):
+            return len(innerValue)
+
+        raise RuntimeTypeError(
+            expressionNode,
+            "The verseof operator requires an array or scripture value."
+        )
 
     return None

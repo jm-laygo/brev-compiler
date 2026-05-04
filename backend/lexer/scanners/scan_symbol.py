@@ -1,6 +1,19 @@
-from backend.tokens import *
+from backend.tokens import (
+    Token,
+    TK_SYM_OPBRACE,
+    TK_SYM_CLSBRACE,
+    TK_SYM_OPPAREN,
+    TK_SYM_CLSPAREN,
+    TK_SYM_OPBRACK,
+    TK_SYM_CLSBRACK,
+    TK_SYM_SEMICOL,
+    TK_SYM_COMMA,
+    TK_SYM_COLON,
+    TK_SYM_DOT,
+    TK_SYM_TERNARY,
+)
 
-SYMBOL_MAP = {
+symbolMap = {
     "{": (TK_SYM_OPBRACE, "{"),
     "}": (TK_SYM_CLSBRACE, "}"),
     "(": (TK_SYM_OPPAREN, "("),
@@ -14,17 +27,28 @@ SYMBOL_MAP = {
     "?": (TK_SYM_TERNARY, "?"),
 }
 
-def scan_symbol(lexer, tokens, errors):
-    ch = lexer.current_char
-    if ch is None:
+def scanSymbol(lexer, tokenList, errorList):
+    currentCharacter = lexer.currentCharacter
+
+    # no char to scan
+    if currentCharacter is None:
         return False
 
-    start_pos = lexer.pos.copy()
+    startingPosition = lexer.currentPosition.copy()
 
-    if ch in SYMBOL_MAP:
-        tok_type, lexeme = SYMBOL_MAP[ch]
+    # known symbol
+    if currentCharacter in symbolMap:
+        tokenType, symbolLexeme = symbolMap[currentCharacter]
+
         lexer.advance()
-        tokens.append(Token(tok_type, lexeme, start_pos))
+
+        symbolToken = Token(
+            tokenType,
+            symbolLexeme,
+            startingPosition
+        )
+
+        tokenList.extend([symbolToken])
         return True
 
     return False

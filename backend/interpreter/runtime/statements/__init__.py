@@ -5,4 +5,6 @@ from . import conditionals  # noqa: F401
 from . import loops  # noqa: F401
 from . import control  # noqa: F401
 
-from .dispatcher import bind_statement_methods
+from .dispatcher import bindStatementMethods
+
+__all__ = ["bindStatementMethods"]

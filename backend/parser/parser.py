@@ -3,153 +3,190 @@ from typing import Any, List
 
 from backend.tokens import *
 from backend.errors import ParserError
-from backend.parser.predict_set import PREDICT, EPSILON
+from backend.parser.predict_set import PREDICT
 from backend.ast.ast_nodes import *
 
-def _tok_lexeme(token):
+def getTokenValue(token):
     return getattr(token, "value", None)
 
-def _tok_pos(token):
-    return getattr(token, "pos", None)
+def getTokenPosition(token):
+    return getattr(token, "position", None)
 
 class Parser:
-    def __init__(self, tokens: List[Any]):
-        self.tokens = tokens
-        self.current_index = 0
+    def __init__(self, tokenList: List[Any]):
+        self.tokenList = tokenList
+        self.currentTokenIndex = 0
 
-    def at_end(self) -> bool:
-        return self.current_index >= len(self.tokens)
+    def isAtEnd(self) -> bool:
+        return self.currentTokenIndex >= len(self.tokenList)
 
     def peek(self, offset: int = 0) -> Any:
-        target_index = self.current_index + offset
-        if target_index < 0 or target_index >= len(self.tokens):
-            return None
-        return self.tokens[target_index]
+        targetIndex = self.currentTokenIndex + offset
 
-    def current_type(self, offset: int = 0) -> Any:
-        current_token = self.peek(offset)
-        return getattr(current_token, "type", None) if current_token is not None else None
+        if targetIndex < 0 or targetIndex >= len(self.tokenList):
+            return None
+
+        return self.tokenList[targetIndex]
+
+    def currentType(self, offset: int = 0) -> Any:
+        currentToken = self.peek(offset)
+
+        if currentToken is None:
+            return None
+
+        return getattr(currentToken, "type", None)
 
     def advance(self) -> Any:
-        current_token = self.peek(0)
-        self.current_index += 1
-        return current_token
+        currentToken = self.peek(0)
+        self.currentTokenIndex += 1
 
-    def expect(self, expected_token_type):
-        current_token = self.peek(0)
+        return currentToken
 
-        if current_token is None:
+    def expect(self, expectedTokenType):
+        currentToken = self.peek(0)
+
+        # no more token
+        if currentToken is None:
             raise ParserError(
                 self.peek(-1),
-                expected=expected_token_type,
-                details="Unexpected end of input"
+                expectedTokenType,
+                "Unexpected end of input"
             )
 
-        if current_token.type != expected_token_type:
-            raise ParserError(current_token, expected=expected_token_type)
+        # wrong token
+        if currentToken.type != expectedTokenType:
+            raise ParserError(
+                currentToken,
+                expectedTokenType
+            )
 
         return self.advance()
 
-    def accept(self, expected_token_type: Any):
-        if self.current_type(0) == expected_token_type:
+    def accept(self, expectedTokenType: Any):
+        # optional token
+        if self.currentType(0) == expectedTokenType:
             return self.advance()
+
         return None
 
-    def choose_prod(self, nonterminal: str):
-        current_token_type = self.current_type(0)
-        predict_table = PREDICT.get(nonterminal)
+    def chooseProduction(self, nonTerminal: str):
+        currentTokenType = self.currentType(0)
+        predictTable = PREDICT.get(nonTerminal)
 
-        if predict_table is None:
-            current_token = self.peek(0) or self.peek(-1)
+        # missing table
+        if predictTable is None:
+            currentToken = self.peek(0) or self.peek(-1)
+
             raise ParserError(
-                current_token,
-                expected=[],
-                details=f"Missing PREDICT entry for {nonterminal}"
+                currentToken,
+                [],
+                f"Missing PREDICT entry for {nonTerminal}"
             )
 
-        production = predict_table.get(current_token_type)
+        production = predictTable.get(currentTokenType)
+
+        # no matching production
         if production is None:
-            current_token = self.peek(0) or self.peek(-1)
-            expected_tokens = list(predict_table.keys())
-            raise ParserError(current_token, expected=expected_tokens)
+            currentToken = self.peek(0) or self.peek(-1)
+            expectedTokenList = list(predictTable.keys())
+
+            raise ParserError(
+                currentToken,
+                expectedTokenList
+            )
 
         return production
 
-    def error_expected(self, expected_tokens, details="Invalid syntax"):
-        current_token = self.peek(0) or self.peek(-1)
-        raise ParserError(current_token, expected=expected_tokens, details=details)
+    def raiseExpectedError(self, expectedTokenList, errorDetails="Invalid syntax"):
+        currentToken = self.peek(0) or self.peek(-1)
 
-    # Entry
+        raise ParserError(
+            currentToken,
+            expectedTokenList,
+            errorDetails
+        )
+
     def parse(self) -> Program:
-        return self.parse_program()
+        # parser entry
+        return self.parseProgram()
 
-    def parse_program(self) -> Program:
-        current_token_type = self.current_type(0)
+    def parseProgram(self) -> Program:
+        currentTokenType = self.currentType(0)
 
-        if current_token_type != TK_EOF and current_token_type not in PREDICT["<program>"]:
+        # invalid start
+        if currentTokenType != TK_EOF and currentTokenType not in PREDICT["<program>"]:
             raise ParserError(
                 self.peek(0) or self.peek(-1),
-                expected=list(PREDICT["<program>"].keys())
+                list(PREDICT["<program>"].keys())
             )
 
-        program_node = Program(pos=_tok_pos(self.peek(0)))
-        program_node.globals = []
-        program_node.functions = []
-        program_node.entry = None
+        programNode = Program(position=getTokenPosition(self.peek(0)))
+        programNode.globals = []
+        programNode.functions = []
+        programNode.entry = None
 
-        while self.current_type(0) != TK_EOF:
-            current_token_type = self.current_type(0)
+        # parse until eof
+        while self.currentType(0) != TK_EOF:
+            currentTokenType = self.currentType(0)
 
-            if current_token_type == TK_CF_RITE:
-                entry_rite, function_nodes = self.parse_rite_seq()
+            # rite section
+            if currentTokenType == TK_CF_RITE:
+                entryRite, functionNodeList = self.parseRiteSequence()
 
-                if entry_rite is not None:
-                    if program_node.entry is not None:
+                if entryRite is not None:
+                    if programNode.entry is not None:
                         raise ParserError(
                             self.peek(-1),
-                            expected=[],
-                            details="Multiple genesis() rites are not allowed"
+                            [],
+                            "Multiple genesis() rites are not allowed"
                         )
-                    program_node.entry = entry_rite
 
-                program_node.functions.extend(function_nodes)
+                    programNode.entry = entryRite
+
+                programNode.functions.extend(functionNodeList)
                 continue
 
-            if current_token_type in PREDICT["<global_dec_item>"]:
-                program_node.globals.append(self.parse_global_dec_item())
+            # global declaration
+            if currentTokenType in PREDICT["<global_dec_item>"]:
+                programNode.globals.append(self.parseGlobalDeclarationItem())
                 continue
 
             raise ParserError(
                 self.peek(0),
-                expected=list(PREDICT["<global_dec_item>"].keys()) + [TK_CF_RITE, TK_EOF]
+                list(PREDICT["<global_dec_item>"].keys()) + [TK_CF_RITE, TK_EOF]
             )
 
-        if program_node.entry is None:
+        # no genesis
+        if programNode.entry is None:
             raise ParserError(
                 self.peek(0) or self.peek(-1),
-                expected=[TK_OTHERS_GENESIS]
+                [TK_OTHERS_GENESIS]
             )
 
-        return program_node
+        return programNode
 
-import backend.parser.parsers.globals as _globals
-import backend.parser.parsers.rites as _rites
-import backend.parser.parsers.statements as _statements
-import backend.parser.parsers.lvalues as _lvalues
-import backend.parser.parsers.expressions as _expressions
 
-def parse_tokens_to_ast(tokens: List[Any]) -> Program:
-    return Parser(tokens).parse()
+import backend.parser.parsers.globals as globalsParserModule
+import backend.parser.parsers.rites as ritesParserModule
+import backend.parser.parsers.statements as statementsParserModule
+import backend.parser.parsers.lvalues as lvaluesParserModule
+import backend.parser.parsers.expressions as expressionsParserModule
 
-def validate(tokens):
-    parser = Parser(tokens)
-    ast = parser.parse()
 
-    if parser.current_type(0) != TK_EOF:
+def parseTokensToAst(tokenList: List[Any]) -> Program:
+    return Parser(tokenList).parse()
+
+
+def validate(tokenList):
+    parser = Parser(tokenList)
+    abstractSyntaxTree = parser.parse()
+
+    # extra token after parse
+    if parser.currentType(0) != TK_EOF:
         raise ParserError(
             parser.peek(0),
-            expected=[TK_EOF],
-            details="Trailing tokens"
+            [TK_EOF],
+            "Trailing tokens"
         )
 
-    return ast
+    return abstractSyntaxTree

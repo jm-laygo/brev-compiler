@@ -1,13 +1,13 @@
 from .config import CheckerConfig
-from .helpers import _pos, _name, _class
+from .helpers import getNodePosition, getNodeName, getClassName
 
 from .diagnostics import (
-    _fmt_type,
-    _is_bad,
-    _fmt_type_for_msg,
-    _binop_error_msg,
-    _has_type_error,
-    _tname,
+    formatType,
+    isBadType,
+    formatTypeForMessage,
+    getBinaryOperationErrorMessage,
+    hasTypeError,
+    getTypeName,
 )
 
 from .types import TypeBuildersMixin

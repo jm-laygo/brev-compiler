@@ -5,115 +5,123 @@ from backend.tokens import *
 from backend.parser.predict_set import PREDICT
 from backend.ast.ast_nodes import *
 from backend.errors import ParserError
-from backend.parser.parser import Parser, _tok_lexeme, _tok_pos
+from backend.parser.parser import Parser, getTokenValue, getTokenPosition
 
 
-def parse_param_list_opt(self: Parser) -> List[Param]:
-    lookahead_type = self.current_type(0)
+def parseParameterListOptional(self: Parser) -> List[Parameter]:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<param_list_opt>"]:
+    # check parameter list
+    if currentTokenType not in PREDICT["<param_list_opt>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<param_list_opt>"].keys()),
+            list(PREDICT["<param_list_opt>"].keys())
         )
 
-    if lookahead_type == TK_SYM_CLSPAREN:
+    # no parameter
+    if currentTokenType == TK_SYM_CLSPAREN:
         return []
 
-    return self.parse_param_list()
+    return self.parseParameterList()
 
+def parseParameterList(self: Parser) -> List[Parameter]:
+    currentTokenType = self.currentType(0)
 
-def parse_param_list(self: Parser) -> List[Param]:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<param_list>"]:
+    # check first parameter
+    if currentTokenType not in PREDICT["<param_list>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<param_list>"].keys()),
+            list(PREDICT["<param_list>"].keys())
         )
 
-    parameter_list = [self.parse_param()]
-    parameter_list.extend(self.parse_param_list_tail())
-    return parameter_list
+    parameterList = [self.parseParameter()]
+    parameterList.extend(self.parseParameterListTail())
 
+    return parameterList
 
-def parse_param_list_tail(self: Parser) -> List[Param]:
-    lookahead_type = self.current_type(0)
+def parseParameterListTail(self: Parser) -> List[Parameter]:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<param_list_tail>"]:
+    # check next parameter
+    if currentTokenType not in PREDICT["<param_list_tail>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<param_list_tail>"].keys()),
+            list(PREDICT["<param_list_tail>"].keys())
         )
 
-    if lookahead_type == TK_SYM_CLSPAREN:
+    # end of parameter list
+    if currentTokenType == TK_SYM_CLSPAREN:
         return []
 
     self.expect(TK_SYM_COMMA)
-    remaining_parameters = [self.parse_param()]
-    remaining_parameters.extend(self.parse_param_list_tail())
-    return remaining_parameters
 
+    remainingParameters = [self.parseParameter()]
+    remainingParameters.extend(self.parseParameterListTail())
 
-def parse_param(self: Parser) -> Param:
-    lookahead_type = self.current_type(0)
+    return remainingParameters
 
-    if lookahead_type not in PREDICT["<param>"]:
+def parseParameter(self: Parser) -> Parameter:
+    currentTokenType = self.currentType(0)
+
+    # check parameter
+    if currentTokenType not in PREDICT["<param>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<param>"].keys()),
+            list(PREDICT["<param>"].keys())
         )
 
-    type_name = self.parse_data_type_id()
-    identifier_token = self.expect(TK_IDENTIFIER)
-    dims = self.parse_param_array_tail()
+    typeName = self.parseDataTypeIdentifier()
+    identifierToken = self.expect(TK_IDENTIFIER)
+    dimensions = self.parseParameterArrayTail()
 
-    return Param(
-        pos=_tok_pos(identifier_token),
-        type_name=type_name,
-        name=_tok_lexeme(identifier_token),
-        dims=dims
+    return Parameter(
+        position=getTokenPosition(identifierToken),
+        typeName=typeName,
+        name=getTokenValue(identifierToken),
+        dimensions=dimensions
     )
 
+def parseParameterArrayTail(self: Parser) -> List[Optional[Expression]]:
+    currentTokenType = self.currentType(0)
 
-def parse_param_array_tail(self: Parser) -> List[Optional[Expr]]:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<param_array_tail>"]:
+    # check parameter array
+    if currentTokenType not in PREDICT["<param_array_tail>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<param_array_tail>"].keys()),
+            list(PREDICT["<param_array_tail>"].keys())
         )
 
-    dims: List[Optional[Expr]] = []
+    dimensions: List[Optional[Expression]] = []
 
-    while self.current_type(0) == TK_SYM_OPBRACK:
+    # read dimensions
+    while self.currentType(0) == TK_SYM_OPBRACK:
         self.expect(TK_SYM_OPBRACK)
-        dim_expr = self.parse_param_dim_expr_opt()
+        dimensionExpression = self.parseParameterDimensionExpressionOptional()
         self.expect(TK_SYM_CLSBRACK)
-        dims.append(dim_expr)
 
-    return dims
+        dimensions.extend([dimensionExpression])
 
+    return dimensions
 
-def parse_param_dim_expr_opt(self: Parser) -> Optional[Expr]:
-    lookahead_type = self.current_type(0)
+def parseParameterDimensionExpressionOptional(self: Parser) -> Optional[Expression]:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<param_dim_expr_opt>"]:
+    # check dimension value
+    if currentTokenType not in PREDICT["<param_dim_expr_opt>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<param_dim_expr_opt>"].keys()),
+            list(PREDICT["<param_dim_expr_opt>"].keys())
         )
 
-    if lookahead_type == TK_SYM_CLSBRACK:
+    # empty dimension
+    if currentTokenType == TK_SYM_CLSBRACK:
         return None
 
-    return self.parse_expr()
+    return self.parseExpression()
 
-
-Parser.parse_param_list_opt = parse_param_list_opt
-Parser.parse_param_list = parse_param_list
-Parser.parse_param_list_tail = parse_param_list_tail
-Parser.parse_param = parse_param
-Parser.parse_param_array_tail = parse_param_array_tail
-Parser.parse_param_dim_expr_opt = parse_param_dim_expr_opt
+Parser.parseParameterListOptional = parseParameterListOptional
+Parser.parseParameterList = parseParameterList
+Parser.parseParameterListTail = parseParameterListTail
+Parser.parseParameter = parseParameter
+Parser.parseParameterArrayTail = parseParameterArrayTail
+Parser.parseParameterDimensionExpressionOptional = parseParameterDimensionExpressionOptional

@@ -4,100 +4,139 @@ from typing import Any
 from backend.semantic.typesys import (
     BaseType,
     Type,
-    is_numeric,
+    isNumericType,
 )
-from .helpers import _class
+from .helpers import getClassName
 
 
 class LValuesMixin:
-    def _lvalue_root_symbol(self, lvalue_node: Any):
-        if lvalue_node is None:
+    def getLeftHandValueRootSymbol(self, leftHandValueNode: Any):
+        if leftHandValueNode is None:
             return None
 
-        lvalue_kind = _class(lvalue_node)
+        leftHandValueKind = getClassName(leftHandValueNode)
 
-        if lvalue_kind == "NameRef":
-            identifier_name = getattr(lvalue_node, "name", None)
-            return self.scope.resolve(identifier_name) if identifier_name else None
+        if leftHandValueKind == "NameReference":
+            identifierName = getattr(leftHandValueNode, "name", None)
 
-        if lvalue_kind == "IndexRef":
-            base_reference = getattr(lvalue_node, "base", None)
-            return self._lvalue_root_symbol(base_reference)
+            if identifierName:
+                return self.currentScope.resolve(identifierName)
 
-        if lvalue_kind == "MemberRef":
-            base_reference = getattr(lvalue_node, "base", None)
-            return self._lvalue_root_symbol(base_reference)
+            return None
+
+        if leftHandValueKind == "IndexReference":
+            baseReference = getattr(leftHandValueNode, "baseReference", None)
+            return self.getLeftHandValueRootSymbol(baseReference)
+
+        if leftHandValueKind == "MemberReference":
+            baseReference = getattr(leftHandValueNode, "baseReference", None)
+            return self.getLeftHandValueRootSymbol(baseReference)
 
         return None
 
-    def _lvalue_type(self, lvalue_node: Any) -> Type:
-        if lvalue_node is None:
+    def getLeftHandValueType(self, leftHandValueNode: Any) -> Type:
+        if leftHandValueNode is None:
             return Type.unknown()
 
-        lvalue_kind = _class(lvalue_node)
+        leftHandValueKind = getClassName(leftHandValueNode)
 
-        if lvalue_kind == "NameRef":
-            identifier_name = getattr(lvalue_node, "name", None)
-            resolved_symbol = self.scope.resolve(identifier_name) if identifier_name else None
+        # name reference
+        if leftHandValueKind == "NameReference":
+            identifierName = getattr(leftHandValueNode, "name", None)
 
-            from backend.semantic.symbols import VarSymbol
+            if identifierName:
+                resolvedSymbol = self.currentScope.resolve(identifierName)
+            else:
+                resolvedSymbol = None
 
-            if isinstance(resolved_symbol, VarSymbol):
-                return resolved_symbol.typ
+            from backend.semantic.symbols import VariableSymbol
 
-            suggestion_text = self._did_you_mean(identifier_name)
-            self._error(lvalue_node, f"Undeclared identifier '{identifier_name}'.{suggestion_text}")
+            if isinstance(resolvedSymbol, VariableSymbol):
+                return resolvedSymbol.symbolType
+
+            suggestionText = self.getSuggestionMessage(identifierName)
+
+            self.addError(
+                leftHandValueNode,
+                f"Undeclared identifier '{identifierName}'.{suggestionText}"
+            )
+
             return Type.error()
 
-        if lvalue_kind == "IndexRef":
-            base_reference = getattr(lvalue_node, "base", None)
-            index_expression = getattr(lvalue_node, "index", None)
+        # array index
+        if leftHandValueKind == "IndexReference":
+            baseReference = getattr(leftHandValueNode, "baseReference", None)
+            indexExpression = getattr(leftHandValueNode, "indexExpression", None)
 
-            base_type = self._lvalue_type(base_reference)
-            index_type = self._expr_type(index_expression)
+            baseType = self.getLeftHandValueType(baseReference)
+            indexType = self.getExpressionType(indexExpression)
 
-            if self._has_type_error(base_type) or self._has_type_error(index_type):
+            if self.hasTypeError(baseType) or self.hasTypeError(indexType):
                 return Type.error()
 
-            if not is_numeric(index_type):
-                self._error(
-                    index_expression if index_expression is not None else lvalue_node,
-                    f"Type error: array index must be numeric, got {self._tname(index_type)}.",
+            if not isNumericType(indexType):
+                self.addError(
+                    indexExpression if indexExpression is not None else leftHandValueNode,
+                    f"Type error: array index must be numeric, got {self.getTypeName(indexType)}."
                 )
 
-            # scripture indexing rule
-            if base_type.is_base(BaseType.SCRIPTURE):
-                return Type.base_t(BaseType.SIGIL)
+            # scripture index
+            if baseType.isBaseType(BaseType.SCRIPTURE):
+                return Type.fromBaseType(BaseType.SIGIL)
 
-            if not base_type.is_array():
-                self._error(lvalue_node, f"Cannot index non-array type {self._tname(base_type)}.")
+            if not baseType.isArray():
+                self.addError(
+                    leftHandValueNode,
+                    f"Cannot index non-array type {self.getTypeName(baseType)}."
+                )
+
                 return Type.error()
 
-            return base_type.array_of or Type.error()
+            return baseType.arrayElementType or Type.error()
 
-        if lvalue_kind == "MemberRef":
-            base_reference = getattr(lvalue_node, "base", None)
-            member_name = getattr(lvalue_node, "member", None)
+        # member access
+        if leftHandValueKind == "MemberReference":
+            baseReference = getattr(leftHandValueNode, "baseReference", None)
+            memberName = getattr(leftHandValueNode, "memberName", None)
 
-            base_type = self._lvalue_type(base_reference)
-            if self._has_type_error(base_type):
+            baseType = self.getLeftHandValueType(baseReference)
+
+            if self.hasTypeError(baseType):
                 return Type.error()
 
-            if not base_type.is_order():
-                self._error(lvalue_node, f"Member access '.{member_name}' on non-order type {self._tname(base_type)}.")
+            if not baseType.isOrder():
+                self.addError(
+                    leftHandValueNode,
+                    f"Member access '.{memberName}' on non-order type {self.getTypeName(baseType)}."
+                )
+
                 return Type.error()
 
-            order_symbol = self.orders.get(base_type.order_name or "")
-            if order_symbol is None:
-                self._error(lvalue_node, f"Unknown order type '{base_type.order_name}'.")
+            orderSymbol = self.orders.get(baseType.orderName or "")
+
+            if orderSymbol is None:
+                self.addError(
+                    leftHandValueNode,
+                    f"Unknown order type '{baseType.orderName}'."
+                )
+
                 return Type.error()
 
-            member_symbol = order_symbol.members.get(member_name)
-            if member_symbol is None:
-                suggestion_text = self._did_you_mean_from(member_name, list(order_symbol.members.keys()))
-                self._error(lvalue_node, f"Order '{order_symbol.name}' has no member '{member_name}'.{suggestion_text}")
+            memberSymbol = orderSymbol.members.get(memberName)
+
+            if memberSymbol is None:
+                suggestionText = self.getSuggestionFromCandidates(
+                    memberName,
+                    list(orderSymbol.members.keys())
+                )
+
+                self.addError(
+                    leftHandValueNode,
+                    f"Order '{orderSymbol.name}' has no member '{memberName}'.{suggestionText}"
+                )
+
                 return Type.error()
 
-            return member_symbol.typ
+            return memberSymbol.symbolType
 
-        return self._expr_type(lvalue_node)
+        return self.getExpressionType(leftHandValueNode)

@@ -1,52 +1,90 @@
 from __future__ import annotations
-from backend.ast.ast_nodes import OrderDecl, SacredDecl, VarDecl, OrdainDecl, Program
+
+from backend.ast.ast_nodes import (
+    Program,
+    OrderDeclaration,
+    SacredDeclaration,
+    VariableDeclaration,
+    OrdainDeclaration,
+)
 from backend.errors import RuntimeErrorBase, InputConversionRuntimeError
 
-def run(self, program_node: Program):
-    self._register_program(program_node)
 
-    entry_rite = getattr(program_node, "entry", None)
-    if entry_rite is None:
-        raise RuntimeErrorBase(program_node, "No entry function was found.")
+def run(self, programNode: Program):
+    self.registerProgram(programNode)
 
-    entry_rite_name = getattr(entry_rite, "name", None)
-    if not entry_rite_name:
-        raise RuntimeErrorBase(program_node, "Entry function has no valid name.")
+    entryRite = getattr(programNode, "entryRite", None)
 
-    return self._call_rite(entry_rite_name, [], call_node=entry_rite)
+    if entryRite is None:
+        raise RuntimeErrorBase(
+            programNode,
+            "No entry function was found."
+        )
 
-def _default_input_provider(self, target_node=None):
-    raise InputConversionRuntimeError(
-        target_node,
-        "Input was requested during execution, but no runtime input provider was supplied.",
+    entryRiteName = getattr(entryRite, "name", None)
+
+    if not entryRiteName:
+        raise RuntimeErrorBase(
+            programNode,
+            "Entry function has no valid name."
+        )
+
+    return self.callRite(
+        entryRiteName,
+        [],
+        callNode=entryRite
     )
 
-def _register_program(self, program_node: Program):
-    global_declarations = getattr(program_node, "globals", []) or []
+def defaultInputProvider(self, targetNode=None):
+    raise InputConversionRuntimeError(
+        targetNode,
+        "Input was requested during execution, but no runtime input provider was supplied."
+    )
 
-    for global_declaration in global_declarations:
-        if isinstance(global_declaration, OrderDecl):
-            self.orders[global_declaration.name] = global_declaration
+def registerProgram(self, programNode: Program):
+    globalDeclarations = getattr(programNode, "globalDeclarations", []) or []
 
-    entry_rite = getattr(program_node, "entry", None)
-    if entry_rite is not None:
-        self.rites[entry_rite.name] = entry_rite
+    # register order declarations
+    for globalDeclaration in globalDeclarations:
+        if isinstance(globalDeclaration, OrderDeclaration):
+            self.orderDeclarations[globalDeclaration.name] = globalDeclaration
 
-    function_rites = getattr(program_node, "functions", []) or []
-    for function_rite in function_rites:
-        self.rites[function_rite.name] = function_rite
+    entryRite = getattr(programNode, "entryRite", None)
 
-    for global_declaration in global_declarations:
-        if isinstance(global_declaration, SacredDecl):
-            self._exec_sacred_decl(global_declaration, self.globals)
-        elif isinstance(global_declaration, VarDecl):
-            self._exec_var_decl(global_declaration, self.globals)
-        elif isinstance(global_declaration, OrdainDecl):
-            self._exec_ordain_decl(global_declaration, self.globals)
-        elif isinstance(global_declaration, OrderDecl):
+    # register entry rite
+    if entryRite is not None:
+        self.riteDeclarations[entryRite.name] = entryRite
+
+    functionRites = getattr(programNode, "riteDeclarations", []) or []
+
+    # register normal rites
+    for functionRite in functionRites:
+        self.riteDeclarations[functionRite.name] = functionRite
+
+    # execute global declarations
+    for globalDeclaration in globalDeclarations:
+        if isinstance(globalDeclaration, SacredDeclaration):
+            self.executeSacredDeclaration(
+                globalDeclaration,
+                self.globalEnvironment
+            )
+
+        elif isinstance(globalDeclaration, VariableDeclaration):
+            self.executeVariableDeclaration(
+                globalDeclaration,
+                self.globalEnvironment
+            )
+
+        elif isinstance(globalDeclaration, OrdainDeclaration):
+            self.executeOrdainDeclaration(
+                globalDeclaration,
+                self.globalEnvironment
+            )
+
+        elif isinstance(globalDeclaration, OrderDeclaration):
             pass
 
-def bind_program_methods(cls):
-    cls.run = run
-    cls._default_input_provider = _default_input_provider
-    cls._register_program = _register_program
+def bindProgramMethods(interpreterClass):
+    interpreterClass.run = run
+    interpreterClass.defaultInputProvider = defaultInputProvider
+    interpreterClass.registerProgram = registerProgram

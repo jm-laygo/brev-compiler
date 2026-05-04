@@ -1,68 +1,79 @@
 from __future__ import annotations
+
 from backend.errors import InputConversionRuntimeError
 
-def _convert_input_for_target(self, target_reference, raw_input_value, current_environment):
-    current_runtime_value = self._read_lvalue(target_reference, current_environment)
 
-    if isinstance(current_runtime_value, bool):
-        normalized_text = str(raw_input_value).strip().lower()
+def convertInputForTarget(self, targetReference, rawInputValue, currentEnvironment):
+    currentRuntimeValue = self.readLeftHandValue(
+        targetReference,
+        currentEnvironment
+    )
 
-        if normalized_text in ("holy", "true", "1"):
+    if isinstance(currentRuntimeValue, bool):
+        normalizedInputText = str(rawInputValue).strip().lower()
+
+        if normalizedInputText in ("holy", "true", "1"):
             return True
 
-        if normalized_text in ("unholy", "false", "0"):
+        if normalizedInputText in ("unholy", "false", "0"):
             return False
 
         raise InputConversionRuntimeError(
-            target_reference,
-            f"'{raw_input_value}' cannot be converted to verity.",
+            targetReference,
+            f"'{rawInputValue}' cannot be converted to verity."
         )
 
-    if isinstance(current_runtime_value, int) and not isinstance(current_runtime_value, bool):
-        # Accept ~ as a negative sign for tally input
-        input_str = str(raw_input_value).strip()
-        if input_str.startswith("~"):
-            input_str = "-" + input_str[1:]
+    if isinstance(currentRuntimeValue, int) and not isinstance(currentRuntimeValue, bool):
+        inputText = str(rawInputValue).strip()
+
+        # allow ~ as negative sign
+        if inputText.startswith("~"):
+            inputText = "-" + inputText[1:]
+
         try:
-            converted_value = int(input_str)
+            convertedValue = int(inputText)
+
         except (TypeError, ValueError):
             raise InputConversionRuntimeError(
-                target_reference,
-                f"'{raw_input_value}' cannot be converted to tally.",
+                targetReference,
+                f"'{rawInputValue}' cannot be converted to tally."
             )
 
-        digit_count = len(input_str.lstrip("-"))
-        if digit_count > 9:
+        digitCount = len(inputText.lstrip("-"))
+
+        if digitCount > 9:
             raise InputConversionRuntimeError(
-                target_reference,
-                f"Tally input '{raw_input_value}' exceeds the 9-digit limit.",
+                targetReference,
+                f"Tally input '{rawInputValue}' exceeds the 9-digit limit."
             )
 
-        return converted_value
+        return convertedValue
 
-    if isinstance(current_runtime_value, float):
+    if isinstance(currentRuntimeValue, float):
         try:
-            return float(raw_input_value)
+            return float(rawInputValue)
+
         except (TypeError, ValueError):
             raise InputConversionRuntimeError(
-                target_reference,
-                f"'{raw_input_value}' cannot be converted to divine.",
+                targetReference,
+                f"'{rawInputValue}' cannot be converted to divine."
             )
 
-    if isinstance(current_runtime_value, str):
-        input_text = str(raw_input_value)
+    if isinstance(currentRuntimeValue, str):
+        inputText = str(rawInputValue)
 
-        if len(current_runtime_value) == 1:
-            if len(input_text) != 1:
+        if len(currentRuntimeValue) == 1:
+            if len(inputText) != 1:
                 raise InputConversionRuntimeError(
-                    target_reference,
-                    f"'{raw_input_value}' cannot be converted to sigil.",
+                    targetReference,
+                    f"'{rawInputValue}' cannot be converted to sigil."
                 )
-            return input_text
 
-        return input_text
+            return inputText
 
-    return raw_input_value
+        return inputText
 
-def bind_input_conversion_methods(cls):
-    cls._convert_input_for_target = _convert_input_for_target
+    return rawInputValue
+
+def bindInputConversionMethods(interpreterClass):
+    interpreterClass.convertInputForTarget = convertInputForTarget

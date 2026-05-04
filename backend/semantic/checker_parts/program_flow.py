@@ -2,146 +2,160 @@ from __future__ import annotations
 from typing import Any
 
 from backend.semantic.symbols import Scope
-from .helpers import _class
+from .helpers import getClassName
 from backend.semantic.typesys import BaseType
 
 
 class ProgramFlowMixin:
-    def _check_program(self, program_node: Any) -> None:
-        global_declarations = getattr(program_node, "globals", []) or []
+    def checkProgram(self, programNode: Any) -> None:
+        globalDeclarations = getattr(programNode, "globalDeclarations", []) or []
 
-        for global_declaration in global_declarations:
-            declaration_kind = _class(global_declaration)
+        for globalDeclaration in globalDeclarations:
+            declarationKind = getClassName(globalDeclaration)
 
-            if declaration_kind == "VarDecl":
-                self._check_var_decl_init(global_declaration)
+            if declarationKind == "VariableDeclaration":
+                self.checkVariableDeclarationInitialValues(globalDeclaration)
 
-            elif declaration_kind == "SacredDecl":
-                self._check_sacred_decl_init(global_declaration)
+            elif declarationKind == "SacredDeclaration":
+                self.checkSacredDeclarationInitialValues(globalDeclaration)
 
-            elif declaration_kind == "OrdainDecl":
-                self._check_ordain_decl_init(global_declaration)
+            elif declarationKind == "OrdainDeclaration":
+                self.checkOrdainDeclarationInitialValues(globalDeclaration)
 
-        entry_function = getattr(program_node, "entry", None)
-        if entry_function is not None:
-            self._check_function(entry_function)
+        entryRite = getattr(programNode, "entryRite", None)
 
-        function_declarations = getattr(program_node, "functions", []) or []
-        for function_declaration in function_declarations:
-            self._check_function(function_declaration)
+        if entryRite is not None:
+            self.checkFunction(entryRite)
 
-    def _block_guarantees_dismiss(self, statement_list: list[Any]) -> bool:
-        for statement_node in statement_list or []:
-            if self._stmt_guarantees_dismiss(statement_node):
+        riteDeclarations = getattr(programNode, "riteDeclarations", []) or []
+
+        for riteDeclaration in riteDeclarations:
+            self.checkFunction(riteDeclaration)
+
+    def blockGuaranteesDismiss(self, statementList: list[Any]) -> bool:
+        for statementNode in statementList or []:
+            if self.statementGuaranteesDismiss(statementNode):
                 return True
+
         return False
 
-    def _stmt_guarantees_dismiss(self, statement_node: Any) -> bool:
-        if statement_node is None:
+    def statementGuaranteesDismiss(self, statementNode: Any) -> bool:
+        if statementNode is None:
             return False
 
-        statement_kind = _class(statement_node)
+        statementKind = getClassName(statementNode)
 
-        if statement_kind == "DismissStmt":
+        if statementKind == "DismissStatement":
             return True
 
-        if statement_kind == "DecreeStmt":
-            decree_body = getattr(statement_node, "body", []) or []
-            edict_clauses = getattr(statement_node, "edicts", []) or []
-            absolution_clause = getattr(statement_node, "absolution", None)
+        if statementKind == "DecreeStatement":
+            decreeBody = getattr(statementNode, "bodyStatements", []) or []
+            edictClauses = getattr(statementNode, "edictClauses", []) or []
+            absolutionClause = getattr(statementNode, "absolutionClause", None)
 
-            if absolution_clause is None:
+            if absolutionClause is None:
                 return False
 
-            if not self._block_guarantees_dismiss(decree_body):
+            if not self.blockGuaranteesDismiss(decreeBody):
                 return False
 
-            for edict_clause in edict_clauses:
-                if not self._stmt_guarantees_dismiss(edict_clause):
+            for edictClause in edictClauses:
+                if not self.statementGuaranteesDismiss(edictClause):
                     return False
 
-            if not self._stmt_guarantees_dismiss(absolution_clause):
+            if not self.statementGuaranteesDismiss(absolutionClause):
                 return False
 
             return True
 
-        if statement_kind == "EdictClause":
-            edict_body = getattr(statement_node, "body", []) or []
-            return self._block_guarantees_dismiss(edict_body)
+        if statementKind == "EdictClause":
+            edictBody = getattr(statementNode, "bodyStatements", []) or []
 
-        if statement_kind == "AbsolutionClause":
-            absolution_body = getattr(statement_node, "body", []) or []
-            return self._block_guarantees_dismiss(absolution_body)
+            return self.blockGuaranteesDismiss(edictBody)
+
+        if statementKind == "AbsolutionClause":
+            absolutionBody = getattr(statementNode, "bodyStatements", []) or []
+
+            return self.blockGuaranteesDismiss(absolutionBody)
 
         return False
 
-    def _check_function(self, function_node: Any) -> None:
-        if _class(function_node) != "RiteDecl":
+    def checkFunction(self, functionNode: Any) -> None:
+        if getClassName(functionNode) != "RiteDeclaration":
             return
 
-        function_name = getattr(function_node, "name", "")
-        function_symbol = self.funcs.get(function_name)
-        self.current_func = function_symbol
+        functionName = getattr(functionNode, "name", "")
+        functionSymbol = self.functions.get(functionName)
+        self.currentFunction = functionSymbol
 
-        previous_scope = self.scope
-        self.scope = Scope(self.global_scope)
+        previousScope = self.currentScope
+        self.currentScope = Scope(self.globalScope)
 
         try:
-            if function_symbol:
-                seen_parameter_names = set()
+            if functionSymbol:
+                seenParameterNames = set()
 
-                for parameter_symbol in function_symbol.params:
-                    if parameter_symbol.name in seen_parameter_names:
-                        self._error(
-                            parameter_symbol.pos,
-                            f"Duplicate parameter '{parameter_symbol.name}' in function '{function_name}'."
+                for parameterSymbol in functionSymbol.parameters:
+                    if parameterSymbol.name in seenParameterNames:
+                        self.addError(
+                            parameterSymbol.position,
+                            f"Duplicate parameter '{parameterSymbol.name}' in function '{functionName}'."
                         )
 
-                    seen_parameter_names.add(parameter_symbol.name)
-                    self.scope.define(parameter_symbol)
+                    seenParameterNames.add(parameterSymbol.name)
+                    self.currentScope.define(parameterSymbol)
 
-            local_declarations = getattr(function_node, "local_decls", []) or []
+            localDeclarations = getattr(functionNode, "localDeclarations", []) or []
 
-            for local_declaration in local_declarations:
-                declaration_kind = _class(local_declaration)
+            for localDeclaration in localDeclarations:
+                declarationKind = getClassName(localDeclaration)
 
-                if declaration_kind == "VarDecl":
-                    self._declare_var_decl(local_declaration, is_global=False)
-                    self._check_var_decl_init(local_declaration)
+                if declarationKind == "VariableDeclaration":
+                    self.declareVariableDeclaration(localDeclaration, isGlobal=False)
+                    self.checkVariableDeclarationInitialValues(localDeclaration)
 
-                elif declaration_kind == "SacredDecl":
-                    self._declare_var_decl(local_declaration, is_global=False, force_const=True)
-                    self._check_sacred_decl_init(local_declaration)
+                elif declarationKind == "SacredDeclaration":
+                    self.declareVariableDeclaration(
+                        localDeclaration,
+                        isGlobal=False,
+                        forceConstant=True
+                    )
+                    self.checkSacredDeclarationInitialValues(localDeclaration)
 
-                elif declaration_kind == "OrdainDecl":
-                    self._declare_ordain_decl(local_declaration, is_global=False)
-                    self._check_ordain_decl_init(local_declaration)
+                elif declarationKind == "OrdainDeclaration":
+                    self.declareOrdainDeclaration(localDeclaration, isGlobal=False)
+                    self.checkOrdainDeclarationInitialValues(localDeclaration)
 
-                elif declaration_kind == "OrderDecl":
-                    self._error(
-                        local_declaration,
+                elif declarationKind == "OrderDeclaration":
+                    self.addError(
+                        localDeclaration,
                         "Order declarations are not allowed inside functions."
                     )
 
-            body_statements = getattr(function_node, "body", []) or []
-            for statement_node in body_statements:
-                self._check_stmt(statement_node)
+            bodyStatements = getattr(functionNode, "bodyStatements", []) or []
 
-            dismiss_statement = getattr(function_node, "dismiss", None)
-            if dismiss_statement is not None:
-                self._check_stmt(dismiss_statement)
+            for statementNode in bodyStatements:
+                self.checkStatement(statementNode)
 
-            if function_symbol is not None and not function_symbol.return_type.is_base(BaseType.HOLLOW):
-                body_guarantees_dismiss = self._block_guarantees_dismiss(body_statements)
-                final_dismiss_exists = dismiss_statement is not None
-                function_guarantees_dismiss = body_guarantees_dismiss or final_dismiss_exists
+            dismissStatement = getattr(functionNode, "dismissStatement", None)
 
-                if not function_guarantees_dismiss:
-                    self._error(
-                        function_node,
-                        f"Function '{function_name}' must dismiss a value of type {function_symbol.return_type}."
+            if dismissStatement is not None:
+                self.checkStatement(dismissStatement)
+
+            if (
+                functionSymbol is not None
+                and not functionSymbol.returnType.isBaseType(BaseType.HOLLOW)
+            ):
+                bodyGuaranteesDismiss = self.blockGuaranteesDismiss(bodyStatements)
+                finalDismissExists = dismissStatement is not None
+                functionGuaranteesDismiss = bodyGuaranteesDismiss or finalDismissExists
+
+                if not functionGuaranteesDismiss:
+                    self.addError(
+                        functionNode,
+                        f"Function '{functionName}' must dismiss a value of type {functionSymbol.returnType}."
                     )
 
         finally:
-            self.scope = previous_scope
-            self.current_func = None
+            self.currentScope = previousScope
+            self.currentFunction = None

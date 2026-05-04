@@ -6,193 +6,240 @@ from backend.errors import *
 from backend.tokens import *
 from backend.lexer.lexer import Lexer
 from backend.parser.parser import Parser
-from backend.semantic.semantic import run_semantic
-from backend.interpreter.interpreter import run_interpreter
+from backend.semantic.semantic import runSemanticAnalysis
+from backend.interpreter.interpreter import runInterpreter
 from backend.interpreter.input_request import InputRequest
 
-SKIP_TYPES = {TK_SYM_SPACE, TK_SYM_TAB, TK_SYM_NEWLINE, TK_COMMENT, TK_COMMENT_BLOCK}
+
+SKIPPED_TOKEN_TYPES = {
+    TK_SYM_SPACE,
+    TK_SYM_TAB,
+    TK_SYM_NEWLINE,
+    TK_COMMENT,
+    TK_COMMENT_BLOCK,
+}
 
 
-def tokens_for_parser(token_list):
-    return [token for token in token_list if token.type not in SKIP_TYPES]
+def getParserTokens(tokenList):
+    return [
+        token
+        for token in tokenList
+        if token.type not in SKIPPED_TOKEN_TYPES
+    ]
 
 
 app = Flask(__name__)
-RUN_SESSIONS = {}
+RUNNING_SESSIONS = {}
 
 
-def output_delta(previous_output, current_output):
-    previous_output = list(previous_output or [])
-    current_output = list(current_output or [])
+def getOutputDelta(previousOutput, currentOutput):
+    previousOutput = list(previousOutput or [])
+    currentOutput = list(currentOutput or [])
 
-    # Fast path: previous output is a strict line-prefix of current output.
-    shared_line_count = min(len(previous_output), len(current_output))
-    matching_full_lines = 0
+    sharedLineCount = min(len(previousOutput), len(currentOutput))
+    matchingLineCount = 0
 
     while (
-        matching_full_lines < shared_line_count
-        and previous_output[matching_full_lines] == current_output[matching_full_lines]
+        matchingLineCount < sharedLineCount
+        and previousOutput[matchingLineCount] == currentOutput[matchingLineCount]
     ):
-        matching_full_lines += 1
+        matchingLineCount += 1
 
-    if matching_full_lines == len(previous_output):
-        return current_output[matching_full_lines:]
+    if matchingLineCount == len(previousOutput):
+        return currentOutput[matchingLineCount:]
 
-    # Reruns can extend the last previously emitted line (inline prompt growth).
-    if matching_full_lines == len(previous_output) - 1 and matching_full_lines < len(current_output):
-        previous_tail = previous_output[matching_full_lines]
-        current_tail = current_output[matching_full_lines]
+    if (
+        matchingLineCount == len(previousOutput) - 1
+        and matchingLineCount < len(currentOutput)
+    ):
+        previousTail = previousOutput[matchingLineCount]
+        currentTail = currentOutput[matchingLineCount]
 
-        if isinstance(previous_tail, str) and isinstance(current_tail, str) and current_tail.startswith(previous_tail):
-            delta = []
-            tail_delta = current_tail[len(previous_tail):]
-            if tail_delta:
-                delta.append(tail_delta)
-            delta.extend(current_output[matching_full_lines + 1:])
-            return delta
+        if (
+            isinstance(previousTail, str)
+            and isinstance(currentTail, str)
+            and currentTail.startswith(previousTail)
+        ):
+            outputDelta = []
+            tailDelta = currentTail[len(previousTail):]
 
-    # Fallback for mismatched reruns: avoid dropping content.
-    return current_output
+            if tailDelta:
+                outputDelta.extend([tailDelta])
+
+            outputDelta.extend(currentOutput[matchingLineCount + 1:])
+
+            return outputDelta
+
+    return currentOutput
 
 
 @app.get("/api/ping")
 def ping():
-    return jsonify({"ok": True, "msg": "Flask API is running"}), 200
+    return jsonify({
+        "ok": True,
+        "message": "Flask API is running"
+    }), 200
 
 
-def analyze_source(source_code):
-    lexer = Lexer(source_code)
-    token_list, lexer_errors = lexer.make_tokens()
+def analyzeSource(sourceCode):
+    lexer = Lexer(sourceCode)
+    tokenList, lexicalErrors = lexer.makeTokens()
 
-    if lexer_errors:
+    if lexicalErrors:
         return None, {
             "ok": False,
-            "errors": ["Execution not performed because lexical errors exist."] +
-                      [error.as_string() for error in lexer_errors]
+            "errors": ["Execution not performed because lexical errors exist."]
+            + [error.asString() for error in lexicalErrors]
         }
 
-    parser = Parser(tokens_for_parser(token_list))
-    program_ast = parser.parse()
+    parser = Parser(getParserTokens(tokenList))
+    programAst = parser.parse()
 
-    if parser.current_type(0) != TK_EOF:
+    if parser.currentType(0) != TK_EOF:
         raise ParserError(
             parser.peek(0),
-            expected=[TK_EOF],
+            [TK_EOF],
             details="Trailing tokens"
         )
 
-    checked_ast, semantic_errors = run_semantic(program_ast)
-    if semantic_errors:
-        formatted_errors = [
-            err.as_string() if hasattr(err, "as_string") else str(err)
-            for err in semantic_errors
+    checkedProgram, semanticErrors = runSemanticAnalysis(programAst)
+
+    if semanticErrors:
+        formattedErrors = [
+            error.asString() if hasattr(error, "asString") else str(error)
+            for error in semanticErrors
         ]
+
         return None, {
             "ok": False,
-            "errors": ["Execution not performed because semantic errors exist."] + formatted_errors
+            "errors": ["Execution not performed because semantic errors exist."]
+            + formattedErrors
         }
 
-    return checked_ast, {"ok": True}
+    return checkedProgram, {"ok": True}
 
 
-def execute_session_until_pause(session):
-    provided_inputs = list(session["inputs"])
-    consumed_index = 0
+def executeSessionUntilPause(session):
+    providedInputs = list(session["inputs"])
+    consumedInputIndex = 0
 
-    def input_provider(_target_node=None):
-        nonlocal consumed_index
-        if consumed_index < len(provided_inputs):
-            value = provided_inputs[consumed_index]
-            consumed_index += 1
-            return value
-        raise InputRequest(_target_node)
+    def inputProvider(targetNode=None):
+        nonlocal consumedInputIndex
+
+        if consumedInputIndex < len(providedInputs):
+            inputValue = providedInputs[consumedInputIndex]
+            consumedInputIndex += 1
+
+            return inputValue
+
+        raise InputRequest(targetNode)
 
     try:
-        result = run_interpreter(session["checked_ast"], input_provider=input_provider)
-        full_output = result["output"]
-        delta_output = output_delta(session["emitted_output"], full_output)
-        session["emitted_output"] = list(full_output)
+        result = runInterpreter(
+            session["checkedProgram"],
+            inputProvider=inputProvider
+        )
+
+        fullOutput = result["output"]
+        deltaOutput = getOutputDelta(
+            session["emittedOutput"],
+            fullOutput
+        )
+
+        session["emittedOutput"] = list(fullOutput)
 
         return {
             "status": "finished",
             "session_id": session["id"],
-            "output": delta_output,
+            "output": deltaOutput,
             "result": result["result"],
             "errors": [],
         }
 
-    except InputRequest as input_request:
-        full_output = getattr(input_request, "interpreter_output", [])
-        delta_output = output_delta(session["emitted_output"], full_output)
-        session["emitted_output"] = list(full_output)
+    except InputRequest as inputRequest:
+        fullOutput = getattr(inputRequest, "interpreterOutput", [])
+        deltaOutput = getOutputDelta(
+            session["emittedOutput"],
+            fullOutput
+        )
+
+        session["emittedOutput"] = list(fullOutput)
 
         return {
             "status": "waiting_input",
             "session_id": session["id"],
-            "output": delta_output,
+            "output": deltaOutput,
             "result": None,
             "errors": [],
         }
 
-    except RuntimeErrorBase as runtime_error:
-        full_output = getattr(runtime_error, "interpreter_output", [])
-        delta_output = output_delta(session["emitted_output"], full_output)
-        session["emitted_output"] = list(full_output)
+    except RuntimeErrorBase as runtimeError:
+        fullOutput = getattr(runtimeError, "interpreterOutput", [])
+        deltaOutput = getOutputDelta(
+            session["emittedOutput"],
+            fullOutput
+        )
+
+        session["emittedOutput"] = list(fullOutput)
 
         return {
             "status": "error",
             "session_id": session["id"],
-            "output": delta_output,
+            "output": deltaOutput,
             "result": None,
-            "errors": [runtime_error.as_string()],
+            "errors": [runtimeError.asString()],
         }
 
 
 @app.post("/api/lex")
-def api_lex():
-    request_data = request.get_json(silent=True) or {}
-    source_code = request_data.get("source_code", "")
+def apiLex():
+    requestData = request.get_json(silent=True) or {}
+    sourceCode = requestData.get("source_code", "")
 
     try:
-        lexer = Lexer(source_code)
-        token_list, lexer_errors = lexer.make_tokens()
+        lexer = Lexer(sourceCode)
+        tokenList, lexicalErrors = lexer.makeTokens()
 
         return jsonify({
-            "tokens": [token.to_dict() for token in token_list],
-            "errors": [error.as_string() for error in lexer_errors]
+            "tokens": [token.toDictionary() for token in tokenList],
+            "errors": [error.asString() for error in lexicalErrors]
         }), 200
 
-    except Exception as exception_obj:
-        return jsonify({"error": f"Lexer crashed: {str(exception_obj)}"}), 500
+    except Exception as exceptionObject:
+        return jsonify({
+            "error": f"Lexer crashed: {str(exceptionObject)}"
+        }), 500
 
 
 @app.post("/api/syntax")
-def api_syntax():
-    request_data = request.get_json(silent=True) or {}
-    source_code = request_data.get("source_code", "")
+def apiSyntax():
+    requestData = request.get_json(silent=True) or {}
+    sourceCode = requestData.get("source_code", "")
 
     try:
-        lexer = Lexer(source_code)
-        token_list, lexer_errors = lexer.make_tokens()
+        lexer = Lexer(sourceCode)
+        tokenList, lexicalErrors = lexer.makeTokens()
 
-    except Exception as exception_obj:
-        return jsonify({"error": f"Lexer crashed: {str(exception_obj)}"}), 500
+    except Exception as exceptionObject:
+        return jsonify({
+            "error": f"Lexer crashed: {str(exceptionObject)}"
+        }), 500
 
-    if lexer_errors:
+    if lexicalErrors:
         return jsonify({
             "syntax_valid": False,
             "errors": ["Syntax analysis not performed because lexical errors exist."]
-                      + [error.as_string() for error in lexer_errors]
+            + [error.asString() for error in lexicalErrors]
         }), 200
 
     try:
-        parser = Parser(tokens_for_parser(token_list))
-        program_ast = parser.parse()
+        parser = Parser(getParserTokens(tokenList))
+        programAst = parser.parse()
 
-        if parser.current_type(0) != TK_EOF:
+        if parser.currentType(0) != TK_EOF:
             raise ParserError(
                 parser.peek(0),
-                expected=[TK_EOF],
+                [TK_EOF],
                 details="Trailing tokens"
             )
 
@@ -201,120 +248,144 @@ def api_syntax():
             "errors": []
         }), 200
 
-    except ParserError as parser_error:
+    except ParserError as parserError:
         return jsonify({
             "syntax_valid": False,
-            "errors": [parser_error.as_string()]
+            "errors": [parserError.asString()]
         }), 200
 
-    except Exception as exception_obj:
-        return jsonify({"error": f"Parser crashed: {str(exception_obj)}"}), 500
+    except Exception as exceptionObject:
+        return jsonify({
+            "error": f"Parser crashed: {str(exceptionObject)}"
+        }), 500
 
 
 @app.post("/api/sem")
-def api_sem():
-    request_data = request.get_json(silent=True) or {}
-    source_code = request_data.get("source_code", "")
+def apiSemantic():
+    requestData = request.get_json(silent=True) or {}
+    sourceCode = requestData.get("source_code", "")
 
     try:
-        lexer = Lexer(source_code)
-        token_list, lexer_errors = lexer.make_tokens()
+        lexer = Lexer(sourceCode)
+        tokenList, lexicalErrors = lexer.makeTokens()
 
-    except Exception as exception_obj:
-        return jsonify({"error": f"Lexer crashed: {str(exception_obj)}"}), 500
+    except Exception as exceptionObject:
+        return jsonify({
+            "error": f"Lexer crashed: {str(exceptionObject)}"
+        }), 500
 
-    if lexer_errors:
+    if lexicalErrors:
         return jsonify({
             "semantic_valid": False,
             "errors": ["Semantic analysis not performed because lexical errors exist."]
-                      + [error.as_string() for error in lexer_errors]
+            + [error.asString() for error in lexicalErrors]
         }), 200
 
     try:
-        parser = Parser(tokens_for_parser(token_list))
-        program_ast = parser.parse()
+        parser = Parser(getParserTokens(tokenList))
+        programAst = parser.parse()
 
-        if parser.current_type(0) != TK_EOF:
+        if parser.currentType(0) != TK_EOF:
             raise ParserError(
                 parser.peek(0),
-                expected=[TK_EOF],
+                [TK_EOF],
                 details="Trailing tokens"
             )
 
-    except ParserError as parser_error:
+    except ParserError as parserError:
         return jsonify({
             "semantic_valid": False,
             "errors": [
                 "Semantic analysis not performed because syntax errors exist.",
-                parser_error.as_string()
+                parserError.asString()
             ]
         }), 200
 
-    except Exception as exception_obj:
-        return jsonify({"error": f"Parser crashed: {str(exception_obj)}"}), 500
+    except Exception as exceptionObject:
+        return jsonify({
+            "error": f"Parser crashed: {str(exceptionObject)}"
+        }), 500
 
     try:
-        checked_ast, semantic_errors = run_semantic(program_ast)
+        checkedProgram, semanticErrors = runSemanticAnalysis(programAst)
+        formattedErrors = []
 
-        formatted_errors = []
+        for semanticError in semanticErrors:
+            if hasattr(semanticError, "asString"):
+                formattedErrors.extend([semanticError.asString()])
 
-        for semantic_error in semantic_errors:
-            if hasattr(semantic_error, "as_string"):
-                formatted_errors.append(semantic_error.as_string())
+            elif hasattr(semanticError, "as_string"):
+                formattedErrors.extend([semanticError.as_string()])
+
             else:
-                error_position = getattr(semantic_error, "pos", None)
-                error_message = getattr(semantic_error, "message", str(semantic_error))
+                errorPosition = getattr(semanticError, "position", None)
+                errorMessage = getattr(
+                    semanticError,
+                    "message",
+                    str(semanticError)
+                )
 
-                if error_position and hasattr(error_position, "line") and hasattr(error_position, "col"):
-                    formatted_errors.append(
-                        f"Ln {error_position.line}, Col {error_position.col} Semantic Error: {error_message}"
-                    )
+                if (
+                    errorPosition
+                    and hasattr(errorPosition, "lineNumber")
+                    and hasattr(errorPosition, "columnNumber")
+                ):
+                    formattedErrors.extend([
+                        f"Ln {errorPosition.lineNumber}, Col {errorPosition.columnNumber} Semantic Error: {errorMessage}"
+                    ])
+
                 else:
-                    formatted_errors.append(f"Semantic Error: {error_message}")
+                    formattedErrors.extend([
+                        f"Semantic Error: {errorMessage}"
+                    ])
 
         return jsonify({
-            "semantic_valid": len(formatted_errors) == 0,
-            "errors": formatted_errors,
+            "semantic_valid": len(formattedErrors) == 0,
+            "errors": formattedErrors,
         }), 200
 
-    except Exception as exception_obj:
-        return jsonify({"error": f"Semantic analyzer crashed: {str(exception_obj)}"}), 500
+    except Exception as exceptionObject:
+        return jsonify({
+            "error": f"Semantic analyzer crashed: {str(exceptionObject)}"
+        }), 500
 
 
 @app.post("/api/run/start")
-def api_run_start():
-    request_data = request.get_json(silent=True) or {}
-    source_code = request_data.get("source_code", "")
+def apiRunStart():
+    requestData = request.get_json(silent=True) or {}
+    sourceCode = requestData.get("source_code", "")
 
     try:
-        checked_ast, analysis = analyze_source(source_code)
-        if not analysis["ok"]:
+        checkedProgram, analysisResult = analyzeSource(sourceCode)
+
+        if not analysisResult["ok"]:
             return jsonify({
                 "status": "error",
                 "session_id": None,
                 "output": [],
                 "result": None,
-                "errors": analysis["errors"],
+                "errors": analysisResult["errors"],
             }), 200
 
-        session_id = str(uuid.uuid4())
-        session = {
-            "id": session_id,
-            "source_code": source_code,
-            "checked_ast": checked_ast,
-            "inputs": [],
-            "emitted_output": [],
-        }
-        RUN_SESSIONS[session_id] = session
+        sessionId = str(uuid.uuid4())
 
-        response = execute_session_until_pause(session)
+        session = {
+            "id": sessionId,
+            "sourceCode": sourceCode,
+            "checkedProgram": checkedProgram,
+            "inputs": [],
+            "emittedOutput": [],
+        }
+
+        RUNNING_SESSIONS[sessionId] = session
+        response = executeSessionUntilPause(session)
 
         if response["status"] in ("finished", "error"):
-            RUN_SESSIONS.pop(session_id, None)
+            RUNNING_SESSIONS.pop(sessionId, None)
 
         return jsonify(response), 200
 
-    except ParserError as parser_error:
+    except ParserError as parserError:
         return jsonify({
             "status": "error",
             "session_id": None,
@@ -322,28 +393,32 @@ def api_run_start():
             "result": None,
             "errors": [
                 "Execution not performed because syntax errors exist.",
-                parser_error.as_string()
+                parserError.asString()
             ],
         }), 200
 
-    except Exception as exception_obj:
+    except Exception as exceptionObject:
         traceback.print_exc()
+
         return jsonify({
             "status": "error",
             "session_id": None,
             "output": [],
             "result": None,
-            "errors": [f"Interpreter internal crash: {exception_obj.__class__.__name__}"],
+            "errors": [
+                f"Interpreter internal crash: {exceptionObject.__class__.__name__}"
+            ],
         }), 500
 
 
 @app.post("/api/run/input")
-def api_run_input():
-    request_data = request.get_json(silent=True) or {}
-    session_id = request_data.get("session_id")
-    value = request_data.get("value", "")
+def apiRunInput():
+    requestData = request.get_json(silent=True) or {}
+    sessionId = requestData.get("session_id")
+    inputValue = requestData.get("value", "")
 
-    session = RUN_SESSIONS.get(session_id)
+    session = RUNNING_SESSIONS.get(sessionId)
+
     if not session:
         return jsonify({
             "status": "error",
@@ -353,27 +428,34 @@ def api_run_input():
             "errors": ["Runtime session expired or does not exist."],
         }), 200
 
-    session["inputs"].append(value)
+    session["inputs"].extend([inputValue])
 
     try:
-        response = execute_session_until_pause(session)
+        response = executeSessionUntilPause(session)
 
         if response["status"] in ("finished", "error"):
-            RUN_SESSIONS.pop(session_id, None)
+            RUNNING_SESSIONS.pop(sessionId, None)
 
         return jsonify(response), 200
 
-    except Exception as exception_obj:
+    except Exception as exceptionObject:
         traceback.print_exc()
-        RUN_SESSIONS.pop(session_id, None)
+        RUNNING_SESSIONS.pop(sessionId, None)
+
         return jsonify({
             "status": "error",
             "session_id": None,
             "output": [],
             "result": None,
-            "errors": [f"Interpreter internal crash: {exception_obj.__class__.__name__}"],
+            "errors": [
+                f"Interpreter internal crash: {exceptionObject.__class__.__name__}"
+            ],
         }), 500
 
 
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    app.run(
+        host="127.0.0.1",
+        port=5000,
+        debug=True
+    )

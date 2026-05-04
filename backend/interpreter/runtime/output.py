@@ -1,25 +1,27 @@
 from __future__ import annotations
 from typing import Any
-from backend.interpreter.builtins import stringify
 
-def _write_inline(self, text: Any):
-    self.current_line += str(text)
+from backend.interpreter.builtins import stringifyValue
 
-def _write_line(self, text: Any = ""):
-    self.current_line += str(text)
-    self.output.append(self.current_line)
-    self.current_line = ""
 
-def _flush_output(self):
-    if self.current_line:
-        self.output.append(self.current_line)
-        self.current_line = ""
+def writeInline(self, text: Any):
+    self.currentLine += str(text)
 
-def stringify_method(self, value: Any):
-    return stringify(value)
+def writeLine(self, text: Any = ""):
+    self.currentLine += str(text)
+    self.outputLines.extend([self.currentLine])
+    self.currentLine = ""
 
-def bind_output_methods(cls):
-    cls._write_inline = _write_inline
-    cls._write_line = _write_line
-    cls._flush_output = _flush_output
-    cls.stringify = stringify_method
+def flushOutput(self):
+    if self.currentLine:
+        self.outputLines.extend([self.currentLine])
+        self.currentLine = ""
+
+def stringifyRuntimeValue(self, value: Any):
+    return stringifyValue(value)
+
+def bindOutputMethods(interpreterClass):
+    interpreterClass.writeInline = writeInline
+    interpreterClass.writeLine = writeLine
+    interpreterClass.flushOutput = flushOutput
+    interpreterClass.stringifyRuntimeValue = stringifyRuntimeValue

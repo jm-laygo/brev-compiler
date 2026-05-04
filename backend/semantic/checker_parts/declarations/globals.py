@@ -1,19 +1,21 @@
 from __future__ import annotations
 from typing import Any
 
-from ..helpers import _class
+from ..helpers import getClassName
 
 
 class GlobalDeclarationsMixin:
-    def _declare_globals(self, program_node: Any) -> None:
-        global_declarations = getattr(program_node, "globals", []) or []
+    def declareGlobals(self, programNode: Any) -> None:
+        globalDeclarations = getattr(programNode, "globalDeclarations", []) or []
 
-        for global_declaration in global_declarations:
-            declaration_kind = _class(global_declaration)
+        for globalDeclaration in globalDeclarations:
+            declarationKind = getClassName(globalDeclaration)
 
-            if declaration_kind in ("VarDecl", "SacredDecl"):
-                self._declare_var_decl(global_declaration, is_global=True)
-            elif declaration_kind == "OrdainDecl":
-                self._declare_ordain_decl(global_declaration, is_global=True)
-            elif declaration_kind == "OrderDecl":
+            if declarationKind in ("VariableDeclaration", "SacredDeclaration"):
+                self.declareVariableDeclaration(globalDeclaration, isGlobal=True)
+
+            elif declarationKind == "OrdainDeclaration":
+                self.declareOrdainDeclaration(globalDeclaration, isGlobal=True)
+
+            elif declarationKind == "OrderDeclaration":
                 continue

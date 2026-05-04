@@ -1,49 +1,82 @@
 from backend.tokens import Token, TK_COMMENT, TK_COMMENT_BLOCK
 from backend.errors import LexicalError
 
-def scan_comment(lexer, tokens, errors):
-    if lexer.current_char != "/" or lexer.peek() not in ("/", "*"):
+
+def scanComment(lexer, tokenList, errorList):
+    # not a comment
+    if lexer.currentCharacter != "/" or lexer.peek() not in ("/", "*"):
         return False
 
-    start_pos = lexer.pos.copy()
+    startingPosition = lexer.currentPosition.copy()
 
+    # line comment
     if lexer.peek() == "/":
-        lexeme = "//"
+        commentLexeme = "//"
+
         lexer.advance()
         lexer.advance()
 
-        while lexer.current_char is not None and lexer.current_char != "\n":
-            lexeme += lexer.current_char
+        # read until newline
+        while lexer.currentCharacter is not None and lexer.currentCharacter != "\n":
+            commentLexeme = commentLexeme + lexer.currentCharacter
             lexer.advance()
 
-        tokens.append(Token(TK_COMMENT, lexeme, start_pos))
+        commentToken = Token(
+            TK_COMMENT,
+            commentLexeme,
+            startingPosition
+        )
+
+        tokenList.extend([commentToken])
         return True
 
-    lexeme = "/*"
+    # block comment
+    commentLexeme = "/*"
+
     lexer.advance()
     lexer.advance()
 
     while True:
-        if lexer.current_char is None:
-            errors.append(LexicalError(start_pos, "Unterminated block comment"))
+        # no closing block
+        if lexer.currentCharacter is None:
+            lexicalError = LexicalError(
+                startingPosition,
+                "Unterminated block comment"
+            )
+
+            errorList.extend([lexicalError])
             return True
 
-        # Detect end of block comment
-        if lexer.current_char == "*" and lexer.peek() == "/":
-            lexeme += "*/"
+        # end of block
+        if lexer.currentCharacter == "*" and lexer.peek() == "/":
+            commentLexeme = commentLexeme + "*/"
+
             lexer.advance()
             lexer.advance()
+
             break
 
-        # Nested block comment start (disallowed)
-        if lexer.current_char == "/" and lexer.peek() == "*":
-            errors.append(LexicalError(lexer.pos.copy(), "Nested block comments are not allowed"))
-            lexeme += lexer.current_char
+        # nested block not allowed
+        if lexer.currentCharacter == "/" and lexer.peek() == "*":
+            lexicalError = LexicalError(
+                lexer.currentPosition.copy(),
+                "Nested block comments are not allowed"
+            )
+
+            errorList.extend([lexicalError])
+            commentLexeme = commentLexeme + lexer.currentCharacter
             lexer.advance()
+
             continue
 
-        lexeme += lexer.current_char
+        commentLexeme = commentLexeme + lexer.currentCharacter
         lexer.advance()
 
-    tokens.append(Token(TK_COMMENT_BLOCK, lexeme, start_pos))
+    blockCommentToken = Token(
+        TK_COMMENT_BLOCK,
+        commentLexeme,
+        startingPosition
+    )
+
+    tokenList.extend([blockCommentToken])
     return True

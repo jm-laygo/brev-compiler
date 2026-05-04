@@ -5,292 +5,320 @@ from backend.tokens import *
 from backend.errors import ParserError
 from backend.parser.predict_set import PREDICT, EPSILON
 from backend.ast.ast_nodes import *
-from backend.parser.parser import Parser, _tok_lexeme, _tok_pos
+from backend.parser.parser import Parser, getTokenValue, getTokenPosition
 
 
-def parse_cond_stmt(self: Parser) -> Statement:
-    lookahead_type = self.current_type(0)
+def parseConditionStatement(self: Parser) -> Statement:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<cond_stmt>"]:
+    # check condition stmt
+    if currentTokenType not in PREDICT["<cond_stmt>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<cond_stmt>"].keys())
+            list(PREDICT["<cond_stmt>"].keys())
         )
 
-    if lookahead_type == TK_CF_DECREE:
-        return self.parse_decree_chain()
+    # decree stmt
+    if currentTokenType == TK_CF_DECREE:
+        return self.parseDecreeChain()
 
-    return self.parse_discern_stmt()
+    return self.parseDiscernStatement()
 
+def parseDecreeChain(self: Parser) -> DecreeStatement:
+    currentTokenType = self.currentType(0)
 
-def parse_decree_chain(self: Parser) -> DecreeStmt:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<decree_chain>"]:
+    # check decree chain
+    if currentTokenType not in PREDICT["<decree_chain>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<decree_chain>"].keys())
+            list(PREDICT["<decree_chain>"].keys())
         )
 
-    decree_token = self.expect(TK_CF_DECREE)
+    decreeToken = self.expect(TK_CF_DECREE)
     self.expect(TK_SYM_OPPAREN)
-    condition_expression = self.parse_expr()
+    conditionExpression = self.parseExpression()
     self.expect(TK_SYM_CLSPAREN)
     self.expect(TK_SYM_OPBRACE)
-    body_statements = self.parse_statement_list()
+    bodyStatements = self.parseStatementList()
     self.expect(TK_SYM_CLSBRACE)
 
-    edict_clauses = self.parse_edict_list_opt()
-    absolution_clause = self.parse_absolution_opt()
+    edictClauses = self.parseEdictListOptional()
+    absolutionClause = self.parseAbsolutionOptional()
 
-    return DecreeStmt(
-        pos=_tok_pos(decree_token),
-        expr=condition_expression,
-        body=body_statements,
-        edicts=edict_clauses,
-        absolution=absolution_clause
+    return DecreeStatement(
+        position=getTokenPosition(decreeToken),
+        condition=conditionExpression,
+        bodyStatements=bodyStatements,
+        edictClauses=edictClauses,
+        absolutionClause=absolutionClause
     )
 
+def parseEdictListOptional(self: Parser) -> List[EdictClause]:
+    currentTokenType = self.currentType(0)
 
-def parse_edict_list_opt(self: Parser) -> List[EdictClause]:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<edict_list_opt>"]:
+    # check edict list
+    if currentTokenType not in PREDICT["<edict_list_opt>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<edict_list_opt>"].keys())
+            list(PREDICT["<edict_list_opt>"].keys())
         )
 
-    if PREDICT["<edict_list_opt>"][lookahead_type] == [EPSILON]:
+    # no edict
+    if PREDICT["<edict_list_opt>"][currentTokenType] == [EPSILON]:
         return []
 
-    edict_clauses: List[EdictClause] = []
-    while self.current_type(0) == TK_CF_EDICT:
-        edict_clauses.append(self.parse_edict())
+    edictClauses: List[EdictClause] = []
 
-    return edict_clauses
+    while self.currentType(0) == TK_CF_EDICT:
+        edictClauses.extend([self.parseEdict()])
 
+    return edictClauses
 
-def parse_edict(self: Parser) -> EdictClause:
-    lookahead_type = self.current_type(0)
+def parseEdict(self: Parser) -> EdictClause:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<edict>"]:
+    # check edict
+    if currentTokenType not in PREDICT["<edict>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<edict>"].keys())
+            list(PREDICT["<edict>"].keys())
         )
 
-    edict_token = self.expect(TK_CF_EDICT)
+    edictToken = self.expect(TK_CF_EDICT)
     self.expect(TK_SYM_OPPAREN)
-    condition_expression = self.parse_expr()
+    conditionExpression = self.parseExpression()
     self.expect(TK_SYM_CLSPAREN)
     self.expect(TK_SYM_OPBRACE)
-    body_statements = self.parse_statement_list()
+    bodyStatements = self.parseStatementList()
     self.expect(TK_SYM_CLSBRACE)
 
     return EdictClause(
-        pos=_tok_pos(edict_token),
-        expr=condition_expression,
-        body=body_statements
+        position=getTokenPosition(edictToken),
+        condition=conditionExpression,
+        bodyStatements=bodyStatements
     )
 
+def parseAbsolutionOptional(self: Parser) -> Optional[AbsolutionClause]:
+    currentTokenType = self.currentType(0)
 
-def parse_absolution_opt(self: Parser) -> Optional[AbsolutionClause]:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<absolution_opt>"]:
+    # check absolution
+    if currentTokenType not in PREDICT["<absolution_opt>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<absolution_opt>"].keys())
+            list(PREDICT["<absolution_opt>"].keys())
         )
 
-    if PREDICT["<absolution_opt>"][lookahead_type] == [EPSILON]:
+    # no absolution
+    if PREDICT["<absolution_opt>"][currentTokenType] == [EPSILON]:
         return None
 
-    absolution_token = self.expect(TK_CF_ABSOLUTION)
+    absolutionToken = self.expect(TK_CF_ABSOLUTION)
     self.expect(TK_SYM_OPBRACE)
-    body_statements = self.parse_statement_list()
+    bodyStatements = self.parseStatementList()
     self.expect(TK_SYM_CLSBRACE)
 
     return AbsolutionClause(
-        pos=_tok_pos(absolution_token),
-        body=body_statements
+        position=getTokenPosition(absolutionToken),
+        bodyStatements=bodyStatements
     )
 
+def parseDiscernStatement(self: Parser) -> DiscernStatement:
+    currentTokenType = self.currentType(0)
 
-def parse_discern_stmt(self: Parser) -> DiscernStmt:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<discern_stmt>"]:
+    # check discern stmt
+    if currentTokenType not in PREDICT["<discern_stmt>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<discern_stmt>"].keys())
+            list(PREDICT["<discern_stmt>"].keys())
         )
 
-    discern_token = self.expect(TK_CF_DISCERN)
+    discernToken = self.expect(TK_CF_DISCERN)
     self.expect(TK_SYM_OPPAREN)
-    condition_expression = self.parse_expr()
+    conditionExpression = self.parseExpression()
     self.expect(TK_SYM_CLSPAREN)
     self.expect(TK_SYM_OPBRACE)
-    verse_cases = self.parse_verse_list()
-    grace_clause = self.parse_grace_opt()
+    verseCases = self.parseVerseList()
+    graceClause = self.parseGraceOptional()
     self.expect(TK_SYM_CLSBRACE)
 
-    return DiscernStmt(
-        pos=_tok_pos(discern_token),
-        expr=condition_expression,
-        verses=verse_cases,
-        grace=grace_clause
+    return DiscernStatement(
+        position=getTokenPosition(discernToken),
+        expression=conditionExpression,
+        verseCases=verseCases,
+        graceDefault=graceClause
     )
 
+def parseVerseList(self: Parser) -> List[VerseCase]:
+    currentTokenType = self.currentType(0)
 
-def parse_verse_list(self: Parser) -> List[VerseCase]:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<verse_list>"]:
+    # check verse list
+    if currentTokenType not in PREDICT["<verse_list>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<verse_list>"].keys())
+            list(PREDICT["<verse_list>"].keys())
         )
 
-    if PREDICT["<verse_list>"][lookahead_type] == [EPSILON]:
+    # no verse
+    if PREDICT["<verse_list>"][currentTokenType] == [EPSILON]:
         return []
 
-    verse_cases: List[VerseCase] = []
+    verseCases: List[VerseCase] = []
 
-    while self.current_type(0) == TK_CF_VERSE:
-        verse_token = self.expect(TK_CF_VERSE)
-        match_value = self.parse_literal_or_identifier()
+    while self.currentType(0) == TK_CF_VERSE:
+        verseToken = self.expect(TK_CF_VERSE)
+        matchValue = self.parseLiteralOrIdentifier()
         self.expect(TK_SYM_COLON)
-        body_statements = self.parse_case_statement_list()
-        verse_end = self.parse_verse_end_opt()
+        bodyStatements = self.parseCaseStatementList()
+        verseEnd = self.parseVerseEndOptional()
 
-        verse_cases.append(
+        verseCases.extend([
             VerseCase(
-                pos=_tok_pos(verse_token),
-                match=match_value,
-                body=body_statements,
-                end=verse_end
+                position=getTokenPosition(verseToken),
+                matchValue=matchValue,
+                bodyStatements=bodyStatements,
+                verseEnd=verseEnd
             )
-        )
+        ])
 
-    return verse_cases
+    return verseCases
 
+def parseCaseStatementList(self: Parser) -> List[Statement]:
+    currentTokenType = self.currentType(0)
 
-def parse_case_statement_list(self: Parser) -> List[Statement]:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<case_statement_list>"]:
+    # check case body
+    if currentTokenType not in PREDICT["<case_statement_list>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<case_statement_list>"].keys())
+            list(PREDICT["<case_statement_list>"].keys())
         )
 
-    if PREDICT["<case_statement_list>"][lookahead_type] == [EPSILON]:
+    # empty case body
+    if PREDICT["<case_statement_list>"][currentTokenType] == [EPSILON]:
         return []
 
-    statement_list: List[Statement] = []
+    statementList: List[Statement] = []
 
     while True:
-        lookahead_type = self.current_type(0)
+        currentTokenType = self.currentType(0)
 
-        if lookahead_type in (TK_CF_ABSOLVE, TK_CF_FALL, TK_CF_VERSE, TK_CF_GRACE, TK_SYM_CLSBRACE):
+        if currentTokenType in (
+            TK_CF_ABSOLVE,
+            TK_CF_FALL,
+            TK_CF_VERSE,
+            TK_CF_GRACE,
+            TK_SYM_CLSBRACE
+        ):
             break
 
-        if lookahead_type in PREDICT["<case_statement_list>"] and PREDICT["<case_statement_list>"][lookahead_type] == [EPSILON]:
+        if (
+            currentTokenType in PREDICT["<case_statement_list>"]
+            and PREDICT["<case_statement_list>"][currentTokenType] == [EPSILON]
+        ):
             break
 
-        statement_list.append(self.parse_statement())
+        statementList.extend([self.parseStatement()])
 
-    return statement_list
+    return statementList
 
+def parseLiteralOrIdentifier(self: Parser) -> Union[Expression, IdentifierReference]:
+    currentTokenType = self.currentType(0)
 
-def parse_literal_or_identifier(self: Parser) -> Union[Expr, IdentifierRef]:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<literal_or_identifier>"]:
+    # check literal or identifier
+    if currentTokenType not in PREDICT["<literal_or_identifier>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<literal_or_identifier>"].keys())
+            list(PREDICT["<literal_or_identifier>"].keys())
         )
 
-    if lookahead_type == TK_IDENTIFIER:
-        identifier_token = self.expect(TK_IDENTIFIER)
-        return IdentifierRef(
-            pos=_tok_pos(identifier_token),
-            name=_tok_lexeme(identifier_token)
+    # identifier case
+    if currentTokenType == TK_IDENTIFIER:
+        identifierToken = self.expect(TK_IDENTIFIER)
+
+        return IdentifierReference(
+            position=getTokenPosition(identifierToken),
+            name=getTokenValue(identifierToken)
         )
 
-    return self.parse_literal_expr()
+    return self.parseLiteralExpression()
 
+def parseVerseEndOptional(self: Parser) -> Optional[VerseEnd]:
+    currentTokenType = self.currentType(0)
 
-def parse_verse_end_opt(self: Parser) -> Optional[VerseEnd]:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<verse_end_opt>"]:
+    # check verse end
+    if currentTokenType not in PREDICT["<verse_end_opt>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<verse_end_opt>"].keys())
+            list(PREDICT["<verse_end_opt>"].keys())
         )
 
-    if PREDICT["<verse_end_opt>"][lookahead_type] == [EPSILON]:
+    # no verse end
+    if PREDICT["<verse_end_opt>"][currentTokenType] == [EPSILON]:
         return None
 
-    return self.parse_verse_end()
+    return self.parseVerseEnd()
 
+def parseVerseEnd(self: Parser) -> VerseEnd:
+    currentTokenType = self.currentType(0)
 
-def parse_verse_end(self: Parser) -> VerseEnd:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<verse_end>"]:
+    # check verse end
+    if currentTokenType not in PREDICT["<verse_end>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<verse_end>"].keys())
+            list(PREDICT["<verse_end>"].keys())
         )
 
-    if lookahead_type == TK_CF_ABSOLVE:
-        absolve_token = self.expect(TK_CF_ABSOLVE)
+    # absolve end
+    if currentTokenType == TK_CF_ABSOLVE:
+        absolveToken = self.expect(TK_CF_ABSOLVE)
         self.expect(TK_SYM_SEMICOL)
-        return VerseEnd(pos=_tok_pos(absolve_token), kind="absolve")
 
-    fall_token = self.expect(TK_CF_FALL)
-    self.expect(TK_SYM_SEMICOL)
-    return VerseEnd(pos=_tok_pos(fall_token), kind="fall")
-
-
-def parse_grace_opt(self: Parser) -> Optional[GraceDefault]:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<grace_opt>"]:
-        raise ParserError(
-            self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<grace_opt>"].keys())
+        return VerseEnd(
+            position=getTokenPosition(absolveToken),
+            kind="absolve"
         )
 
-    if PREDICT["<grace_opt>"][lookahead_type] == [EPSILON]:
-        return None
+    fallToken = self.expect(TK_CF_FALL)
+    self.expect(TK_SYM_SEMICOL)
 
-    grace_token = self.expect(TK_CF_GRACE)
-    self.expect(TK_SYM_COLON)
-    body_statements = self.parse_case_statement_list()
-    verse_end = self.parse_verse_end_opt()
-
-    return GraceDefault(
-        pos=_tok_pos(grace_token),
-        body=body_statements,
-        end=verse_end
+    return VerseEnd(
+        position=getTokenPosition(fallToken),
+        kind="fall"
     )
 
+def parseGraceOptional(self: Parser) -> Optional[GraceDefault]:
+    currentTokenType = self.currentType(0)
 
-Parser.parse_cond_stmt = parse_cond_stmt
-Parser.parse_decree_chain = parse_decree_chain
-Parser.parse_edict_list_opt = parse_edict_list_opt
-Parser.parse_edict = parse_edict
-Parser.parse_absolution_opt = parse_absolution_opt
-Parser.parse_discern_stmt = parse_discern_stmt
-Parser.parse_verse_list = parse_verse_list
-Parser.parse_case_statement_list = parse_case_statement_list
-Parser.parse_literal_or_identifier = parse_literal_or_identifier
-Parser.parse_verse_end_opt = parse_verse_end_opt
-Parser.parse_verse_end = parse_verse_end
-Parser.parse_grace_opt = parse_grace_opt
+    # check grace
+    if currentTokenType not in PREDICT["<grace_opt>"]:
+        raise ParserError(
+            self.peek(0) or self.peek(-1),
+            list(PREDICT["<grace_opt>"].keys())
+        )
+
+    # no grace
+    if PREDICT["<grace_opt>"][currentTokenType] == [EPSILON]:
+        return None
+
+    graceToken = self.expect(TK_CF_GRACE)
+    self.expect(TK_SYM_COLON)
+    bodyStatements = self.parseCaseStatementList()
+    verseEnd = self.parseVerseEndOptional()
+
+    return GraceDefault(
+        position=getTokenPosition(graceToken),
+        bodyStatements=bodyStatements,
+        verseEnd=verseEnd
+    )
+
+Parser.parseConditionStatement = parseConditionStatement
+Parser.parseDecreeChain = parseDecreeChain
+Parser.parseEdictListOptional = parseEdictListOptional
+Parser.parseEdict = parseEdict
+Parser.parseAbsolutionOptional = parseAbsolutionOptional
+Parser.parseDiscernStatement = parseDiscernStatement
+Parser.parseVerseList = parseVerseList
+Parser.parseCaseStatementList = parseCaseStatementList
+Parser.parseLiteralOrIdentifier = parseLiteralOrIdentifier
+Parser.parseVerseEndOptional = parseVerseEndOptional
+Parser.parseVerseEnd = parseVerseEnd
+Parser.parseGraceOptional = parseGraceOptional

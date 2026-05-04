@@ -1,100 +1,164 @@
 from __future__ import annotations
 
-from backend.ast.ast_nodes import AssignStmt, IncDecStmt
+from backend.ast.ast_nodes import AssignmentStatement, IncrementDecrementStatement
 from backend.errors import DivisionByZeroRuntimeError, RuntimeErrorBase, RuntimeTypeError
 
 
-def _run_assignment_operation(statement_node, operator_text, operation):
+def runAssignmentOperation(statementNode, operatorText, operation):
     try:
         return operation()
-    except TypeError as exc:
+
+    except TypeError as typeError:
         raise RuntimeTypeError(
-            statement_node,
-            f"Operator '{operator_text}' cannot be applied to the given operands.",
-        ) from exc
+            statementNode,
+            f"Operator '{operatorText}' cannot be applied to the given operands."
+        ) from typeError
 
+def handleAssignmentIncrementDecrementStatement(self, statementNode, currentEnvironment):
+    if isinstance(statementNode, AssignmentStatement):
+        assignedValue = self.evaluateExpression(
+            statementNode.value,
+            currentEnvironment
+        )
 
-def _handle_assign_incdec_stmt(self, statement_node, current_environment):
-    if isinstance(statement_node, AssignStmt):
-        assigned_value = self._eval_expr(statement_node.value, current_environment)
-        assignment_operator = getattr(statement_node, "op", "=")
+        assignmentOperator = getattr(statementNode, "operator", "=")
 
-        if assignment_operator == "=":
-            self._assign_lvalue(statement_node.target, assigned_value, current_environment, statement_node)
+        # normal assignment
+        if assignmentOperator == "=":
+            self.assignLeftHandValue(
+                statementNode.target,
+                assignedValue,
+                currentEnvironment,
+                statementNode
+            )
+
             return True
 
-        current_target_value = self._read_lvalue(statement_node.target, current_environment)
+        currentTargetValue = self.readLeftHandValue(
+            statementNode.target,
+            currentEnvironment
+        )
 
-        if assignment_operator == "+=":
-            computed_result = _run_assignment_operation(
-                statement_node,
-                assignment_operator,
-                lambda: current_target_value + assigned_value,
+        # add assignment
+        if assignmentOperator == "+=":
+            computedResult = runAssignmentOperation(
+                statementNode,
+                assignmentOperator,
+                lambda: currentTargetValue + assignedValue
             )
-        elif assignment_operator == "-=":
-            computed_result = _run_assignment_operation(
-                statement_node,
-                assignment_operator,
-                lambda: current_target_value - assigned_value,
+
+        # subtract assignment
+        elif assignmentOperator == "-=":
+            computedResult = runAssignmentOperation(
+                statementNode,
+                assignmentOperator,
+                lambda: currentTargetValue - assignedValue
             )
-        elif assignment_operator == "*=":
-            computed_result = _run_assignment_operation(
-                statement_node,
-                assignment_operator,
-                lambda: current_target_value * assigned_value,
+
+        # multiply assignment
+        elif assignmentOperator == "*=":
+            computedResult = runAssignmentOperation(
+                statementNode,
+                assignmentOperator,
+                lambda: currentTargetValue * assignedValue
             )
-        elif assignment_operator == "/=":
-            if assigned_value == 0:
-                raise DivisionByZeroRuntimeError(statement_node, "Division by zero.")
-            if isinstance(current_target_value, int) and isinstance(assigned_value, int):
-                computed_result = _run_assignment_operation(
-                    statement_node,
-                    assignment_operator,
-                    lambda: current_target_value // assigned_value,
+
+        # divide assignment
+        elif assignmentOperator == "/=":
+            if assignedValue == 0:
+                raise DivisionByZeroRuntimeError(
+                    statementNode,
+                    "Division by zero."
                 )
+
+            if isinstance(currentTargetValue, int) and isinstance(assignedValue, int):
+                computedResult = runAssignmentOperation(
+                    statementNode,
+                    assignmentOperator,
+                    lambda: currentTargetValue // assignedValue
+                )
+
             else:
-                computed_result = _run_assignment_operation(
-                    statement_node,
-                    assignment_operator,
-                    lambda: current_target_value / assigned_value,
+                computedResult = runAssignmentOperation(
+                    statementNode,
+                    assignmentOperator,
+                    lambda: currentTargetValue / assignedValue
                 )
-        elif assignment_operator == "%=":
-            if assigned_value == 0:
-                raise DivisionByZeroRuntimeError(statement_node, "Modulo by zero.")
-            computed_result = _run_assignment_operation(
-                statement_node,
-                assignment_operator,
-                lambda: current_target_value % assigned_value,
+
+        # modulo assignment
+        elif assignmentOperator == "%=":
+            if assignedValue == 0:
+                raise DivisionByZeroRuntimeError(
+                    statementNode,
+                    "Modulo by zero."
+                )
+
+            computedResult = runAssignmentOperation(
+                statementNode,
+                assignmentOperator,
+                lambda: currentTargetValue % assignedValue
             )
-        elif assignment_operator == "**=":
-            computed_result = _run_assignment_operation(
-                statement_node,
-                assignment_operator,
-                lambda: current_target_value ** assigned_value,
+
+        # power assignment
+        elif assignmentOperator == "**=":
+            computedResult = runAssignmentOperation(
+                statementNode,
+                assignmentOperator,
+                lambda: currentTargetValue ** assignedValue
             )
+
         else:
             raise RuntimeErrorBase(
-                statement_node,
-                f"Assignment operator '{assignment_operator}' is not supported during execution.",
+                statementNode,
+                f"Assignment operator '{assignmentOperator}' is not supported during execution."
             )
 
-        self._assign_lvalue(statement_node.target, computed_result, current_environment, statement_node)
+        self.assignLeftHandValue(
+            statementNode.target,
+            computedResult,
+            currentEnvironment,
+            statementNode
+        )
+
         return True
 
-    if isinstance(statement_node, IncDecStmt):
-        current_target_value = self._read_lvalue(statement_node.target, current_environment)
+    if isinstance(statementNode, IncrementDecrementStatement):
+        currentTargetValue = self.readLeftHandValue(
+            statementNode.target,
+            currentEnvironment
+        )
 
-        if not isinstance(current_target_value, (int, float)):
-            raise RuntimeTypeError(statement_node, "Increment and decrement require a numeric variable.")
+        if not isinstance(currentTargetValue, (int, float)):
+            raise RuntimeTypeError(
+                statementNode,
+                "Increment and decrement require a numeric variable."
+            )
 
-        if statement_node.op == "++":
-            self._assign_lvalue(statement_node.target, current_target_value + 1, current_environment, statement_node)
+        # increment
+        if statementNode.operator == "++":
+            self.assignLeftHandValue(
+                statementNode.target,
+                currentTargetValue + 1,
+                currentEnvironment,
+                statementNode
+            )
+
             return True
 
-        if statement_node.op == "--":
-            self._assign_lvalue(statement_node.target, current_target_value - 1, current_environment, statement_node)
+        # decrement
+        if statementNode.operator == "--":
+            self.assignLeftHandValue(
+                statementNode.target,
+                currentTargetValue - 1,
+                currentEnvironment,
+                statementNode
+            )
+
             return True
 
-        raise RuntimeErrorBase(statement_node, "Unsupported increment/decrement operator.")
+        raise RuntimeErrorBase(
+            statementNode,
+            "Unsupported increment/decrement operator."
+        )
 
     return False

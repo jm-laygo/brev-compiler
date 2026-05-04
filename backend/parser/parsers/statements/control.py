@@ -5,78 +5,98 @@ from backend.tokens import *
 from backend.errors import ParserError
 from backend.parser.predict_set import PREDICT, EPSILON
 from backend.ast.ast_nodes import *
-from backend.parser.parser import Parser, _tok_pos
+from backend.parser.parser import Parser, getTokenPosition
 
 
-def parse_jump_stmt(self: Parser) -> Statement:
-    lookahead_type = self.current_type(0)
+def parseJumpStatement(self: Parser) -> Statement:
+    currentTokenType = self.currentType(0)
 
-    if lookahead_type not in PREDICT["<jump_stmt>"]:
+    # check jump stmt
+    if currentTokenType not in PREDICT["<jump_stmt>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<jump_stmt>"].keys())
+            list(PREDICT["<jump_stmt>"].keys())
         )
 
-    if lookahead_type == TK_CF_DISMISS:
-        dismiss_token = self.expect(TK_CF_DISMISS)
-        value_expression = self.parse_expr_opt()
+    # dismiss stmt
+    if currentTokenType == TK_CF_DISMISS:
+        dismissToken = self.expect(TK_CF_DISMISS)
+        valueExpression = self.parseExpressionOptional()
         self.expect(TK_SYM_SEMICOL)
-        return DismissStmt(pos=_tok_pos(dismiss_token), value=value_expression)
 
-    if lookahead_type == TK_CF_PROCEED:
-        proceed_token = self.expect(TK_CF_PROCEED)
+        return DismissStatement(
+            position=getTokenPosition(dismissToken),
+            value=valueExpression
+        )
+
+    # proceed stmt
+    if currentTokenType == TK_CF_PROCEED:
+        proceedToken = self.expect(TK_CF_PROCEED)
         self.expect(TK_SYM_SEMICOL)
-        return ProceedStmt(pos=_tok_pos(proceed_token))
 
-    if lookahead_type == TK_CF_FALL:
-        fall_token = self.expect(TK_CF_FALL)
+        return ProceedStatement(
+            position=getTokenPosition(proceedToken)
+        )
+
+    # fall stmt
+    if currentTokenType == TK_CF_FALL:
+        fallToken = self.expect(TK_CF_FALL)
         self.expect(TK_SYM_SEMICOL)
-        return FallStmt(pos=_tok_pos(fall_token))
 
-    absolve_token = self.expect(TK_CF_ABSOLVE)
+        return FallStatement(
+            position=getTokenPosition(fallToken)
+        )
+
+    # absolve stmt
+    absolveToken = self.expect(TK_CF_ABSOLVE)
     self.expect(TK_SYM_SEMICOL)
-    return AbsolveStmt(pos=_tok_pos(absolve_token))
 
-
-def parse_dismiss_opt(self: Parser) -> Optional[DismissStmt]:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<dismiss_opt>"]:
-        raise ParserError(
-            self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<dismiss_opt>"].keys())
-        )
-
-    if PREDICT["<dismiss_opt>"][lookahead_type] == [EPSILON]:
-        return None
-
-    dismiss_token = self.expect(TK_CF_DISMISS)
-    value_expression = self.parse_dismiss_tail(dismiss_token)
-
-    return DismissStmt(
-        pos=_tok_pos(dismiss_token),
-        value=value_expression
+    return AbsolveStatement(
+        position=getTokenPosition(absolveToken)
     )
 
+def parseDismissOptional(self: Parser) -> Optional[DismissStatement]:
+    currentTokenType = self.currentType(0)
 
-def parse_dismiss_tail(self: Parser, dismiss_token: Any) -> Optional[Expr]:
-    lookahead_type = self.current_type(0)
-
-    if lookahead_type not in PREDICT["<dismiss_tail>"]:
+    # check dismiss
+    if currentTokenType not in PREDICT["<dismiss_opt>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
-            expected=list(PREDICT["<dismiss_tail>"].keys())
+            list(PREDICT["<dismiss_opt>"].keys())
         )
 
-    if lookahead_type == TK_SYM_SEMICOL:
+    # no dismiss
+    if PREDICT["<dismiss_opt>"][currentTokenType] == [EPSILON]:
+        return None
+
+    dismissToken = self.expect(TK_CF_DISMISS)
+    valueExpression = self.parseDismissTail(dismissToken)
+
+    return DismissStatement(
+        position=getTokenPosition(dismissToken),
+        value=valueExpression
+    )
+
+def parseDismissTail(self: Parser, dismissToken: Any) -> Optional[Expression]:
+    currentTokenType = self.currentType(0)
+
+    # check dismiss tail
+    if currentTokenType not in PREDICT["<dismiss_tail>"]:
+        raise ParserError(
+            self.peek(0) or self.peek(-1),
+            list(PREDICT["<dismiss_tail>"].keys())
+        )
+
+    # dismiss without value
+    if currentTokenType == TK_SYM_SEMICOL:
         self.expect(TK_SYM_SEMICOL)
         return None
 
-    value_expression = self.parse_expr()
+    valueExpression = self.parseExpression()
     self.expect(TK_SYM_SEMICOL)
-    return value_expression
 
+    return valueExpression
 
-Parser.parse_jump_stmt = parse_jump_stmt
-Parser.parse_dismiss_opt = parse_dismiss_opt
-Parser.parse_dismiss_tail = parse_dismiss_tail
+Parser.parseJumpStatement = parseJumpStatement
+Parser.parseDismissOptional = parseDismissOptional
+Parser.parseDismissTail = parseDismissTail

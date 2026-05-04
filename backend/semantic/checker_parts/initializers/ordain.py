@@ -3,13 +3,13 @@ from typing import Any
 
 
 class OrdainInitializerMixin:
-    def _check_ordain_decl_init(self, declaration_node: Any) -> None:
-        declared_items = getattr(declaration_node, "items", []) or []
+    def checkOrdainDeclarationInitialValues(self, declarationNode: Any) -> None:
+        declaredItems = getattr(declarationNode, "items", []) or []
 
-        for declared_item in declared_items:
-            initializer_value = getattr(declared_item, "init", None)
+        for declaredItem in declaredItems:
+            initialValue = getattr(declaredItem, "initialValue", None)
 
-            if initializer_value is None:
+            if initialValue is None:
                 continue
 
-            self._expr_type(initializer_value)
+            self.getExpressionType(initialValue)

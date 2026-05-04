@@ -1,33 +1,58 @@
 from __future__ import annotations
 
-from backend.ast.ast_nodes import CallStmt, ProclaimStmt, ReceiveStmt
+from backend.ast.ast_nodes import FunctionCallStatement, ProclaimStatement, ReceiveStatement
 
 
-def _handle_io_stmt(self, statement_node, current_environment):
-    if isinstance(statement_node, CallStmt):
-        evaluated_argument_values = []
-        for argument_node in statement_node.args:
-            evaluated_argument_values.append(self._eval_expr(argument_node, current_environment))
+def handleInputOutputStatement(self, statementNode, currentEnvironment):
+    if isinstance(statementNode, FunctionCallStatement):
+        evaluatedArgumentValues = []
 
-        self._call_rite(statement_node.callee, evaluated_argument_values, call_node=statement_node)
-        return True
+        for argumentNode in statementNode.arguments:
+            evaluatedArgumentValues.extend([
+                self.evaluateExpression(argumentNode, currentEnvironment)
+            ])
 
-    if isinstance(statement_node, ReceiveStmt):
-        raw_input_value = self.input_provider(statement_node.target)
-        converted_input_value = self._convert_input_for_target(
-            statement_node.target,
-            raw_input_value,
-            current_environment,
+        self.callRite(
+            statementNode.calleeName,
+            evaluatedArgumentValues,
+            callNode=statementNode
         )
-        self._assign_lvalue(statement_node.target, converted_input_value, current_environment, statement_node)
+
         return True
 
-    if isinstance(statement_node, ProclaimStmt):
-        output_parts = []
-        for argument_node in statement_node.args:
-            evaluated_value = self._eval_expr(argument_node, current_environment)
-            output_parts.append(self.stringify(evaluated_value))
-        self._write_inline("".join(output_parts))
+    if isinstance(statementNode, ReceiveStatement):
+        rawInputValue = self.inputProvider(statementNode.target)
+
+        convertedInputValue = self.convertInputForTarget(
+            statementNode.target,
+            rawInputValue,
+            currentEnvironment
+        )
+
+        self.assignLeftHandValue(
+            statementNode.target,
+            convertedInputValue,
+            currentEnvironment,
+            statementNode
+        )
+
+        return True
+
+    if isinstance(statementNode, ProclaimStatement):
+        outputParts = []
+
+        for argumentNode in statementNode.arguments:
+            evaluatedValue = self.evaluateExpression(
+                argumentNode,
+                currentEnvironment
+            )
+
+            outputParts.extend([
+                self.stringifyRuntimeValue(evaluatedValue)
+            ])
+
+        self.writeInline("".join(outputParts))
+
         return True
 
     return False

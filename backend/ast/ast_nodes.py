@@ -2,280 +2,333 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, List, Optional, Union
 
-# Base Node
+
+# base node
 @dataclass
 class Node:
-    pos: Any = None
+    position: Any = None
 
-# Program / Functions
+
+# program
 @dataclass
 class Program(Node):
-    # global_dec_list (sacred / var / order / ordain)
-    globals: List[Node] = field(default_factory=list)
+    globalDeclarations: List[Node] = field(default_factory=list)
+    riteDeclarations: List["RiteDeclaration"] = field(default_factory=list)
+    entryRite: Optional["RiteDeclaration"] = None
 
-    # rite_seq non-entry
-    functions: List["RiteDecl"] = field(default_factory=list)
 
-    # genesis() rite (entry)
-    entry: Optional["RiteDecl"] = None
-
+# rite
 @dataclass
-class RiteDecl(Node):
+class RiteDeclaration(Node):
     name: str = ""
-    return_type: str = ""
-    params: List["Param"] = field(default_factory=list)
+    returnType: str = ""
+    parameters: List["Parameter"] = field(default_factory=list)
+    localDeclarations: List[Node] = field(default_factory=list)
+    bodyStatements: List["Statement"] = field(default_factory=list)
+    dismissStatement: Optional["DismissStatement"] = None
 
-    local_decls: List[Node] = field(default_factory=list)
-    body: List["Statement"] = field(default_factory=list)
-    dismiss: Optional["DismissStmt"] = None
 
 @dataclass
-class Param(Node):
-    type_name: str = ""
+class Parameter(Node):
+    typeName: str = ""
     name: str = ""
-    dims: List[Optional["Expr"]] = field(default_factory=list)
+    dimensions: List[Optional["Expression"]] = field(default_factory=list)
 
-# Global / Local Decls
+
+# sacred declaration
 @dataclass
-class SacredDecl(Node):
-    type_name: str = ""
+class SacredDeclaration(Node):
+    typeName: str = ""
     items: List["SacredItem"] = field(default_factory=list)
+
 
 @dataclass
 class SacredItem(Node):
     name: str = ""
-    value: Optional["Expr"] = None   # const_expr
+    value: Optional["Expression"] = None
+
+
+# variable declaration
+@dataclass
+class VariableDeclaration(Node):
+    typeName: str = ""
+    items: List["VariableItem"] = field(default_factory=list)
+
 
 @dataclass
-class VarDecl(Node):
-    type_name: str = ""
-    items: List["VarItem"] = field(default_factory=list)
-
-@dataclass
-class VarItem(Node):
+class VariableItem(Node):
     name: str = ""
-    dims: List["Expr"] = field(default_factory=list)
-    init: Optional["Expr"] = None
+    dimensions: List["Expression"] = field(default_factory=list)
+    initialValue: Optional["Expression"] = None
 
+
+# order declaration
 @dataclass
-class OrderDecl(Node):
+class OrderDeclaration(Node):
     name: str = ""
     members: List["OrderMember"] = field(default_factory=list)
 
-@dataclass
-class OrderMember(Node):
-    type_name: str = ""
-    name: str = ""
-    dims: List["Expr"] = field(default_factory=list)
-    init: Optional["Expr"] = None
 
 @dataclass
-class OrdainDecl(Node):
+class OrderMember(Node):
+    typeName: str = ""
+    name: str = ""
+    dimensions: List["Expression"] = field(default_factory=list)
+    initialValue: Optional["Expression"] = None
+
+
+# ordain declaration
+@dataclass
+class OrdainDeclaration(Node):
     name: str = ""
     items: List["OrdainItem"] = field(default_factory=list)
+
 
 @dataclass
 class OrdainItem(Node):
     name: str = ""
-    dims: List["Expr"] = field(default_factory=list)
-    init: Optional["Expr"] = None
+    dimensions: List["Expression"] = field(default_factory=list)
+    initialValue: Optional["Expression"] = None
 
-# Statements
+
+# statements
 @dataclass
 class Statement(Node):
     pass
 
-@dataclass
-class CallStmt(Statement):
-    callee: str = ""
-    args: List["Expr"] = field(default_factory=list)
-    access: Optional["LValue"] = None
 
 @dataclass
-class VarDeclStmt(Statement):
-    decl: VarDecl = None
+class FunctionCallStatement(Statement):
+    calleeName: str = ""
+    arguments: List["Expression"] = field(default_factory=list)
+    accessChain: Optional["LeftHandValue"] = None
+
 
 @dataclass
-class OrderStmt(Statement):
-    decl: OrderDecl = None
+class VariableDeclarationStatement(Statement):
+    declaration: VariableDeclaration = None
+
 
 @dataclass
-class OrdainStmt(Statement):
-    decl: OrdainDecl = None
+class OrderDeclarationStatement(Statement):
+    declaration: OrderDeclaration = None
+
 
 @dataclass
-class IOStmt(Statement):
+class OrdainDeclarationStatement(Statement):
+    declaration: OrdainDeclaration = None
+
+
+# input output statements
+@dataclass
+class InputOutputStatement(Statement):
     pass
 
-@dataclass
-class ReceiveStmt(IOStmt):
-    target: "LValue" = None
 
 @dataclass
-class ProclaimStmt(IOStmt):
-    args: List["Expr"] = field(default_factory=list)
+class ReceiveStatement(InputOutputStatement):
+    target: "LeftHandValue" = None
+
 
 @dataclass
-class AssignStmt(Statement):
-    target: "LValue" = None
-    op: str = "="
-    value: "Expr" = None
+class ProclaimStatement(InputOutputStatement):
+    arguments: List["Expression"] = field(default_factory=list)
+
 
 @dataclass
-class IncDecStmt(Statement):
-    target: "LValue" = None
-    op: str = "++" 
-    prefix: bool = True
+class AssignmentStatement(Statement):
+    target: "LeftHandValue" = None
+    operator: str = "="
+    value: "Expression" = None
+
 
 @dataclass
-class JumpStmt(Statement):
+class IncrementDecrementStatement(Statement):
+    target: "LeftHandValue" = None
+    operator: str = "++"
+    isPrefix: bool = True
+
+
+# jump statements
+@dataclass
+class JumpStatement(Statement):
     pass
 
-@dataclass
-class DismissStmt(JumpStmt):
-    value: Optional["Expr"] = None
 
 @dataclass
-class ProceedStmt(JumpStmt):
+class DismissStatement(JumpStatement):
+    value: Optional["Expression"] = None
+
+
+@dataclass
+class ProceedStatement(JumpStatement):
     pass
 
+
 @dataclass
-class AbsolveStmt(JumpStmt):
+class AbsolveStatement(JumpStatement):
     pass
 
-# Conditions (decree / discern)
+
 @dataclass
-class CondStmt(Statement):
+class FallStatement(JumpStatement):
     pass
 
-# Decree
+
+# condition statements
 @dataclass
-class DecreeStmt(CondStmt):
-    expr: "Expr" = None
-    body: List[Statement] = field(default_factory=list)
-    edicts: List["EdictClause"] = field(default_factory=list)
-    absolution: Optional["AbsolutionClause"] = None
+class ConditionStatement(Statement):
+    pass
+
+
+# decree statement
+@dataclass
+class DecreeStatement(ConditionStatement):
+    condition: "Expression" = None
+    bodyStatements: List[Statement] = field(default_factory=list)
+    edictClauses: List["EdictClause"] = field(default_factory=list)
+    absolutionClause: Optional["AbsolutionClause"] = None
+
 
 @dataclass
 class EdictClause(Node):
-    expr: "Expr" = None
-    body: List[Statement] = field(default_factory=list)
+    condition: "Expression" = None
+    bodyStatements: List[Statement] = field(default_factory=list)
+
 
 @dataclass
 class AbsolutionClause(Node):
-    body: List[Statement] = field(default_factory=list)
+    bodyStatements: List[Statement] = field(default_factory=list)
 
-# Discern
+
+# discern statement
 @dataclass
-class DiscernStmt(CondStmt):
-    expr: "Expr" = None
-    verses: List["VerseCase"] = field(default_factory=list)
-    grace: Optional["GraceDefault"] = None
+class DiscernStatement(ConditionStatement):
+    expression: "Expression" = None
+    verseCases: List["VerseCase"] = field(default_factory=list)
+    graceDefault: Optional["GraceDefault"] = None
+
 
 @dataclass
 class VerseCase(Node):
-    match: Union["Expr", "IdentifierRef"] = None
-    body: List[Statement] = field(default_factory=list)
-    end: Optional["VerseEnd"] = None
+    matchValue: Union["Expression", "IdentifierReference"] = None
+    bodyStatements: List[Statement] = field(default_factory=list)
+    verseEnd: Optional["VerseEnd"] = None
+
 
 @dataclass
 class VerseEnd(Node):
     kind: str = ""
 
+
 @dataclass
 class GraceDefault(Node):
-    body: List[Statement] = field(default_factory=list)
-    end: Optional["VerseEnd"] = None
+    bodyStatements: List[Statement] = field(default_factory=list)
+    verseEnd: Optional["VerseEnd"] = None
 
+
+# loop statements
 @dataclass
-class FallStmt(JumpStmt):
+class LoopStatement(Statement):
     pass
 
-# Loops
+
 @dataclass
-class LoopStmt(Statement):
+class EndureStatement(LoopStatement):
+    condition: "Expression" = None
+    bodyStatements: List[Statement] = field(default_factory=list)
+
+
+@dataclass
+class ProcessionStatement(LoopStatement):
+    initializerStatement: Optional[Statement] = None
+    condition: Optional["Expression"] = None
+    updateStatement: Optional[Statement] = None
+    bodyStatements: List[Statement] = field(default_factory=list)
+
+
+@dataclass
+class RitualStatement(LoopStatement):
+    bodyStatements: List[Statement] = field(default_factory=list)
+    condition: "Expression" = None
+
+
+# left hand values
+@dataclass
+class LeftHandValue(Node):
     pass
 
-@dataclass
-class EndureStmt(LoopStmt):
-    condition: "Expr" = None
-    body: List[Statement] = field(default_factory=list)
 
 @dataclass
-class ProcessionStmt(LoopStmt):
-    init: Optional[Statement] = None
-    condition: Optional["Expr"] = None
-    update: Optional[Statement] = None
-    body: List[Statement] = field(default_factory=list)
-
-@dataclass
-class RitualStmt(LoopStmt):
-    body: List[Statement] = field(default_factory=list)
-    condition: "Expr" = None
-
-@dataclass
-class LValue(Node):
-    pass
-
-@dataclass
-class NameRef(LValue):
+class NameReference(LeftHandValue):
     name: str = ""
 
-@dataclass
-class IndexRef(LValue):
-    base: LValue = None
-    index: "Expr" = None
 
 @dataclass
-class MemberRef(LValue):
-    base: LValue = None
-    member: str = ""
+class IndexReference(LeftHandValue):
+    baseReference: LeftHandValue = None
+    indexExpression: "Expression" = None
+
 
 @dataclass
-class IdentifierRef(Node):
+class MemberReference(LeftHandValue):
+    baseReference: LeftHandValue = None
+    memberName: str = ""
+
+
+@dataclass
+class IdentifierReference(Node):
     name: str = ""
 
-# Expressions
+
+# expressions
 @dataclass
-class Expr(Node):
-    inferred_type: Optional[str] = None
+class Expression(Node):
+    inferredType: Optional[str] = None
 
 
 @dataclass
-class LiteralExpr(Expr):
+class LiteralExpression(Expression):
     value: Any = None
-    literal_type: str = ""
+    literalType: str = ""
+
 
 @dataclass
-class UnaryExpr(Expr):
-    op: str = ""
-    operand: Expr = None
-    prefix: bool = True
+class UnaryExpression(Expression):
+    operator: str = ""
+    operand: Expression = None
+    isPrefix: bool = True
+
 
 @dataclass
-class BinaryExpr(Expr):
-    left: Expr = None
-    op: str = ""
-    right: Expr = None
+class BinaryExpression(Expression):
+    leftExpression: Expression = None
+    operator: str = ""
+    rightExpression: Expression = None
+
 
 @dataclass
-class GroupExpr(Expr):
-    expr: Expr = None
+class GroupExpression(Expression):
+    expression: Expression = None
+
 
 @dataclass
-class CallExpr(Expr):
-    callee: str = ""
-    args: List[Expr] = field(default_factory=list)
-    access: Optional[LValue] = None
+class FunctionCallExpression(Expression):
+    calleeName: str = ""
+    arguments: List[Expression] = field(default_factory=list)
+    accessChain: Optional[LeftHandValue] = None
+
 
 @dataclass
-class VerseOfExpr(Expr):
-    expr: Expr = None
+class VerseOfExpression(Expression):
+    expression: Expression = None
+
 
 @dataclass
-class ArrayInit(Expr):
-    items: List[Expr] = field(default_factory=list)
+class ArrayInitializationExpression(Expression):
+    items: List[Expression] = field(default_factory=list)
+
 
 @dataclass
-class VarExpr(Expr):
-    ref: LValue = None
+class VariableExpression(Expression):
+    reference: LeftHandValue = None
