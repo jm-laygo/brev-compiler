@@ -1,34 +1,80 @@
 import React from "react";
 import renderLexeme from "../utils/renderLexeme.js";
 
-function getLnCol(token) {
-    const p = token?.pos ?? token?.position ?? null;
+function getLineColumnText(token) {
+    const tokenPosition = token?.position ?? token?.pos ?? null;
 
-    const ln = Number(p?.ln ?? p?.line ?? token?.ln ?? token?.line ?? 0);
-    const col = Number(p?.col ?? p?.column ?? token?.col ?? token?.column ?? 0);
+    const lineNumber = Number(
+        tokenPosition?.lineNumber ??
+            tokenPosition?.ln ??
+            tokenPosition?.line ??
+            token?.lineNumber ??
+            token?.ln ??
+            token?.line ??
+            0
+    );
 
-    const lnTxt = ln > 0 ? ln : "-";
-    const colTxt = col > 0 ? col : "-";
-    return `${lnTxt},${colTxt}`;
+    const columnNumber = Number(
+        tokenPosition?.columnNumber ??
+            tokenPosition?.col ??
+            tokenPosition?.column ??
+            token?.columnNumber ??
+            token?.col ??
+            token?.column ??
+            0
+    );
+
+    const lineText = lineNumber > 0 ? lineNumber : "-";
+    const columnText = columnNumber > 0 ? columnNumber : "-";
+
+    return `${lineText},${columnText}`;
 }
 
 export default function TokenRow({ token }) {
-    if (!token) return null;
+    if (!token) {
+        return null;
+    }
 
-    const posText = getLnCol(token);
-    const lex = renderLexeme(token.value);
-    const tok = token.token ?? "";
-    const type = token.type ?? "";
+    const positionText = getLineColumnText(token);
+    const [lineText, columnText] = positionText.split(",");
 
-  return (
-    <>
-      <div className="token-cell pos" role="cell" title={`Ln ${posText.split(",")[0]}, Col ${posText.split(",")[1]}`}>
-        {posText}
-      </div>
+    const lexemeText = renderLexeme(token.value);
+    const tokenName = token.token ?? "";
+    const tokenType = token.type ?? "";
 
-      <div className="token-cell lexeme" role="cell" title={lex}>{lex}</div>
-      <div className="token-cell token" role="cell" title={tok}>{tok}</div>
-      <div className="token-cell type" role="cell" title={type}>{type}</div>
-    </>
-  );
+    return (
+        <>
+            <div
+                className="token-cell pos"
+                role="cell"
+                title={`Ln ${lineText}, Col ${columnText}`}
+            >
+                {positionText}
+            </div>
+
+            <div
+                className="token-cell lexeme"
+                role="cell"
+                title={lexemeText}
+            >
+                {lexemeText}
+            </div>
+
+            <div
+                className="token-cell token"
+                role="cell"
+                title={tokenName}
+            >
+                {tokenName}
+            </div>
+
+            <div
+                className="token-cell type"
+                role="cell"
+                title={tokenType}
+            >
+                {tokenType}
+            </div>
+        </>
+    );
 }

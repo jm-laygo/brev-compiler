@@ -1,19 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-    runLexical,
-    runSyntax,
-    runSemantic,
-    runStartExecute,
-    runSendInput,
+    runLexicalAnalysis,
+    runSyntaxAnalysis,
+    runSemanticAnalysis,
+    startExecution,
+    sendRuntimeInput,
 } from "../../api/brevApi.js";
 
 export default function useLiveRunner({
     getCode,
     clearAllEditorMarkers,
     setMarkersFromErrors,
-    setTerminal,
+    setTerminalOutput,
     logError,
-    logWarn,
+    logWarning,
     logSuccess,
     setTokens,
     setTokensOpen,
@@ -23,26 +23,35 @@ export default function useLiveRunner({
     const [runtimePrompt, setRuntimePrompt] = useState(null);
     const [runtimeSessionId, setRuntimeSessionId] = useState(null);
 
-    const liveAbortRef = useRef(null);
-    const liveReqIdRef = useRef(0);
-    const liveDebounceRef = useRef(null);
+    const abortControllerRef = useRef(null);
+    const requestIdRef = useRef(0);
+    const debounceTimerRef = useRef(null);
 
     useEffect(() => {
         return () => {
-            if (liveDebounceRef.current) clearTimeout(liveDebounceRef.current);
-            if (liveAbortRef.current) liveAbortRef.current.abort();
+            if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current);
+            }
+
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
         };
     }, []);
 
     const appendRuntimeOutput = useCallback(
-        (output) => {
-            const lines = Array.isArray(output) ? output : [];
-            lines.forEach((line) => {
-                if (line === "" || line == null) logWarn("");
-                else logWarn(String(line));
+        (outputLines) => {
+            const safeOutputLines = Array.isArray(outputLines) ? outputLines : [];
+
+            safeOutputLines.forEach((outputLine) => {
+                if (outputLine === "" || outputLine == null) {
+                    logWarning("");
+                } else {
+                    logWarning(String(outputLine));
+                }
             });
         },
-        [logWarn]
+        [logWarning]
     );
 
     const finishRuntimeState = useCallback(() => {
@@ -57,88 +66,120 @@ export default function useLiveRunner({
     }, [finishRuntimeState]);
 
     const stopLive = useCallback(() => {
-        if (liveDebounceRef.current) {
-            clearTimeout(liveDebounceRef.current);
-            liveDebounceRef.current = null;
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+            debounceTimerRef.current = null;
         }
 
-        if (liveAbortRef.current) {
-            liveAbortRef.current.abort();
-            liveAbortRef.current = null;
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
         }
 
-        liveReqIdRef.current += 1;
+        requestIdRef.current += 1;
         resetRunState();
-        logWarn("Stopped.");
-    }, [logWarn, resetRunState]);
+        logWarning("Stopped.");
+    }, [logWarning, resetRunState]);
+
+    const handleApiError = useCallback(
+        (phaseName, response, responseData) => {
+            const errorMessage = `${phaseName} API error (HTTP ${
+                response?.status ?? "?"
+            }): ${responseData?.error || "Unknown error"}`;
+
+            setTerminalOutput(`${phaseName} failed:`, "error");
+            logError(errorMessage);
+            setMarkersFromErrors([errorMessage]);
+        },
+        [logError, setMarkersFromErrors, setTerminalOutput]
+    );
 
     const runLiveOnce = useCallback(
-        async (phase, sourceCode, openTokens) => {
-            if (liveAbortRef.current) liveAbortRef.current.abort();
+        async (phase, sourceCode, shouldOpenTokens) => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
 
-            const controller = new AbortController();
-            liveAbortRef.current = controller;
+            const abortController = new AbortController();
+            abortControllerRef.current = abortController;
 
-            const reqId = ++liveReqIdRef.current;
+            const currentRequestId = requestIdRef.current + 1;
+            requestIdRef.current = currentRequestId;
 
             try {
                 clearAllEditorMarkers();
 
                 if (phase === "lex") {
-                    setTerminal("Running lexical analysis...", "info");
+                    setTerminalOutput("Running lexical analysis...", "info");
 
-                    const { res, data } = await runLexical(sourceCode, controller.signal);
-                    if (reqId !== liveReqIdRef.current) return;
+                    const { response, responseData } = await runLexicalAnalysis(
+                        sourceCode,
+                        abortController.signal
+                    );
 
-                    if (!res.ok) {
-                        const msg = `Lex API error (HTTP ${res.status}): ${data.error || "Unknown error"}`;
-                        setTerminal("Lexical analysis failed:", "error");
-                        logError(msg);
-                        setMarkersFromErrors([msg]);
+                    if (currentRequestId !== requestIdRef.current) {
                         return;
                     }
 
-                    const toks = Array.isArray(data.tokens) ? data.tokens : [];
-                    const errs = Array.isArray(data.errors) ? data.errors : [];
+                    if (!response.ok) {
+                        handleApiError("Lexical analysis", response, responseData);
+                        return;
+                    }
 
-                    const filtered = toks.filter((t) => !t.hidden);
-                    setTokens(filtered);
+                    const tokenList = Array.isArray(responseData.tokens)
+                        ? responseData.tokens
+                        : [];
 
-                    if (errs.length) {
-                        setTerminal("Lexical analysis failed:", "error");
-                        errs.forEach((e) => logError(e));
-                        setMarkersFromErrors(errs);
+                    const lexicalErrors = Array.isArray(responseData.errors)
+                        ? responseData.errors
+                        : [];
+
+                    const visibleTokens = tokenList.filter((token) => !token.hidden);
+                    setTokens(visibleTokens);
+
+                    if (lexicalErrors.length) {
+                        setTerminalOutput("Lexical analysis failed:", "error");
+                        lexicalErrors.forEach((errorText) => logError(errorText));
+                        setMarkersFromErrors(lexicalErrors);
                     } else {
-                        setTerminal("Lexical analysis successful!", "success");
+                        setTerminalOutput("Lexical analysis successful!", "success");
                         setMarkersFromErrors([]);
                     }
 
-                    if (openTokens && filtered.length > 0) setTokensOpen(true);
+                    if (shouldOpenTokens && visibleTokens.length > 0) {
+                        setTokensOpen(true);
+                    }
+
                     return;
                 }
 
                 if (phase === "syn") {
-                    setTerminal("Running syntax analysis...", "info");
+                    setTerminalOutput("Running syntax analysis...", "info");
 
-                    const { res, data } = await runSyntax(sourceCode, controller.signal);
-                    if (reqId !== liveReqIdRef.current) return;
+                    const { response, responseData } = await runSyntaxAnalysis(
+                        sourceCode,
+                        abortController.signal
+                    );
 
-                    if (!res.ok) {
-                        const msg = `Syntax API error (HTTP ${res.status}): ${data.error || "Unknown error"}`;
-                        setTerminal("Syntax analysis failed:", "error");
-                        logError(msg);
-                        setMarkersFromErrors([msg]);
+                    if (currentRequestId !== requestIdRef.current) {
                         return;
                     }
 
-                    const errs = Array.isArray(data.errors) ? data.errors : [];
+                    if (!response.ok) {
+                        handleApiError("Syntax analysis", response, responseData);
+                        return;
+                    }
 
-                    if (errs.length) {
-                        setTerminal("Syntax analysis failed:", "error");
-                        errs.forEach((e) => logError(e));
-                        setMarkersFromErrors(errs);
+                    const syntaxErrors = Array.isArray(responseData.errors)
+                        ? responseData.errors
+                        : [];
+
+                    if (syntaxErrors.length) {
+                        setTerminalOutput("Syntax analysis failed:", "error");
+                        syntaxErrors.forEach((errorText) => logError(errorText));
+                        setMarkersFromErrors(syntaxErrors);
                     } else {
-                        setTerminal("Syntax analysis successful!", "success");
+                        setTerminalOutput("Syntax analysis successful!", "success");
                         setMarkersFromErrors([]);
                     }
 
@@ -146,95 +187,130 @@ export default function useLiveRunner({
                 }
 
                 if (phase === "sem") {
-                    setTerminal("Running semantic analysis...", "info");
+                    setTerminalOutput("Running semantic analysis...", "info");
 
-                    const { res, data } = await runSemantic(sourceCode, controller.signal);
-                    if (reqId !== liveReqIdRef.current) return;
+                    const { response, responseData } = await runSemanticAnalysis(
+                        sourceCode,
+                        abortController.signal
+                    );
 
-                    if (!res.ok) {
-                        const msg = `Semantic API error (HTTP ${res.status}): ${data.error || "Unknown error"}`;
-                        setTerminal("Semantic analysis failed:", "error");
-                        logError(msg);
-                        setMarkersFromErrors([msg]);
+                    if (currentRequestId !== requestIdRef.current) {
                         return;
                     }
 
-                    const errs = Array.isArray(data.errors) ? data.errors : [];
+                    if (!response.ok) {
+                        handleApiError("Semantic analysis", response, responseData);
+                        return;
+                    }
 
-                    if (data.semantic_valid && errs.length === 0) {
-                        setTerminal("Semantic analysis successful!", "success");
+                    const semanticErrors = Array.isArray(responseData.errors)
+                        ? responseData.errors
+                        : [];
+
+                    if (responseData.semantic_valid && semanticErrors.length === 0) {
+                        setTerminalOutput("Semantic analysis successful!", "success");
                         setMarkersFromErrors([]);
                     } else {
-                        setTerminal("Semantic analysis failed:", "error");
-                        if (errs.length) errs.forEach((e) => logError(e));
-                        else logError("Unknown semantic error");
-                        if (errs.length) setMarkersFromErrors(errs);
+                        setTerminalOutput("Semantic analysis failed:", "error");
+
+                        if (semanticErrors.length) {
+                            semanticErrors.forEach((errorText) => logError(errorText));
+                            setMarkersFromErrors(semanticErrors);
+                        } else {
+                            logError("Unknown semantic error");
+                        }
                     }
 
                     return;
                 }
 
                 if (phase === "run") {
-                    setTerminal("Running execution...", "info");
+                    setTerminalOutput("Running execution...", "info");
 
-                    const { res, data } = await runStartExecute(sourceCode, controller.signal);
-                    if (reqId !== liveReqIdRef.current) return;
+                    const { response, responseData } = await startExecution(
+                        sourceCode,
+                        abortController.signal
+                    );
 
-                    if (!res.ok) {
-                        const msg = `Execute API error (HTTP ${res.status}): ${data.error || "Unknown error"}`;
+                    if (currentRequestId !== requestIdRef.current) {
+                        return;
+                    }
+
+                    if (!response.ok) {
+                        const errorMessage = `Execute API error (HTTP ${response.status}): ${
+                            responseData.error || "Unknown error"
+                        }`;
+
                         logError("Execution failed:");
-                        logError(msg);
-                        setMarkersFromErrors([msg]);
+                        logError(errorMessage);
+                        setMarkersFromErrors([errorMessage]);
                         resetRunState();
+
                         return;
                     }
 
-                    const output = Array.isArray(data.output) ? data.output : [];
-                    const errs = Array.isArray(data.errors) ? data.errors : [];
+                    const outputLines = Array.isArray(responseData.output)
+                        ? responseData.output
+                        : [];
 
-                    appendRuntimeOutput(output);
+                    const runtimeErrors = Array.isArray(responseData.errors)
+                        ? responseData.errors
+                        : [];
 
-                    if (data.status === "waiting_input") {
-                        setRuntimeSessionId(data.session_id);
-                        setRuntimePrompt({ id: data.session_id, prefix: "" });
+                    appendRuntimeOutput(outputLines);
+
+                    if (responseData.status === "waiting_input") {
+                        setRuntimeSessionId(responseData.session_id);
+                        setRuntimePrompt({
+                            id: responseData.session_id,
+                            prefix: "",
+                        });
+
                         return;
                     }
 
-                    if (data.status === "finished") {
+                    if (responseData.status === "finished") {
                         logSuccess("Execution successful!");
                         setMarkersFromErrors([]);
                         resetRunState();
+
                         return;
                     }
 
                     logError("Execution failed:");
-                    if (errs.length) errs.forEach((e) => logError(e));
-                    else logError("Unknown runtime error");
-                    if (errs.length) setMarkersFromErrors(errs);
+
+                    if (runtimeErrors.length) {
+                        runtimeErrors.forEach((errorText) => logError(errorText));
+                        setMarkersFromErrors(runtimeErrors);
+                    } else {
+                        logError("Unknown runtime error");
+                    }
+
                     resetRunState();
-                    return;
                 }
-            } catch (e) {
-                if (e?.name === "AbortError") {
+            } catch (errorObject) {
+                if (errorObject?.name === "AbortError") {
                     resetRunState();
                     return;
                 }
 
-                const msg = `Network error: ${e.message}`;
+                const errorMessage = `Network error: ${errorObject.message}`;
+
                 logError("Run failed:");
-                logError(msg);
-                setMarkersFromErrors([msg]);
+                logError(errorMessage);
+                setMarkersFromErrors([errorMessage]);
                 resetRunState();
             }
         },
         [
             appendRuntimeOutput,
             clearAllEditorMarkers,
+            handleApiError,
             logError,
             logSuccess,
             resetRunState,
             setMarkersFromErrors,
-            setTerminal,
+            setTerminalOutput,
             setTokens,
             setTokensOpen,
         ]
@@ -242,42 +318,49 @@ export default function useLiveRunner({
 
     const startLive = useCallback(
         (phase) => {
-            if (phase === "run") return;
+            if (phase === "run") {
+                return;
+            }
 
-            if (isRunning && runningPhase === phase) return;
+            if (isRunning && runningPhase === phase) {
+                return;
+            }
 
             stopLive();
 
             setIsRunning(true);
             setRunningPhase(phase);
 
-            const code = getCode();
-            runLiveOnce(phase, code, true);
+            const sourceCode = getCode();
+            runLiveOnce(phase, sourceCode, true);
         },
         [getCode, isRunning, runLiveOnce, runningPhase, stopLive]
     );
 
-    const toggleLiveLex = useCallback(() => {
+    const toggleLiveLexical = useCallback(() => {
         if (isRunning && runningPhase === "lex") {
             stopLive();
             return;
         }
+
         startLive("lex");
     }, [isRunning, runningPhase, startLive, stopLive]);
 
-    const toggleLiveSyn = useCallback(() => {
+    const toggleLiveSyntax = useCallback(() => {
         if (isRunning && runningPhase === "syn") {
             stopLive();
             return;
         }
+
         startLive("syn");
     }, [isRunning, runningPhase, startLive, stopLive]);
 
-    const toggleLiveSem = useCallback(() => {
+    const toggleLiveSemantic = useCallback(() => {
         if (isRunning && runningPhase === "sem") {
             stopLive();
             return;
         }
+
         startLive("sem");
     }, [isRunning, runningPhase, startLive, stopLive]);
 
@@ -292,8 +375,8 @@ export default function useLiveRunner({
         setIsRunning(true);
         setRunningPhase("run");
 
-        const code = getCode();
-        await runLiveOnce("run", code, true);
+        const sourceCode = getCode();
+        await runLiveOnce("run", sourceCode, true);
     }, [getCode, isRunning, runLiveOnce, runningPhase, stopLive]);
 
     const toggleRunProgram = useCallback(async () => {
@@ -304,131 +387,188 @@ export default function useLiveRunner({
 
         stopLive();
 
-        const code = getCode();
+        const sourceCode = getCode();
+
         setIsRunning(true);
         setRunningPhase("program");
         clearAllEditorMarkers();
 
         try {
-            setTerminal("Running lexical analysis...", "info");
-            const lexResult = await runLexical(code);
-            const lexData = lexResult?.data || {};
-            if (!lexResult?.res?.ok) {
-                const msg = `Lex API error (HTTP ${lexResult?.res?.status ?? "?"}): ${lexData.error || "Unknown error"}`;
-                setTerminal("Lexical analysis failed:", "error");
-                logError(msg);
-                setMarkersFromErrors([msg]);
+            setTerminalOutput("Running lexical analysis...", "info");
+
+            const lexicalResult = await runLexicalAnalysis(sourceCode);
+            const lexicalData = lexicalResult?.responseData || {};
+
+            if (!lexicalResult?.response?.ok) {
+                const errorMessage = `Lex API error (HTTP ${
+                    lexicalResult?.response?.status ?? "?"
+                }): ${lexicalData.error || "Unknown error"}`;
+
+                setTerminalOutput("Lexical analysis failed:", "error");
+                logError(errorMessage);
+                setMarkersFromErrors([errorMessage]);
                 resetRunState();
+
                 return;
             }
 
-            const lexTokens = Array.isArray(lexData.tokens)
-                ? lexData.tokens.filter((token) => !token.hidden)
+            const lexicalTokens = Array.isArray(lexicalData.tokens)
+                ? lexicalData.tokens.filter((token) => !token.hidden)
                 : [];
-            const lexErrors = Array.isArray(lexData.errors) ? lexData.errors : [];
-            setTokens(lexTokens);
-            if (lexTokens.length > 0) setTokensOpen(true);
 
-            if (lexErrors.length) {
-                setTerminal("Lexical analysis failed:", "error");
-                lexErrors.forEach((errorText) => logError(errorText));
-                setMarkersFromErrors(lexErrors);
+            const lexicalErrors = Array.isArray(lexicalData.errors)
+                ? lexicalData.errors
+                : [];
+
+            setTokens(lexicalTokens);
+
+            if (lexicalTokens.length > 0) {
+                setTokensOpen(true);
+            }
+
+            if (lexicalErrors.length) {
+                setTerminalOutput("Lexical analysis failed:", "error");
+                lexicalErrors.forEach((errorText) => logError(errorText));
+                setMarkersFromErrors(lexicalErrors);
                 resetRunState();
+
                 return;
             }
 
-            setTerminal("Running syntax analysis...", "info");
-            const synResult = await runSyntax(code);
-            const synData = synResult?.data || {};
-            if (!synResult?.res?.ok) {
-                const msg = `Syntax API error (HTTP ${synResult?.res?.status ?? "?"}): ${synData.error || "Unknown error"}`;
-                setTerminal("Syntax analysis failed:", "error");
-                logError(msg);
-                setMarkersFromErrors([msg]);
+            setTerminalOutput("Running syntax analysis...", "info");
+
+            const syntaxResult = await runSyntaxAnalysis(sourceCode);
+            const syntaxData = syntaxResult?.responseData || {};
+
+            if (!syntaxResult?.response?.ok) {
+                const errorMessage = `Syntax API error (HTTP ${
+                    syntaxResult?.response?.status ?? "?"
+                }): ${syntaxData.error || "Unknown error"}`;
+
+                setTerminalOutput("Syntax analysis failed:", "error");
+                logError(errorMessage);
+                setMarkersFromErrors([errorMessage]);
                 resetRunState();
+
                 return;
             }
 
-            const synErrors = Array.isArray(synData.errors) ? synData.errors : [];
-            if (synErrors.length) {
-                setTerminal("Syntax analysis failed:", "error");
-                synErrors.forEach((errorText) => logError(errorText));
-                setMarkersFromErrors(synErrors);
+            const syntaxErrors = Array.isArray(syntaxData.errors)
+                ? syntaxData.errors
+                : [];
+
+            if (syntaxErrors.length) {
+                setTerminalOutput("Syntax analysis failed:", "error");
+                syntaxErrors.forEach((errorText) => logError(errorText));
+                setMarkersFromErrors(syntaxErrors);
                 resetRunState();
+
                 return;
             }
 
-            setTerminal("Running semantic analysis...", "info");
-            const semResult = await runSemantic(code);
-            const semData = semResult?.data || {};
-            if (!semResult?.res?.ok) {
-                const msg = `Semantic API error (HTTP ${semResult?.res?.status ?? "?"}): ${semData.error || "Unknown error"}`;
-                setTerminal("Semantic analysis failed:", "error");
-                logError(msg);
-                setMarkersFromErrors([msg]);
+            setTerminalOutput("Running semantic analysis...", "info");
+
+            const semanticResult = await runSemanticAnalysis(sourceCode);
+            const semanticData = semanticResult?.responseData || {};
+
+            if (!semanticResult?.response?.ok) {
+                const errorMessage = `Semantic API error (HTTP ${
+                    semanticResult?.response?.status ?? "?"
+                }): ${semanticData.error || "Unknown error"}`;
+
+                setTerminalOutput("Semantic analysis failed:", "error");
+                logError(errorMessage);
+                setMarkersFromErrors([errorMessage]);
                 resetRunState();
+
                 return;
             }
 
-            const semErrors = Array.isArray(semData.errors) ? semData.errors : [];
-            if (!(semData.semantic_valid && semErrors.length === 0)) {
-                setTerminal("Semantic analysis failed:", "error");
-                if (semErrors.length) {
-                    semErrors.forEach((errorText) => logError(errorText));
-                    setMarkersFromErrors(semErrors);
+            const semanticErrors = Array.isArray(semanticData.errors)
+                ? semanticData.errors
+                : [];
+
+            if (!(semanticData.semantic_valid && semanticErrors.length === 0)) {
+                setTerminalOutput("Semantic analysis failed:", "error");
+
+                if (semanticErrors.length) {
+                    semanticErrors.forEach((errorText) => logError(errorText));
+                    setMarkersFromErrors(semanticErrors);
                 } else {
                     logError("Unknown semantic error");
                 }
+
                 resetRunState();
                 return;
             }
 
-            setTerminal("Running execution...", "info");
-            const runResult = await runStartExecute(code);
-            const runData = runResult?.data || {};
-            if (!runResult?.res?.ok) {
-                const msg = `Execute API error (HTTP ${runResult?.res?.status ?? "?"}): ${runData.error || "Unknown error"}`;
+            setTerminalOutput("Running execution...", "info");
+
+            const executionResult = await startExecution(sourceCode);
+            const executionData = executionResult?.responseData || {};
+
+            if (!executionResult?.response?.ok) {
+                const errorMessage = `Execute API error (HTTP ${
+                    executionResult?.response?.status ?? "?"
+                }): ${executionData.error || "Unknown error"}`;
+
                 logError("Execution failed:");
-                logError(msg);
-                setMarkersFromErrors([msg]);
+                logError(errorMessage);
+                setMarkersFromErrors([errorMessage]);
                 resetRunState();
+
                 return;
             }
 
-            const output = Array.isArray(runData.output) ? runData.output : [];
-            const runErrors = Array.isArray(runData.errors) ? runData.errors : [];
-            appendRuntimeOutput(output);
+            const outputLines = Array.isArray(executionData.output)
+                ? executionData.output
+                : [];
 
-            if (runData.status === "waiting_input") {
-                setRuntimeSessionId(runData.session_id);
-                setRuntimePrompt({ id: runData.session_id, prefix: "" });
+            const executionErrors = Array.isArray(executionData.errors)
+                ? executionData.errors
+                : [];
+
+            appendRuntimeOutput(outputLines);
+
+            if (executionData.status === "waiting_input") {
+                setRuntimeSessionId(executionData.session_id);
+                setRuntimePrompt({
+                    id: executionData.session_id,
+                    prefix: "",
+                });
+
                 return;
             }
 
-            if (runData.status === "finished") {
+            if (executionData.status === "finished") {
                 logSuccess("Execution successful!");
                 setMarkersFromErrors([]);
                 resetRunState();
+
                 return;
             }
 
             logError("Execution failed:");
-            if (runErrors.length) {
-                runErrors.forEach((errorText) => logError(errorText));
-                setMarkersFromErrors(runErrors);
+
+            if (executionErrors.length) {
+                executionErrors.forEach((errorText) => logError(errorText));
+                setMarkersFromErrors(executionErrors);
             } else {
                 logError("Unknown runtime error");
             }
+
             resetRunState();
-        } catch (e) {
-            if (e?.name === "AbortError") {
+        } catch (errorObject) {
+            if (errorObject?.name === "AbortError") {
                 resetRunState();
                 return;
             }
 
+            const errorMessage = `Network error: ${errorObject.message}`;
+
             logError("Run failed:");
-            logError(`Network error: ${e.message}`);
-            setMarkersFromErrors([`Network error: ${e.message}`]);
+            logError(errorMessage);
+            setMarkersFromErrors([errorMessage]);
             resetRunState();
         }
     }, [
@@ -441,71 +581,94 @@ export default function useLiveRunner({
         resetRunState,
         runningPhase,
         setMarkersFromErrors,
-        setTerminal,
+        setTerminalOutput,
         setTokens,
         setTokensOpen,
         stopLive,
     ]);
 
     const submitRuntimeInput = useCallback(
-        async (value) => {
-            if (!runtimeSessionId) return;
+        async (inputValue) => {
+            if (!runtimeSessionId) {
+                return;
+            }
 
-            if (liveAbortRef.current) liveAbortRef.current.abort();
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
 
-            const controller = new AbortController();
-            liveAbortRef.current = controller;
+            const abortController = new AbortController();
+            abortControllerRef.current = abortController;
 
-            logWarn(String(value ?? ""));
+            logWarning(String(inputValue ?? ""));
             setRuntimePrompt(null);
 
             try {
-                const { res, data } = await runSendInput(
+                const { response, responseData } = await sendRuntimeInput(
                     runtimeSessionId,
-                    value ?? "",
-                    controller.signal
+                    inputValue ?? "",
+                    abortController.signal
                 );
 
-                if (!res.ok) {
-                    const msg = `Execute API error (HTTP ${res.status}): ${data.error || "Unknown error"}`;
+                if (!response.ok) {
+                    const errorMessage = `Execute API error (HTTP ${response.status}): ${
+                        responseData.error || "Unknown error"
+                    }`;
+
                     logError("Execution failed:");
-                    logError(msg);
-                    setMarkersFromErrors([msg]);
+                    logError(errorMessage);
+                    setMarkersFromErrors([errorMessage]);
                     resetRunState();
+
                     return;
                 }
 
-                const output = Array.isArray(data.output) ? data.output : [];
-                const errs = Array.isArray(data.errors) ? data.errors : [];
+                const outputLines = Array.isArray(responseData.output)
+                    ? responseData.output
+                    : [];
 
-                appendRuntimeOutput(output);
+                const runtimeErrors = Array.isArray(responseData.errors)
+                    ? responseData.errors
+                    : [];
 
-                if (data.status === "waiting_input") {
-                    setRuntimeSessionId(data.session_id);
-                    setRuntimePrompt({ id: data.session_id, prefix: "" });
+                appendRuntimeOutput(outputLines);
+
+                if (responseData.status === "waiting_input") {
+                    setRuntimeSessionId(responseData.session_id);
+                    setRuntimePrompt({
+                        id: responseData.session_id,
+                        prefix: "",
+                    });
+
                     return;
                 }
 
-                if (data.status === "finished") {
+                if (responseData.status === "finished") {
                     logSuccess("Execution successful!");
                     setMarkersFromErrors([]);
                     resetRunState();
+
                     return;
                 }
 
                 logError("Execution failed:");
-                if (errs.length) errs.forEach((e) => logError(e));
-                else logError("Unknown runtime error");
-                if (errs.length) setMarkersFromErrors(errs);
+
+                if (runtimeErrors.length) {
+                    runtimeErrors.forEach((errorText) => logError(errorText));
+                    setMarkersFromErrors(runtimeErrors);
+                } else {
+                    logError("Unknown runtime error");
+                }
+
                 resetRunState();
-            } catch (e) {
-                if (e?.name === "AbortError") {
+            } catch (errorObject) {
+                if (errorObject?.name === "AbortError") {
                     resetRunState();
                     return;
                 }
 
                 logError("Execution failed:");
-                logError(`Network error: ${e.message}`);
+                logError(`Network error: ${errorObject.message}`);
                 resetRunState();
             }
         },
@@ -513,7 +676,7 @@ export default function useLiveRunner({
             appendRuntimeOutput,
             logError,
             logSuccess,
-            logWarn,
+            logWarning,
             resetRunState,
             runtimeSessionId,
             setMarkersFromErrors,
@@ -521,25 +684,32 @@ export default function useLiveRunner({
     );
 
     const cancelRuntimeInput = useCallback(() => {
-        if (liveAbortRef.current) {
-            liveAbortRef.current.abort();
-            liveAbortRef.current = null;
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
         }
 
-        liveReqIdRef.current += 1;
+        requestIdRef.current += 1;
         resetRunState();
-        logWarn("Execution cancelled.");
-    }, [logWarn, resetRunState]);
+        logWarning("Execution cancelled.");
+    }, [logWarning, resetRunState]);
 
     const onEditorChange = useCallback(
-        (v) => {
-            if (!isRunning || !runningPhase) return;
-            if (runningPhase === "run") return;
+        (sourceCode) => {
+            if (!isRunning || !runningPhase) {
+                return;
+            }
 
-            if (liveDebounceRef.current) clearTimeout(liveDebounceRef.current);
+            if (runningPhase === "run") {
+                return;
+            }
 
-            liveDebounceRef.current = setTimeout(() => {
-                runLiveOnce(runningPhase, v, false);
+            if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current);
+            }
+
+            debounceTimerRef.current = setTimeout(() => {
+                runLiveOnce(runningPhase, sourceCode, false);
             }, 600);
         },
         [isRunning, runLiveOnce, runningPhase]
@@ -551,9 +721,9 @@ export default function useLiveRunner({
         runLiveOnce,
         stopLive,
         startLive,
-        toggleLiveLex,
-        toggleLiveSyn,
-        toggleLiveSem,
+        toggleLiveLexical,
+        toggleLiveSyntax,
+        toggleLiveSemantic,
         toggleExecute,
         toggleRunProgram,
         onEditorChange,

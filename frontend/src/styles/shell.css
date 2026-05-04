@@ -20,16 +20,15 @@
     background-image: url("/background/main_background.png");
     background-repeat: no-repeat;
     background-position: center center;
-    background-size: 100dvw 100dvh;
+    background-size: 100% 100%;
 }
 
-/* glass overlay */
 #brev-container::after{
     content: "";
     position: absolute;
     inset: 0;
     z-index: 1;
-    background: rgba(0,0,0,0.20);
+    background: rgba(0,0,0,0.35);
 }
 
 #brev-inner-container{

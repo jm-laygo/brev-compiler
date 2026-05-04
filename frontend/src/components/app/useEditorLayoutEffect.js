@@ -1,14 +1,19 @@
 import { useEffect } from "react";
 
-export default function useEditorLayoutEffect({ editorRef, tokensOpen }) {
+export default function useEditorLayoutEffect({ editorRef, isTokenPanelOpen }) {
     useEffect(() => {
-        const layout = () => editorRef.current?.layout?.();
-        requestAnimationFrame(layout);
-        const t1 = setTimeout(layout, 80);
-        const t2 = setTimeout(layout, 380);
-        return () => {
-            clearTimeout(t1);
-            clearTimeout(t2);
+        const updateEditorLayout = () => {
+            editorRef.current?.layout?.();
         };
-    }, [editorRef, tokensOpen]);
+
+        requestAnimationFrame(updateEditorLayout);
+
+        const firstLayoutTimer = setTimeout(updateEditorLayout, 80);
+        const secondLayoutTimer = setTimeout(updateEditorLayout, 380);
+
+        return () => {
+            clearTimeout(firstLayoutTimer);
+            clearTimeout(secondLayoutTimer);
+        };
+    }, [editorRef, isTokenPanelOpen]);
 }

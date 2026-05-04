@@ -2,11 +2,12 @@ import Editor from "@monaco-editor/react";
 import { brevLanguage, brevTheme } from "../editor/brevMonaco";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-let brevInstalled = false;
+let isBrevLanguageInstalled = false;
 
-function installBrev(monaco) {
-    if (brevInstalled) return;
-    brevInstalled = true;
+function installBrevLanguage(monaco) {
+    if (isBrevLanguageInstalled) return;
+
+    isBrevLanguageInstalled = true;
 
     monaco.languages.register({ id: "brev" });
     monaco.languages.setMonarchTokensProvider("brev", brevLanguage);
@@ -14,7 +15,7 @@ function installBrev(monaco) {
 
     monaco.languages.registerCompletionItemProvider("brev", {
         provideCompletionItems: () => {
-            const keywords = brevLanguage.keywords.concat(
+            const keywordList = brevLanguage.keywords.concat(
                 brevLanguage.decl,
                 brevLanguage.types,
                 brevLanguage.builtins,
@@ -22,16 +23,16 @@ function installBrev(monaco) {
             );
 
             return {
-                suggestions: keywords.map((word) => ({
-                    label: word,
+                suggestions: keywordList.map((keyword) => ({
+                    label: keyword,
                     kind: monaco.languages.CompletionItemKind.Keyword,
-                    insertText: word,
+                    insertText: keyword,
                 })),
             };
         },
     });
 
-    const hoverDocs = {
+    const hoverDescriptions = {
         receive: "Input statement.",
         proclaim: "Output statement.",
         decree: "Declare a variable.",
@@ -64,51 +65,65 @@ function installBrev(monaco) {
     };
 
     monaco.languages.registerHoverProvider("brev", {
-        provideHover(model, position) {
-            const word = model.getWordAtPosition(position);
-            if (word && hoverDocs[word.word]) {
+        provideHover(editorModel, cursorPosition) {
+            const currentWord = editorModel.getWordAtPosition(cursorPosition);
+
+            if (currentWord && hoverDescriptions[currentWord.word]) {
                 return {
                     range: new monaco.Range(
-                        position.lineNumber,
-                        word.startColumn,
-                        position.lineNumber,
-                        word.endColumn
+                        cursorPosition.lineNumber,
+                        currentWord.startColumn,
+                        cursorPosition.lineNumber,
+                        currentWord.endColumn
                     ),
-                    contents: [{ value: `**${word.word}**\n\n${hoverDocs[word.word]}` }],
+                    contents: [
+                        {
+                            value: `**${currentWord.word}**\n\n${hoverDescriptions[currentWord.word]}`,
+                        },
+                    ],
                 };
             }
+
             return null;
         },
     });
 
     monaco.languages.registerDocumentFormattingEditProvider("brev", {
-        provideDocumentFormattingEdits(model) {
-            const lines = model.getLinesContent();
-            let indent = 0;
+        provideDocumentFormattingEdits(editorModel) {
+            const lineList = editorModel.getLinesContent();
+            let indentationLevel = 0;
 
-            const formatted = lines.map((line) => {
-                const trimmed = line.trim();
-                if (trimmed.endsWith("}")) indent = Math.max(0, indent - 1);
-                const result = "    ".repeat(indent) + trimmed;
-                if (trimmed.endsWith("{")) indent++;
-                return result;
+            const formattedLines = lineList.map((lineText) => {
+                const trimmedLine = lineText.trim();
+
+                if (trimmedLine.endsWith("}")) {
+                    indentationLevel = Math.max(0, indentationLevel - 1);
+                }
+
+                const formattedLine = "    ".repeat(indentationLevel) + trimmedLine;
+
+                if (trimmedLine.endsWith("{")) {
+                    indentationLevel += 1;
+                }
+
+                return formattedLine;
             });
 
             return [
                 {
-                    range: model.getFullModelRange(),
-                    text: formatted.join("\n"),
+                    range: editorModel.getFullModelRange(),
+                    text: formattedLines.join("\n"),
                 },
             ];
         },
     });
 }
 
-function makeTab(id, name) {
+function createEditorTab(tabId, fileName) {
     return {
-        id,
-        name,
-        path: `inmemory://model/${id}/${name}`,
+        id: tabId,
+        name: fileName,
+        path: `inmemory://model/${tabId}/${fileName}`,
     };
 }
 
@@ -120,203 +135,247 @@ export default function BrevEditor({
     onReady,
 }) {
     const localEditorRef = useRef(null);
-    const monacoRef = useRef(null);
-    const modelsRef = useRef(new Map());
-    const viewStatesRef = useRef(new Map());
+    const monacoInstanceRef = useRef(null);
+    const editorModelsRef = useRef(new Map());
+    const editorViewStatesRef = useRef(new Map());
     const nextTabNumberRef = useRef(2);
+    const tabScrollContainerRef = useRef(null);
 
-    const [tabs, setTabs] = useState([makeTab("main-tab", "main.brev")]);
+    const [editorTabs, setEditorTabs] = useState([
+        createEditorTab("main-tab", "main.brev"),
+    ]);
+
     const [activeTabId, setActiveTabId] = useState("main-tab");
-    const [editingTabId, setEditingTabId] = useState(null);
-    const [editingName, setEditingName] = useState("");
-    const tabsScrollRef = useRef(null);
+    const [renamingTabId, setRenamingTabId] = useState(null);
+    const [renamingFileName, setRenamingFileName] = useState("");
 
-    const getTabById = useCallback(
-        (tabId, sourceTabs = tabs) => sourceTabs.find((tab) => tab.id === tabId),
-        [tabs]
+    const getEditorTabById = useCallback(
+        (tabId, sourceTabs = editorTabs) => {
+            return sourceTabs.find((editorTab) => editorTab.id === tabId);
+        },
+        [editorTabs]
     );
 
-    const createModelForTab = useCallback((monaco, tab, value = "") => {
-        const existing = modelsRef.current.get(tab.id);
-        if (existing) return existing;
+    const createModelForTab = useCallback((monaco, editorTab, fileContent = "") => {
+        const existingModel = editorModelsRef.current.get(editorTab.id);
 
-        const model = monaco.editor.createModel(
-            value,
+        if (existingModel) {
+            return existingModel;
+        }
+
+        const editorModel = monaco.editor.createModel(
+            fileContent,
             "brev",
-            monaco.Uri.parse(tab.path)
+            monaco.Uri.parse(editorTab.path)
         );
-        model.__fileName = tab.name;
-        modelsRef.current.set(tab.id, model);
-        return model;
+
+        editorModel.__fileName = editorTab.name;
+        editorModelsRef.current.set(editorTab.id, editorModel);
+
+        return editorModel;
     }, []);
 
     const switchToTab = useCallback(
-        (tabId, sourceTabs = tabs) => {
-            const editor = localEditorRef.current;
-            const monaco = monacoRef.current;
+        (tabId, sourceTabs = editorTabs) => {
+            const editorInstance = localEditorRef.current;
+            const monacoInstance = monacoInstanceRef.current;
 
-            if (!editor || !monaco) {
+            if (!editorInstance || !monacoInstance) {
                 setActiveTabId(tabId);
                 return;
             }
 
-            const currentTab = getTabById(activeTabId, sourceTabs);
+            const currentTab = getEditorTabById(activeTabId, sourceTabs);
+
             if (currentTab) {
-                viewStatesRef.current.set(currentTab.id, editor.saveViewState());
+                editorViewStatesRef.current.set(
+                    currentTab.id,
+                    editorInstance.saveViewState()
+                );
             }
 
-            const nextTab = getTabById(tabId, sourceTabs);
-            if (!nextTab) return;
+            const nextTab = getEditorTabById(tabId, sourceTabs);
 
-            const nextModel =
-                modelsRef.current.get(nextTab.id) ||
-                createModelForTab(monaco, nextTab, "");
-
-            editor.setModel(nextModel);
-
-            const savedViewState = viewStatesRef.current.get(nextTab.id);
-            if (savedViewState) {
-                editor.restoreViewState(savedViewState);
-            }
-
-            editor.focus();
-            setActiveTabId(tabId);
-        },
-        [activeTabId, createModelForTab, getTabById, tabs]
-    );
-
-    const openFileAsTab = useCallback(
-        (fileName, fileText) => {
-            const safeName =
-                fileName?.trim() || `file${nextTabNumberRef.current}.brev`;
-
-            const existingTab = tabs.find((tab) => tab.name === safeName);
-            if (existingTab) {
-                const model = modelsRef.current.get(existingTab.id);
-                if (model) {
-                    model.setValue(fileText);
-                    model.__fileName = safeName;
-                }
-
-                requestAnimationFrame(() => {
-                    switchToTab(existingTab.id, tabs);
-                });
+            if (!nextTab) {
                 return;
             }
 
-            const newId = `tab-${Date.now()}`;
-            const newTab = makeTab(newId, safeName);
+            const nextModel =
+                editorModelsRef.current.get(nextTab.id) ||
+                createModelForTab(monacoInstance, nextTab, "");
 
-            const monaco = monacoRef.current;
-            if (!monaco) return;
+            editorInstance.setModel(nextModel);
 
-            createModelForTab(monaco, newTab, fileText);
+            const savedViewState = editorViewStatesRef.current.get(nextTab.id);
 
-            setTabs((prev) => {
-                const nextTabs = [...prev, newTab];
+            if (savedViewState) {
+                editorInstance.restoreViewState(savedViewState);
+            }
+
+            editorInstance.focus();
+            setActiveTabId(tabId);
+        },
+        [activeTabId, createModelForTab, getEditorTabById, editorTabs]
+    );
+
+    const openFileAsTab = useCallback(
+        (fileName, fileContent) => {
+            const safeFileName =
+                fileName?.trim() || `file${nextTabNumberRef.current}.brev`;
+
+            const existingTab = editorTabs.find(
+                (editorTab) => editorTab.name === safeFileName
+            );
+
+            if (existingTab) {
+                const existingModel = editorModelsRef.current.get(existingTab.id);
+
+                if (existingModel) {
+                    existingModel.setValue(fileContent);
+                    existingModel.__fileName = safeFileName;
+                }
 
                 requestAnimationFrame(() => {
-                    switchToTab(newId, nextTabs);
+                    switchToTab(existingTab.id, editorTabs);
+                });
+
+                return;
+            }
+
+            const newTabId = `tab-${Date.now()}`;
+            const newTab = createEditorTab(newTabId, safeFileName);
+            const monacoInstance = monacoInstanceRef.current;
+
+            if (!monacoInstance) {
+                return;
+            }
+
+            createModelForTab(monacoInstance, newTab, fileContent);
+
+            setEditorTabs((previousTabs) => {
+                const nextTabs = [...previousTabs, newTab];
+
+                requestAnimationFrame(() => {
+                    switchToTab(newTabId, nextTabs);
                 });
 
                 return nextTabs;
             });
         },
-        [createModelForTab, switchToTab, tabs]
+        [createModelForTab, switchToTab, editorTabs]
     );
 
-    const addTab = useCallback(() => {
-        const nextNumber = nextTabNumberRef.current++;
-        const newId = `tab-${Date.now()}`;
-        const newName = `file${nextNumber}.brev`;
-        const newTab = makeTab(newId, newName);
+    const addEditorTab = useCallback(() => {
+        const nextTabNumber = nextTabNumberRef.current;
+        nextTabNumberRef.current += 1;
 
-        setTabs((prev) => {
-            const nextTabs = [...prev, newTab];
+        const newTabId = `tab-${Date.now()}`;
+        const newFileName = `file${nextTabNumber}.brev`;
+        const newTab = createEditorTab(newTabId, newFileName);
 
-            const monaco = monacoRef.current;
-            if (monaco) {
-                createModelForTab(monaco, newTab, "");
+        setEditorTabs((previousTabs) => {
+            const nextTabs = [...previousTabs, newTab];
+            const monacoInstance = monacoInstanceRef.current;
+
+            if (monacoInstance) {
+                createModelForTab(monacoInstance, newTab, "");
             }
 
             requestAnimationFrame(() => {
-                switchToTab(newId, nextTabs);
+                switchToTab(newTabId, nextTabs);
             });
 
             return nextTabs;
         });
     }, [createModelForTab, switchToTab]);
 
-    const closeTab = useCallback(
+    const closeEditorTab = useCallback(
         (tabId) => {
-            if (tabs.length === 1) return;
-
-            const closingIndex = tabs.findIndex((tab) => tab.id === tabId);
-            const nextTabs = tabs.filter((tab) => tab.id !== tabId);
-
-            const model = modelsRef.current.get(tabId);
-            if (model) {
-                model.dispose();
-                modelsRef.current.delete(tabId);
+            if (editorTabs.length === 1) {
+                return;
             }
-            viewStatesRef.current.delete(tabId);
 
-            let nextActiveId = activeTabId;
+            const closingTabIndex = editorTabs.findIndex(
+                (editorTab) => editorTab.id === tabId
+            );
+
+            const remainingTabs = editorTabs.filter(
+                (editorTab) => editorTab.id !== tabId
+            );
+
+            const tabModel = editorModelsRef.current.get(tabId);
+
+            if (tabModel) {
+                tabModel.dispose();
+                editorModelsRef.current.delete(tabId);
+            }
+
+            editorViewStatesRef.current.delete(tabId);
+
+            let nextActiveTabId = activeTabId;
+
             if (activeTabId === tabId) {
                 const fallbackTab =
-                    nextTabs[closingIndex] || nextTabs[closingIndex - 1] || nextTabs[0];
-                nextActiveId = fallbackTab.id;
+                    remainingTabs[closingTabIndex] ||
+                    remainingTabs[closingTabIndex - 1] ||
+                    remainingTabs[0];
+
+                nextActiveTabId = fallbackTab.id;
             }
 
-            setTabs(nextTabs);
+            setEditorTabs(remainingTabs);
 
             requestAnimationFrame(() => {
-                switchToTab(nextActiveId, nextTabs);
+                switchToTab(nextActiveTabId, remainingTabs);
             });
         },
-        [activeTabId, switchToTab, tabs]
+        [activeTabId, switchToTab, editorTabs]
     );
 
-    const startRenameTab = useCallback((tab) => {
-        setEditingTabId(tab.id);
-        setEditingName(tab.name);
+    const startRenamingTab = useCallback((editorTab) => {
+        setRenamingTabId(editorTab.id);
+        setRenamingFileName(editorTab.name);
     }, []);
 
-    const commitRenameTab = useCallback(
+    const commitRenamingTab = useCallback(
         (tabId) => {
-            const nextNameRaw = editingName.trim();
-            const nextName =
-                nextNameRaw === ""
-                    ? "untitled.brev"
-                    : nextNameRaw.endsWith(".brev")
-                    ? nextNameRaw
-                    : `${nextNameRaw}.brev`;
+            const rawFileName = renamingFileName.trim();
 
-            setTabs((prev) =>
-                prev.map((tab) =>
-                    tab.id === tabId
+            const nextFileName =
+                rawFileName === ""
+                    ? "untitled.brev"
+                    : rawFileName.endsWith(".brev")
+                    ? rawFileName
+                    : `${rawFileName}.brev`;
+
+            setEditorTabs((previousTabs) =>
+                previousTabs.map((editorTab) =>
+                    editorTab.id === tabId
                         ? {
-                              ...tab,
-                              name: nextName,
-                              path: `inmemory://model/${tab.id}/${nextName}`,
+                              ...editorTab,
+                              name: nextFileName,
+                              path: `inmemory://model/${editorTab.id}/${nextFileName}`,
                           }
-                        : tab
+                        : editorTab
                 )
             );
 
-            const model = modelsRef.current.get(tabId);
-            if (model) {
-                model.__fileName = nextName;
+            const editorModel = editorModelsRef.current.get(tabId);
+
+            if (editorModel) {
+                editorModel.__fileName = nextFileName;
             }
 
-            setEditingTabId(null);
-            setEditingName("");
+            setRenamingTabId(null);
+            setRenamingFileName("");
         },
-        [editingName]
+        [renamingFileName]
     );
 
     useEffect(() => {
-        if (!editorApiRef) return;
+        if (!editorApiRef) {
+            return;
+        }
 
         editorApiRef.current = {
             openFileAsTab,
@@ -328,86 +387,110 @@ export default function BrevEditor({
     }, [editorApiRef, openFileAsTab]);
 
     useEffect(() => {
-        const container = tabsScrollRef.current;
-        if (!container) return;
+        const tabScrollContainer = tabScrollContainerRef.current;
 
-        const activeTabEl = container.querySelector(".brev-editor-tab.active");
-        if (!activeTabEl) return;
+        if (!tabScrollContainer) {
+            return;
+        }
 
-        activeTabEl.scrollIntoView({
+        const activeTabElement = tabScrollContainer.querySelector(
+            ".brev-editor-tab.active"
+        );
+
+        if (!activeTabElement) {
+            return;
+        }
+
+        activeTabElement.scrollIntoView({
             behavior: "smooth",
             inline: "center",
             block: "nearest",
         });
-    }, [activeTabId, tabs]);
+    }, [activeTabId, editorTabs]);
 
     return (
         <div className="brev-editor-shell">
             <div className="brev-editor-tabs-bar">
-    <div
-        ref={tabsScrollRef}
-        className="brev-editor-tabs-scroll"
-        role="tablist"
-        aria-label="Editor tabs"
-    >
-        {tabs.map((tab) => (
-            <button
-                key={tab.id}
-                type="button"
-                role="tab"
-                aria-selected={activeTabId === tab.id}
-                className={`brev-editor-tab ${activeTabId === tab.id ? "active" : ""}`}
-                onClick={() => switchToTab(tab.id)}
-                onDoubleClick={() => startRenameTab(tab)}
-            >
-                {editingTabId === tab.id ? (
-                    <input
-                        className="brev-editor-tab-input"
-                        value={editingName}
-                        autoFocus
-                        onChange={(e) => setEditingName(e.target.value)}
-                        onBlur={() => commitRenameTab(tab.id)}
-                        onClick={(e) => e.stopPropagation()}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter") commitRenameTab(tab.id);
-                            if (e.key === "Escape") {
-                                setEditingTabId(null);
-                                setEditingName("");
-                            }
-                        }}
-                    />
-                ) : (
-                    <span className="brev-editor-tab-label">{tab.name}</span>
-                )}
+                <div
+                    ref={tabScrollContainerRef}
+                    className="brev-editor-tabs-scroll"
+                    role="tablist"
+                    aria-label="Editor tabs"
+                >
+                    {editorTabs.map((editorTab) => (
+                        <button
+                            key={editorTab.id}
+                            type="button"
+                            role="tab"
+                            aria-selected={activeTabId === editorTab.id}
+                            className={`brev-editor-tab ${
+                                activeTabId === editorTab.id ? "active" : ""
+                            }`}
+                            onClick={() => switchToTab(editorTab.id)}
+                            onDoubleClick={() => startRenamingTab(editorTab)}
+                        >
+                            {renamingTabId === editorTab.id ? (
+                                <input
+                                    className="brev-editor-tab-input"
+                                    value={renamingFileName}
+                                    autoFocus
+                                    onChange={(event) =>
+                                        setRenamingFileName(event.target.value)
+                                    }
+                                    onBlur={() => commitRenamingTab(editorTab.id)}
+                                    onClick={(event) => event.stopPropagation()}
+                                    onKeyDown={(event) => {
+                                        if (event.key === "Enter") {
+                                            commitRenamingTab(editorTab.id);
+                                        }
 
-                {editingTabId !== tab.id && (
-                    <span
-                        className={`brev-editor-tab-close ${tabs.length > 1 ? "is-visible" : "is-hidden"}`}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            if (tabs.length > 1) closeTab(tab.id);
-                        }}
-                        title="Close tab"
+                                        if (event.key === "Escape") {
+                                            setRenamingTabId(null);
+                                            setRenamingFileName("");
+                                        }
+                                    }}
+                                />
+                            ) : (
+                                <span className="brev-editor-tab-label">
+                                    {editorTab.name}
+                                </span>
+                            )}
+
+                            {renamingTabId !== editorTab.id && (
+                                <span
+                                    className={`brev-editor-tab-close ${
+                                        editorTabs.length > 1
+                                            ? "is-visible"
+                                            : "is-hidden"
+                                    }`}
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+
+                                        if (editorTabs.length > 1) {
+                                            closeEditorTab(editorTab.id);
+                                        }
+                                    }}
+                                    title="Close tab"
+                                >
+                                    ×
+                                </span>
+                            )}
+                        </button>
+                    ))}
+                </div>
+
+                <div className="brev-editor-tabs-actions">
+                    <button
+                        type="button"
+                        className="brev-editor-tab-add"
+                        onClick={addEditorTab}
+                        title="Add tab"
+                        aria-label="Add tab"
                     >
-                        ×
-                    </span>
-                )}
-            </button>
-        ))}
-    </div>
-
-    <div className="brev-editor-tabs-actions">
-        <button
-            type="button"
-            className="brev-editor-tab-add"
-            onClick={addTab}
-            title="Add tab"
-            aria-label="Add tab"
-        >
-            +
-        </button>
-    </div>
-</div>
+                        +
+                    </button>
+                </div>
+            </div>
 
             <div className="brev-editor-content">
                 <Editor
@@ -416,26 +499,34 @@ export default function BrevEditor({
                     defaultValue=""
                     theme="brevTheme"
                     beforeMount={(monaco) => {
-                        installBrev(monaco);
+                        installBrevLanguage(monaco);
                     }}
-                    onMount={(editor, monaco) => {
-                        monacoRef.current = monaco;
-                        localEditorRef.current = editor;
-                        if (editorRef) editorRef.current = editor;
+                    onMount={(editorInstance, monacoInstance) => {
+                        monacoInstanceRef.current = monacoInstance;
+                        localEditorRef.current = editorInstance;
 
-                        const firstTab = makeTab("main-tab", "main.brev");
+                        if (editorRef) {
+                            editorRef.current = editorInstance;
+                        }
+
+                        const firstTab = createEditorTab("main-tab", "main.brev");
+
                         const firstModel = createModelForTab(
-                            monaco,
+                            monacoInstance,
                             firstTab,
                             initialValue ?? ""
                         );
-                        editor.setModel(firstModel);
+
+                        editorInstance.setModel(firstModel);
 
                         if (typeof onReady === "function") {
-                            onReady({ editor, monaco });
+                            onReady({
+                                editor: editorInstance,
+                                monaco: monacoInstance,
+                            });
                         }
                     }}
-                    onChange={(v) => onChange?.(v ?? "")}
+                    onChange={(value) => onChange?.(value ?? "")}
                     saveViewState={true}
                     keepCurrentModel={true}
                     options={{

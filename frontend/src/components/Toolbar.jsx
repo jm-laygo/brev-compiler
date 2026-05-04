@@ -6,60 +6,26 @@ export default function Toolbar({
     openFile,
     saveFile,
     clearEditor,
-    // toggleLiveLex,
-    // toggleLiveSyn,
-    // toggleLiveSem,
-    // toggleExecute,
     toggleRunProgram,
     isRunning,
     runningPhase,
-    // tokensOpen,
-    // toggleTokens,
 }) {
-    // const isLexRunning = isRunning && runningPhase === "lex";
-    // const isSynRunning = isRunning && runningPhase === "syn";
-    // const isSemRunning = isRunning && runningPhase === "sem";
-    // const isExecRunning = isRunning && runningPhase === "run";
     const isProgramRunning = isRunning && runningPhase === "program";
 
     return (
         <header id="header-row">
             <div className="toolbar-left">
-                {/*
-                <button
-                    onClick={toggleLiveLex}
-                    className={`command-btn ${isLexRunning ? "active-btn" : ""}`}
-                >
-                    {isLexRunning ? "Stop Running" : "Run Lexical"}
-                </button>
-
-                <button
-                    onClick={toggleLiveSyn}
-                    className={`command-btn ${isSynRunning ? "active-btn" : ""}`}
-                >
-                    {isSynRunning ? "Stop Running" : "Run Syntax"}
-                </button>
-
-                <button
-                    onClick={toggleLiveSem}
-                    className={`command-btn ${isSemRunning ? "active-btn" : ""}`}
-                >
-                    {isSemRunning ? "Stop Running" : "Run Semantics"}
-                </button>
-
-                <button
-                    onClick={toggleExecute}
-                    className={`command-btn ${isExecRunning ? "active-btn" : ""}`}
-                >
-                    {isExecRunning ? "Stop Running" : "Run Execute"}
-                </button>
-                */}
-
                 <button
                     onClick={toggleRunProgram}
-                    className={`command-btn command-btn-run ${isProgramRunning ? "active-btn" : ""}`}
-                    aria-label={isProgramRunning ? "Stop running program" : "Run program"}
-                    title={isProgramRunning ? "Stop running program" : "Run program"}
+                    className={`command-btn command-btn-run ${
+                        isProgramRunning ? "active-btn" : ""
+                    }`}
+                    aria-label={
+                        isProgramRunning ? "Stop running program" : "Run program"
+                    }
+                    title={
+                        isProgramRunning ? "Stop running program" : "Run program"
+                    }
                 >
                     {isProgramRunning ? "Stop Running" : "Run Program"}
                 </button>
@@ -104,15 +70,6 @@ export default function Toolbar({
                 >
                     Clear
                 </button>
-                {/*
-                <button
-                    onClick={toggleTokens}
-                    className={`command-btn ${tokensOpen ? "active-btn" : ""}`}
-                    title={tokensOpen ? "Hide tokens" : "Show tokens"}
-                >
-                    Tokens {tokensOpen ? "«" : "»"}
-                </button>
-                */}
             </div>
         </header>
     );

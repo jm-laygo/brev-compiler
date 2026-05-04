@@ -1,57 +1,73 @@
 import React, { useEffect, useMemo, useRef } from "react";
 
-function parseLnColFromText(text) {
-    const s = String(text ?? "");
-    const m = s.match(/Ln\s*(\d+)\s*,\s*Col\s*(\d+)/i);
-    if (!m) return null;
+function parseLineColumnFromText(text) {
+    const normalizedText = String(text ?? "");
+    const matchedLocation = normalizedText.match(/Ln\s*(\d+)\s*,\s*Col\s*(\d+)/i);
 
-    return {
-        line: Number(m[1]),
-        col: Number(m[2]),
-        matchText: m[0],
-        matchIndex: m.index ?? -1,
-    };
-}
-
-function splitLineClickableParts(lineObj) {
-    const text = String(lineObj?.text ?? "");
-    const pos = parseLnColFromText(text);
-    if (!pos || pos.matchIndex < 0) {
-        return { before: text, link: null, after: "" };
+    if (!matchedLocation) {
+        return null;
     }
 
-    const start = pos.matchIndex;
-    const end = start + pos.matchText.length;
-
     return {
-        before: text.slice(0, start),
-        link: {
-            label: text.slice(start, end),
-            line: pos.line,
-            col: pos.col,
-        },
-        after: text.slice(end),
+        lineNumber: Number(matchedLocation[1]),
+        columnNumber: Number(matchedLocation[2]),
+        matchedText: matchedLocation[0],
+        matchedIndex: matchedLocation.index ?? -1,
     };
 }
 
-function renderExpectedDelims(text) {
-    const s = String(text ?? "");
-    const m = s.match(/(Expected:\s*)(.*)$/i);
-    if (!m) return s;
+function splitClickableLineParts(lineObject) {
+    const lineText = String(lineObject?.text ?? "");
+    const parsedLocation = parseLineColumnFromText(lineText);
 
-    const prefix = s.slice(0, m.index ?? 0) + m[1];
-    const list = m[2];
-    const parts = list.split(/(\s*,\s*)/);
+    if (!parsedLocation || parsedLocation.matchedIndex < 0) {
+        return {
+            beforeText: lineText,
+            locationLink: null,
+            afterText: "",
+        };
+    }
+
+    const startIndex = parsedLocation.matchedIndex;
+    const endIndex = startIndex + parsedLocation.matchedText.length;
+
+    return {
+        beforeText: lineText.slice(0, startIndex),
+        locationLink: {
+            label: lineText.slice(startIndex, endIndex),
+            lineNumber: parsedLocation.lineNumber,
+            columnNumber: parsedLocation.columnNumber,
+        },
+        afterText: lineText.slice(endIndex),
+    };
+}
+
+function renderExpectedDelimiters(text) {
+    const normalizedText = String(text ?? "");
+    const expectedMatch = normalizedText.match(/(Expected:\s*)(.*)$/i);
+
+    if (!expectedMatch) {
+        return normalizedText;
+    }
+
+    const prefixText = normalizedText.slice(0, expectedMatch.index ?? 0) + expectedMatch[1];
+    const delimiterListText = expectedMatch[2];
+    const delimiterParts = delimiterListText.split(/(\s*,\s*)/);
 
     return (
         <>
-            <span>{prefix}</span>
-            {parts.map((p, i) => {
-                const isComma = /^\s*,\s*$/.test(p);
-                if (isComma) return <span key={i}>{p}</span>;
+            <span>{prefixText}</span>
+
+            {delimiterParts.map((delimiterPart, delimiterIndex) => {
+                const isCommaSeparator = /^\s*,\s*$/.test(delimiterPart);
+
+                if (isCommaSeparator) {
+                    return <span key={delimiterIndex}>{delimiterPart}</span>;
+                }
+
                 return (
-                    <span key={i} className="term-delim">
-                        {p}
+                    <span key={delimiterIndex} className="term-delim">
+                        {delimiterPart}
                     </span>
                 );
             })}
@@ -69,43 +85,60 @@ export default function OutputPanel({
     runtimePrompt = null,
     onSubmitRuntimeInput,
 }) {
-    const bottomRef = useRef(null);
-    const inputRef = useRef(null);
+    const bottomElementRef = useRef(null);
+    const runtimeInputRef = useRef(null);
 
     useEffect(() => {
-        if (!outputOpen) return;
-        bottomRef.current?.scrollIntoView({ block: "end" });
-    }, [terminalLines, outputOpen, runtimePrompt]);
-
-    useEffect(() => {
-        if (!runtimePrompt) return;
-        setTimeout(() => inputRef.current?.focus(), 0);
-    }, [runtimePrompt]);
-
-    const rendered = useMemo(() => {
-        return (Array.isArray(terminalLines) ? terminalLines : []).map((l) => {
-            const parts = splitLineClickableParts(l);
-            return { lineObj: l, parts };
-        });
-    }, [terminalLines]);
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-
-        const formData = new FormData(e.currentTarget);
-        const value = String(formData.get("runtime_input") ?? "");
-
-        if (value.trim() === "") {
-            inputRef.current?.focus();
+        if (!outputOpen) {
             return;
         }
 
-        onSubmitRuntimeInput?.(value);
-        e.currentTarget.reset();
+        bottomElementRef.current?.scrollIntoView({
+            block: "end",
+        });
+    }, [terminalLines, outputOpen, runtimePrompt]);
+
+    useEffect(() => {
+        if (!runtimePrompt) {
+            return;
+        }
+
+        setTimeout(() => {
+            runtimeInputRef.current?.focus();
+        }, 0);
+    }, [runtimePrompt]);
+
+    const renderedLines = useMemo(() => {
+        return (Array.isArray(terminalLines) ? terminalLines : []).map((lineObject) => {
+            const clickableParts = splitClickableLineParts(lineObject);
+
+            return {
+                lineObject,
+                clickableParts,
+            };
+        });
+    }, [terminalLines]);
+
+    const handleRuntimeInputSubmit = (event) => {
+        event.preventDefault();
+
+        const formData = new FormData(event.currentTarget);
+        const inputValue = String(formData.get("runtime_input") ?? "");
+
+        if (inputValue.trim() === "") {
+            runtimeInputRef.current?.focus();
+            return;
+        }
+
+        onSubmitRuntimeInput?.(inputValue);
+        event.currentTarget.reset();
     };
 
     return (
-        <div className={`panel output-panel ${outputOpen ? "open" : "closed"}`} style={panelStyle}>
+        <div
+            className={`panel output-panel ${outputOpen ? "open" : "closed"}`}
+            style={panelStyle}
+        >
             {outputOpen && (
                 <div
                     className={`output-resize-grip ${isResizing ? "dragging" : ""}`}
@@ -120,28 +153,41 @@ export default function OutputPanel({
                 <h3 className="panel-title">Output</h3>
 
                 <div className="output-right">
-                    <div className="panel-hint">{terminalLines.length} lines</div>
+                    <div className="panel-hint">
+                        {terminalLines.length} lines
+                    </div>
                 </div>
             </div>
 
             <div id="terminal" role="log" aria-live="polite">
-                {rendered.map(({ lineObj, parts }) => {
-                    const lvl = lineObj.level || "info";
+                {renderedLines.map(({ lineObject, clickableParts }) => {
+                    const lineLevel = lineObject.level || "info";
+
                     const afterNode =
-                        lvl === "error" ? renderExpectedDelims(parts.after) : parts.after;
+                        lineLevel === "error"
+                            ? renderExpectedDelimiters(clickableParts.afterText)
+                            : clickableParts.afterText;
 
                     return (
-                        <div key={lineObj.id} className={`term-line ${lvl}`}>
-                            <span>{parts.before}</span>
+                        <div
+                            key={lineObject.id}
+                            className={`term-line ${lineLevel}`}
+                        >
+                            <span>{clickableParts.beforeText}</span>
 
-                            {parts.link && (
+                            {clickableParts.locationLink && (
                                 <button
                                     type="button"
                                     className="term-loc-link"
-                                    onClick={() => onJumpToPosition?.(parts.link.line, parts.link.col)}
+                                    onClick={() =>
+                                        onJumpToPosition?.(
+                                            clickableParts.locationLink.lineNumber,
+                                            clickableParts.locationLink.columnNumber
+                                        )
+                                    }
                                     title="Jump to this location"
                                 >
-                                    {parts.link.label}
+                                    {clickableParts.locationLink.label}
                                 </button>
                             )}
 
@@ -153,14 +199,16 @@ export default function OutputPanel({
                 {runtimePrompt && (
                     <form
                         className="terminal-stdin-line"
-                        onSubmit={handleSubmit}
-                        onClick={() => inputRef.current?.focus()}
+                        onSubmit={handleRuntimeInputSubmit}
+                        onClick={() => runtimeInputRef.current?.focus()}
                     >
-                        <span className="terminal-stdin-prefix">{runtimePrompt.prefix ?? ""}</span>
+                        <span className="terminal-stdin-prefix">
+                            {runtimePrompt.prefix ?? ""}
+                        </span>
 
                         <input
                             key={runtimePrompt?.id ?? "runtime-input"}
-                            ref={inputRef}
+                            ref={runtimeInputRef}
                             name="runtime_input"
                             type="text"
                             className="terminal-stdin-input"
@@ -171,7 +219,7 @@ export default function OutputPanel({
                     </form>
                 )}
 
-                <div ref={bottomRef} />
+                <div ref={bottomElementRef} />
             </div>
         </div>
     );

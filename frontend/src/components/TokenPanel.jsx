@@ -9,108 +9,178 @@ export default function TokenPanel({
     selectedRange,
     activeHeadIndex = -1,
 }) {
-    const safeTokens = useMemo(() => {
+    const safeTokenList = useMemo(() => {
         return Array.isArray(tokens) ? tokens : [];
     }, [tokens]);
 
-    const parentRef = useRef(null);
+    const tokenListContainerRef = useRef(null);
 
-    const rowVirtualizer = useVirtualizer({
-        count: safeTokens.length,
-        getScrollElement: () => parentRef.current,
+    const tokenRowVirtualizer = useVirtualizer({
+        count: safeTokenList.length,
+        getScrollElement: () => tokenListContainerRef.current,
         estimateSize: () => 60,
         overscan: 12,
         getItemKey: (index) => {
-            const t = safeTokens[index];
-            const p = t?.pos ?? t?.position ?? {};
-            return `${index}-${t?.type ?? ""}-${t?.value ?? ""}-${p?.ln ?? ""}:${p?.col ?? ""}`;
+            const tokenItem = safeTokenList[index];
+            const tokenPosition = tokenItem?.pos ?? tokenItem?.position ?? {};
+
+            return `${index}-${tokenItem?.type ?? ""}-${tokenItem?.value ?? ""}-${tokenPosition?.ln ?? ""}:${tokenPosition?.col ?? ""}`;
         },
     });
 
-    const start = Number(selectedRange?.start ?? -1);
-    const end = Number(selectedRange?.end ?? -1);
-    const lo = start >= 0 && end >= 0 ? Math.min(start, end) : -1;
-    const hi = start >= 0 && end >= 0 ? Math.max(start, end) : -1;
+    const selectedStartIndex = Number(selectedRange?.start ?? -1);
+    const selectedEndIndex = Number(selectedRange?.end ?? -1);
+
+    const selectedLowerIndex =
+        selectedStartIndex >= 0 && selectedEndIndex >= 0
+            ? Math.min(selectedStartIndex, selectedEndIndex)
+            : -1;
+
+    const selectedHigherIndex =
+        selectedStartIndex >= 0 && selectedEndIndex >= 0
+            ? Math.max(selectedStartIndex, selectedEndIndex)
+            : -1;
 
     useLayoutEffect(() => {
-        const head = Number(activeHeadIndex);
+        const activeTokenIndex = Number(activeHeadIndex);
 
-        const target =
-            head >= 0 && head < safeTokens.length
-                ? head
-                : end >= 0 && end < safeTokens.length
-                    ? end
-                    : -1;
+        const targetTokenIndex =
+            activeTokenIndex >= 0 && activeTokenIndex < safeTokenList.length
+                ? activeTokenIndex
+                : selectedEndIndex >= 0 && selectedEndIndex < safeTokenList.length
+                ? selectedEndIndex
+                : -1;
 
-        if (target < 0) return;
+        if (targetTokenIndex < 0) {
+            return;
+        }
 
-        const vis = rowVirtualizer.getVirtualItems();
-        const first = vis?.[0]?.index ?? 0;
-        const last = vis?.[vis.length - 1]?.index ?? 0;
+        const visibleRows = tokenRowVirtualizer.getVirtualItems();
+        const firstVisibleIndex = visibleRows?.[0]?.index ?? 0;
+        const lastVisibleIndex = visibleRows?.[visibleRows.length - 1]?.index ?? 0;
 
-        const align = target < first ? "start" : target > last ? "end" : "center";
+        const scrollAlignment =
+            targetTokenIndex < firstVisibleIndex
+                ? "start"
+                : targetTokenIndex > lastVisibleIndex
+                ? "end"
+                : "center";
 
-        rowVirtualizer.scrollToIndex(target, { align, behavior: "auto" });
+        tokenRowVirtualizer.scrollToIndex(targetTokenIndex, {
+            align: scrollAlignment,
+            behavior: "auto",
+        });
 
         requestAnimationFrame(() => {
-            const vis2 = rowVirtualizer.getVirtualItems();
-            const first2 = vis2?.[0]?.index ?? 0;
-            const last2 = vis2?.[vis2.length - 1]?.index ?? 0;
-            const align2 = target < first2 ? "start" : target > last2 ? "end" : "center";
+            const updatedVisibleRows = tokenRowVirtualizer.getVirtualItems();
+            const updatedFirstVisibleIndex = updatedVisibleRows?.[0]?.index ?? 0;
+            const updatedLastVisibleIndex =
+                updatedVisibleRows?.[updatedVisibleRows.length - 1]?.index ?? 0;
 
-            rowVirtualizer.scrollToIndex(target, { align: align2, behavior: "auto" });
+            const updatedScrollAlignment =
+                targetTokenIndex < updatedFirstVisibleIndex
+                    ? "start"
+                    : targetTokenIndex > updatedLastVisibleIndex
+                    ? "end"
+                    : "center";
+
+            tokenRowVirtualizer.scrollToIndex(targetTokenIndex, {
+                align: updatedScrollAlignment,
+                behavior: "auto",
+            });
         });
-    }, [activeHeadIndex, end, safeTokens.length, rowVirtualizer]);
+    }, [activeHeadIndex, selectedEndIndex, safeTokenList.length, tokenRowVirtualizer]);
 
     useEffect(() => {
-        rowVirtualizer.measure();
-    }, [safeTokens.length, rowVirtualizer]);
+        tokenRowVirtualizer.measure();
+    }, [safeTokenList.length, tokenRowVirtualizer]);
 
-    const items = rowVirtualizer.getVirtualItems();
+    const virtualRows = tokenRowVirtualizer.getVirtualItems();
 
     return (
         <div className="tokens-panel">
             <div className="tokens-head">
                 <div className="tokens-title">Tokens</div>
-                <div className="tokens-count">{safeTokens.length} rows</div>
+                <div className="tokens-count">
+                    {safeTokenList.length} rows
+                </div>
             </div>
 
-            <div className="tokens-table" role="table" aria-label="Tokens table">
+            <div
+                className="tokens-table"
+                role="table"
+                aria-label="Tokens table"
+            >
                 <div className="token-thead" role="rowgroup">
                     <div className="token-header-row" role="row">
-                        <div className="token-hcell pos" role="columnheader">Ln, Cl</div>
-                        <div className="token-hcell" role="columnheader">LEXEME</div>
-                        <div className="token-hcell" role="columnheader">TOKEN</div>
-                        <div className="token-hcell" role="columnheader">TYPE</div>
+                        <div className="token-hcell pos" role="columnheader">
+                            Ln, Cl
+                        </div>
+
+                        <div className="token-hcell" role="columnheader">
+                            LEXEME
+                        </div>
+
+                        <div className="token-hcell" role="columnheader">
+                            TOKEN
+                        </div>
+
+                        <div className="token-hcell" role="columnheader">
+                            TYPE
+                        </div>
                     </div>
                 </div>
 
-                <div ref={parentRef} className="tokens-list-wrap" role="rowgroup">
+                <div
+                    ref={tokenListContainerRef}
+                    className="tokens-list-wrap"
+                    role="rowgroup"
+                >
                     <div
                         style={{
-                            height: rowVirtualizer.getTotalSize(),
+                            height: tokenRowVirtualizer.getTotalSize(),
                             position: "relative",
                             width: "100%",
                         }}
                     >
-                        {items.map((v) => {
-                            const hasRange = lo >= 0 && hi >= 0 && lo <= hi;
-                            const isSelected = hasRange ? v.index >= lo && v.index <= hi : false;
+                        {virtualRows.map((virtualRow) => {
+                            const hasSelectedRange =
+                                selectedLowerIndex >= 0 &&
+                                selectedHigherIndex >= 0 &&
+                                selectedLowerIndex <= selectedHigherIndex;
+
+                            const isSelected =
+                                hasSelectedRange
+                                    ? virtualRow.index >= selectedLowerIndex &&
+                                      virtualRow.index <= selectedHigherIndex
+                                    : false;
 
                             return (
                                 <div
-                                    key={v.key}
-                                    ref={rowVirtualizer.measureElement}
-                                    data-index={v.index}
-                                    className={`token-row ${v.index % 2 === 0 ? "even" : "odd"}${isSelected ? " selected" : ""}`}
+                                    key={virtualRow.key}
+                                    ref={tokenRowVirtualizer.measureElement}
+                                    data-index={virtualRow.index}
+                                    className={`token-row ${
+                                        virtualRow.index % 2 === 0 ? "even" : "odd"
+                                    }${isSelected ? " selected" : ""}`}
                                     role="row"
                                     tabIndex={0}
                                     aria-selected={isSelected}
-                                    onClick={() => onTokenClick?.(safeTokens[v.index])}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter" || e.key === " ") {
-                                            e.preventDefault();
-                                            onTokenClick?.(safeTokens[v.index]);
+                                    onClick={() =>
+                                        onTokenClick?.(
+                                            safeTokenList[virtualRow.index]
+                                        )
+                                    }
+                                    onKeyDown={(event) => {
+                                        if (
+                                            event.key === "Enter" ||
+                                            event.key === " "
+                                        ) {
+                                            event.preventDefault();
+
+                                            onTokenClick?.(
+                                                safeTokenList[virtualRow.index]
+                                            );
                                         }
                                     }}
                                     style={{
@@ -118,10 +188,10 @@ export default function TokenPanel({
                                         top: 0,
                                         left: 0,
                                         width: "100%",
-                                        transform: `translateY(${v.start}px)`,
+                                        transform: `translateY(${virtualRow.start}px)`,
                                     }}
                                 >
-                                    <TokenRow token={safeTokens[v.index]} />
+                                    <TokenRow token={safeTokenList[virtualRow.index]} />
                                 </div>
                             );
                         })}

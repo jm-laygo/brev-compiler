@@ -1,16 +1,22 @@
-export async function postJSON(url, body) {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+export async function sendJsonRequest(url, requestBody) {
+    const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+    });
 
-  let data = null;
-  try { data = await res.json(); } catch { /* ignore */ }
+    let responseData = null;
 
-  if (!res.ok) {
-    const msg = data?.error || `HTTP ${res.status}`;
-    throw new Error(msg);
-  }
-  return data;
+    try {
+        responseData = await response.json();
+    } catch {
+        // ignore empty response
+    }
+
+    if (!response.ok) {
+        const errorMessage = responseData?.error || `HTTP ${response.status}`;
+        throw new Error(errorMessage);
+    }
+
+    return responseData;
 }

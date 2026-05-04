@@ -1,49 +1,80 @@
 import { useCallback, useState } from "react";
 
-export default function useTerminal(maxLines = 800) {
+export default function useTerminal(maximumLineCount = 800) {
     const [terminalLines, setTerminalLines] = useState([]);
 
-    const push = useCallback((level, text) => {
-        const line = {
-            id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-            level,
-            text: String(text ?? ""),
-        };
+    const addTerminalLine = useCallback(
+        (lineLevel, lineText) => {
+            const terminalLine = {
+                id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+                level: lineLevel,
+                text: String(lineText ?? ""),
+            };
 
-        setTerminalLines((prev) => {
-            const next = prev.length >= maxLines ? prev.slice(prev.length - (maxLines - 1)) : prev.slice();
-            next.push(line);
-            return next;
-        });
-    }, [maxLines]);
+            setTerminalLines((previousLines) => {
+                const nextLines =
+                    previousLines.length >= maximumLineCount
+                        ? previousLines.slice(
+                              previousLines.length - (maximumLineCount - 1)
+                          )
+                        : previousLines.slice();
 
-    const log = useCallback((text) => {
-        push("info", text);
-    }, [push]);
+                nextLines.push(terminalLine);
 
-    const logSuccess = useCallback((text) => {
-        push("success", text);
-    }, [push]);
+                return nextLines;
+            });
+        },
+        [maximumLineCount]
+    );
 
-    const logError = useCallback((text) => {
-        push("error", text);
-    }, [push]);
+    const log = useCallback(
+        (lineText) => {
+            addTerminalLine("info", lineText);
+        },
+        [addTerminalLine]
+    );
 
-    const logWarn = useCallback((text) => {
-        push("warn", text);
-    }, [push]);
+    const logSuccess = useCallback(
+        (lineText) => {
+            addTerminalLine("success", lineText);
+        },
+        [addTerminalLine]
+    );
 
-    const setTerminal = useCallback((text, level = "info") => {
-        const lines = String(text ?? "").split("\n").filter((x) => x.length > 0);
+    const logError = useCallback(
+        (lineText) => {
+            addTerminalLine("error", lineText);
+        },
+        [addTerminalLine]
+    );
+
+    const logWarning = useCallback(
+        (lineText) => {
+            addTerminalLine("warn", lineText);
+        },
+        [addTerminalLine]
+    );
+
+    const setTerminalOutput = useCallback((text, lineLevel = "info") => {
+        const outputLines = String(text ?? "")
+            .split("\n")
+            .filter((lineText) => lineText.length > 0);
 
         setTerminalLines(
-            lines.map((t) => ({
+            outputLines.map((lineText) => ({
                 id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-                level,
-                text: t,
+                level: lineLevel,
+                text: lineText,
             }))
         );
     }, []);
 
-    return { terminalLines, log, logSuccess, logError, logWarn, setTerminal };
+    return {
+        terminalLines,
+        log,
+        logSuccess,
+        logError,
+        logWarning,
+        setTerminalOutput,
+    };
 }

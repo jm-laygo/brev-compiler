@@ -6,45 +6,66 @@ export default function useFileActions({
     editorApiRef,
     setInitialCode,
     setSource,
-    setTerminal,
+    setTerminalOutput,
     isRunning,
     runningPhase,
     runLiveOnce,
 }) {
     const fileInputRef = useRef(null);
 
-    const openFile = useCallback(() => fileInputRef.current?.click(), []);
+    const openFile = useCallback(() => {
+        fileInputRef.current?.click();
+    }, []);
 
     const onFilePicked = useCallback(
-        async (e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
+        async (event) => {
+            const selectedFile = event.target.files?.[0];
 
-            const lowerName = file.name.toLowerCase();
-
-            if (!lowerName.endsWith(".brev")) {
-                setTerminal("Only .brev files are allowed.", "error");
-                if (fileInputRef.current) fileInputRef.current.value = "";
+            if (!selectedFile) {
                 return;
             }
 
-            const text = await file.text();
+            const lowerFileName = selectedFile.name.toLowerCase();
+
+            if (!lowerFileName.endsWith(".brev")) {
+                setTerminalOutput("Only .brev files are allowed.", "error");
+
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = "";
+                }
+
+                return;
+            }
+
+            const fileText = await selectedFile.text();
 
             if (editorApiRef?.current?.openFileAsTab) {
-                editorApiRef.current.openFileAsTab(file.name, text);
+                editorApiRef.current.openFileAsTab(
+                    selectedFile.name,
+                    fileText
+                );
             } else {
-                setInitialCode(text);
-                setSource(text);
-                if (editorRef.current) editorRef.current.setValue(text);
+                setInitialCode(fileText);
+                setSource(fileText);
+
+                if (editorRef.current) {
+                    editorRef.current.setValue(fileText);
+                }
             }
 
-            setTerminal(`Loaded: ${file.name}`, "info");
+            setTerminalOutput(`Loaded: ${selectedFile.name}`, "info");
 
             if (isRunning && runningPhase) {
-                runLiveOnce(runningPhase, text, false);
+                runLiveOnce(
+                    runningPhase,
+                    fileText,
+                    false
+                );
             }
 
-            if (fileInputRef.current) fileInputRef.current.value = "";
+            if (fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
         },
         [
             editorApiRef,
@@ -54,19 +75,19 @@ export default function useFileActions({
             runLiveOnce,
             setInitialCode,
             setSource,
-            setTerminal,
+            setTerminalOutput,
         ]
     );
 
     const saveFile = useCallback(async () => {
-        const code = getCode();
+        const sourceCode = getCode();
 
         let fileName = "main.brev";
         const editor = editorRef.current;
-        const model = editor?.getModel();
+        const editorModel = editor?.getModel();
 
-        if (model?.__fileName) {
-            fileName = model.__fileName;
+        if (editorModel?.__fileName) {
+            fileName = editorModel.__fileName;
         }
 
         if (!fileName.toLowerCase().endsWith(".brev")) {
@@ -75,7 +96,7 @@ export default function useFileActions({
 
         try {
             if ("showSaveFilePicker" in window) {
-                const handle = await window.showSaveFilePicker({
+                const fileHandle = await window.showSaveFilePicker({
                     suggestedName: fileName,
                     types: [
                         {
@@ -87,46 +108,67 @@ export default function useFileActions({
                     ],
                 });
 
-                const writable = await handle.createWritable();
-                await writable.write(code);
-                await writable.close();
+                const writableFile = await fileHandle.createWritable();
 
-                setTerminal(`Saved as: ${handle.name}`, "success");
+                await writableFile.write(sourceCode);
+                await writableFile.close();
+
+                setTerminalOutput(`Saved as: ${fileHandle.name}`, "success");
+
                 return;
             }
-        } catch (err) {
-            if (err?.name === "AbortError") {
-                setTerminal("Save cancelled.", "warn");
+        } catch (errorObject) {
+            if (errorObject?.name === "AbortError") {
+                setTerminalOutput("Save cancelled.", "warn");
                 return;
             }
 
-            setTerminal(`Save As failed: ${err.message}`, "error");
+            setTerminalOutput(
+                `Save As failed: ${errorObject.message}`,
+                "error"
+            );
+
             return;
         }
 
-        const blob = new Blob([code], { type: "text/plain;charset=utf-8" });
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = fileName;
-        a.click();
-        URL.revokeObjectURL(a.href);
+        const fileBlob = new Blob(
+            [sourceCode],
+            {
+                type: "text/plain;charset=utf-8",
+            }
+        );
 
-        setTerminal(`Downloaded: ${fileName}`, "success");
-    }, [editorRef, getCode, setTerminal]);
+        const downloadLink = document.createElement("a");
+
+        downloadLink.href = URL.createObjectURL(fileBlob);
+        downloadLink.download = fileName;
+        downloadLink.click();
+
+        URL.revokeObjectURL(downloadLink.href);
+
+        setTerminalOutput(`Downloaded: ${fileName}`, "success");
+    }, [editorRef, getCode, setTerminalOutput]);
 
     const clearEditor = useCallback(() => {
         const editor = editorRef.current;
-        if (!editor) return;
 
-        const model = editor.getModel();
-        if (!model) return;
+        if (!editor) {
+            return;
+        }
+
+        const editorModel = editor.getModel();
+
+        if (!editorModel) {
+            return;
+        }
 
         editor.pushUndoStop();
 
-        const fullRange = model.getFullModelRange();
+        const fullEditorRange = editorModel.getFullModelRange();
+
         editor.executeEdits("brev-clear", [
             {
-                range: fullRange,
+                range: fullEditorRange,
                 text: "",
                 forceMoveMarkers: true,
             },

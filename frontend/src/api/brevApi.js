@@ -1,31 +1,58 @@
-async function postJson(url, body, signal) {
-    const res = await fetch(url, {
+async function sendJsonRequest(url, requestBody, abortSignal) {
+    const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-        signal,
+        body: JSON.stringify(requestBody),
+        signal: abortSignal,
     });
 
-    const data = await res.json().catch(() => ({}));
-    return { res, data };
+    const responseData = await response.json().catch(() => ({}));
+
+    return {
+        response,
+        responseData,
+    };
 }
 
-export async function runLexical(source_code, signal) {
-    return postJson("/api/lex", { source_code }, signal);
+export async function runLexicalAnalysis(sourceCode, abortSignal) {
+    return sendJsonRequest(
+        "/api/lex",
+        { source_code: sourceCode },
+        abortSignal
+    );
 }
 
-export async function runSyntax(source_code, signal) {
-    return postJson("/api/syntax", { source_code }, signal);
+export async function runSyntaxAnalysis(sourceCode, abortSignal) {
+    return sendJsonRequest(
+        "/api/syntax",
+        { source_code: sourceCode },
+        abortSignal
+    );
 }
 
-export async function runSemantic(source_code, signal) {
-    return postJson("/api/sem", { source_code }, signal);
+export async function runSemanticAnalysis(sourceCode, abortSignal) {
+    return sendJsonRequest(
+        "/api/sem",
+        { source_code: sourceCode },
+        abortSignal
+    );
 }
 
-export async function runStartExecute(source_code, signal) {
-    return postJson("/api/run/start", { source_code }, signal);
+export async function startExecution(sourceCode, abortSignal) {
+    return sendJsonRequest(
+        "/api/run/start",
+        { source_code: sourceCode },
+        abortSignal
+    );
 }
 
-export async function runSendInput(session_id, value, signal) {
-    return postJson("/api/run/input", { session_id, value }, signal);
+export async function sendRuntimeInput(sessionId, inputValue, abortSignal) {
+    return sendJsonRequest(
+        "/api/run/input",
+        {
+            session_id: sessionId,
+            value: inputValue,
+        },
+        abortSignal
+    );
 }

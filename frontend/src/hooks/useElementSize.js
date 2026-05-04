@@ -1,22 +1,33 @@
 import { useEffect, useState } from "react";
 
-export default function useElementSize(ref) {
-    const [size, setSize] = useState({ width: 0, height: 0 });
+export default function useElementSize(elementRef) {
+    const [elementSize, setElementSize] = useState({
+        width: 0,
+        height: 0,
+    });
 
     useEffect(() => {
-        if (!ref.current) return;
+        const element = elementRef.current;
 
-        const ro = new ResizeObserver(() => {
-            const r = ref.current.getBoundingClientRect();
-            setSize({
-                width: Math.max(0, Math.floor(r.width)),
-                height: Math.max(0, Math.floor(r.height)),
+        if (!element) {
+            return;
+        }
+
+        const resizeObserver = new ResizeObserver(() => {
+            const elementRectangle = element.getBoundingClientRect();
+
+            setElementSize({
+                width: Math.max(0, Math.floor(elementRectangle.width)),
+                height: Math.max(0, Math.floor(elementRectangle.height)),
             });
         });
 
-        ro.observe(ref.current);
-        return () => ro.disconnect();
-    }, [ref]);
+        resizeObserver.observe(element);
 
-    return size;
+        return () => {
+            resizeObserver.disconnect();
+        };
+    }, [elementRef]);
+
+    return elementSize;
 }
