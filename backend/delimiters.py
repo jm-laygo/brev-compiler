@@ -41,14 +41,14 @@ idnt_delim = {
 
 delim1  = set(ALPHA_DIG) | {space, '"', op_par}
 delim2 = {semicolon, comma, colon, cl_par, cl_brc, cl_bra, space, newline, tab, None} | op_delim | set(ALPHA_DIG)
-delim3 = {space, '~', op_par, '!', '+', '-', '"', "'"} | set(ALPHA_DIG)
-delim4 = {'"', '~', "'", op_par, '!', '+', '-'} | set(ALPHA_DIG) | {space, newline, op_bra}
-delim5  = {space, '~', '"', "'", "!", op_par} | set(ALPHA_DIG)
+delim3 = {space, '-', op_par, '!', '+', '-', '"', "'"} | set(ALPHA_DIG)
+delim4 = {'"', '-', "'", op_par, '!', '+', '-'} | set(ALPHA_DIG) | {space, newline, op_bra}
+delim5  = {space, '-', '"', "'", "!", op_par} | set(ALPHA_DIG)
 delim6  = {op_par, cl_par, '!', "'", '"', space} | set(ALPHA_DIG)
 delim7  = {semicolon, op_bra, cl_par, '<', '>', '=', '|', '&', '+', '-', '/', '*', '%', space, newline, colon, comma}
 delim8  = {cl_brc, op_par, space} | set(ALPHA_DIG)
 delim9  = {'=', semicolon, op_brc, cl_par, space, newline}
-delim10 = {"'", '"', '~', op_bra, space, newline} | set(ALPHA_DIG)
+delim10 = {"'", '"', '-', op_bra, space, newline} | set(ALPHA_DIG)
 delim11 = {op_bra, semicolon, cl_bra, comma, space, newline} | set(ALPHABET)
 delim12 = {space, "'", '"', op_par} | set(ALPHA_DIG)
 
@@ -70,85 +70,82 @@ _DOCU_EOF = [None]
 
 DOCU_DELIM_ORDER = _DOCU_PREFIX + _DOCU_SYMBOLS + _DOCU_OPS + _DOCU_EOF
 
-def formatExpectedDelimiters(allowedDelimiters):
+def formatExpectedDelimiters(allowed):
     # no delimiter
-    if not allowedDelimiters:
+    if not allowed:
         return "(none)"
 
-    remainingDelimiters = set(allowedDelimiters)
-    delimiterParts = []
+    remaining = set(allowed)
+    parts = []
 
-    digitSet = set(DIGITS)
-    alphabetSet = set(ALPHABET)
-    alphaDigitSet = set(ALPHA_DIG)
+    digit_set = set(DIGITS)
+    alphabet_set = set(ALPHABET)
+    alphadigit_set = set(ALPHA_DIG)
 
     # common names first
-    if space in remainingDelimiters:
-        delimiterParts.append("space")
-        remainingDelimiters.remove(space)
+    if space in remaining:
+        parts.append("space")
+        remaining.remove(space)
 
-    if comma in remainingDelimiters:
-        delimiterParts.append("comma")
-        remainingDelimiters.remove(comma)
+    if comma in remaining:
+        parts.append("comma")
+        remaining.remove(comma)
 
-    if semicolon in remainingDelimiters:
-        delimiterParts.append("semicolon")
-        remainingDelimiters.remove(semicolon)
+    if semicolon in remaining:
+        parts.append("semicolon")
+        remaining.remove(semicolon)
 
-    if colon in remainingDelimiters:
-        delimiterParts.append("colon")
-        remainingDelimiters.remove(colon)
+    if colon in remaining:
+        parts.append("colon")
+        remaining.remove(colon)
 
-    if period in remainingDelimiters:
-        delimiterParts.append("period")
-        remainingDelimiters.remove(period)
+    if period in remaining:
+        parts.append("period")
+        remaining.remove(period)
 
-    if newline in remainingDelimiters:
-        delimiterParts.append("newline")
-        remainingDelimiters.remove(newline)
+    if newline in remaining:
+        parts.append("newline")
+        remaining.remove(newline)
 
-    if tab in remainingDelimiters:
-        delimiterParts.append("tab")
-        remainingDelimiters.remove(tab)
+    if tab in remaining:
+        parts.append("tab")
+        remaining.remove(tab)
 
-    if None in remainingDelimiters:
-        delimiterParts.append("EOF")
-        remainingDelimiters.remove(None)
+    if None in remaining:
+        parts.append("EOF")
+        remaining.remove(None)
 
     # symbols and operators
-    for delimiter in DOCU_DELIM_ORDER:
-        if delimiter in (space, newline, tab, None):
+    for delim in DOCU_DELIM_ORDER:
+        if delim in (space, newline, tab, None):
             continue
 
-        if delimiter in remainingDelimiters:
-            delimiterParts.append(repr(delimiter))
-            remainingDelimiters.remove(delimiter)
+        if delim in remaining:
+            parts.append(repr(delim))
+            remaining.remove(delim)
 
     # grouped characters
-    if alphaDigitSet.issubset(remainingDelimiters):
-        delimiterParts.append("alphanumeric")
-        remainingDelimiters = remainingDelimiters - alphaDigitSet
+    if alphadigit_set.issubset(remaining):
+        parts.append("alphanumeric")
+        remaining = remaining - alphadigit_set
 
     else:
-        if alphabetSet.issubset(remainingDelimiters):
-            delimiterParts.append("alphabet")
-            remainingDelimiters = remainingDelimiters - alphabetSet
+        if alphabet_set.issubset(remaining):
+            parts.append("alphabet")
+            remaining = remaining - alphabet_set
 
-        if digitSet.issubset(remainingDelimiters):
-            delimiterParts.append("digits")
-            remainingDelimiters = remainingDelimiters - digitSet
+        if digit_set.issubset(remaining):
+            parts.append("digits")
+            remaining = remaining - digit_set
 
     # remaining chars
-    for delimiter in sorted(remainingDelimiters, key=lambda character: str(character)):
-        if delimiter in (space, newline, tab, None):
+    for delim in sorted(remaining, key=lambda c: str(c)):
+        if delim in (space, newline, tab, None):
             continue
 
-        delimiterParts.append(repr(delimiter))
+        parts.append(repr(delim))
 
-    if delimiterParts:
-        return ", ".join(delimiterParts)
+    if parts:
+        return ", ".join(parts)
 
     return "(none)"
-
-def format_expected_delims(allowedDelimiters):
-    return formatExpectedDelimiters(allowedDelimiters)

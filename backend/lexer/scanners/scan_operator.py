@@ -2,7 +2,6 @@ from backend.errors import LexicalError
 
 from backend.tokens import (
     Token,
-    TK_OP_TILDE,
     TK_OP_EQ,
     TK_OP_ASSIGN,
     TK_OP_INC,
@@ -31,7 +30,7 @@ from backend.tokens import (
 )
 
 from backend.delimiters import (
-    format_expected_delims,
+    formatExpectedDelimiters,
     delim2,
     delim3,
     delim4,
@@ -65,7 +64,7 @@ def acceptOperator(
         allowedDelimiters = {allowedDelimiters}
 
     currentCharacter = lexer.currentCharacter
-    expectedDelimiters = format_expected_delims(allowedDelimiters)
+    expectedDelimiters = formatExpectedDelimiters(allowedDelimiters)
 
     if currentCharacter is None and None not in allowedDelimiters:
         lexicalError = LexicalError(
@@ -102,20 +101,6 @@ def scanOperator(lexer, tokenList, errorList):
         return False
 
     startingPosition = lexer.currentPosition.copy()
-
-    # tilde
-    if currentCharacter == "~":
-        lexer.advance()
-
-        return acceptOperator(
-            lexer,
-            tokenList,
-            errorList,
-            TK_OP_TILDE,
-            "~",
-            startingPosition,
-            delim3
-        )
 
     # assign or equal
     if currentCharacter == "=":
@@ -363,7 +348,6 @@ def scanOperator(lexer, tokenList, errorList):
                     cl_bra,
                     semicolon,
                     comma,
-                    "~",
                     '"',
                     "'",
                     "!",

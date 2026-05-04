@@ -55,26 +55,51 @@ def parseLiteralExpression(self: Parser) -> LiteralExpression:
         )
 
     if currentTokenType == TK_LIT_CHAR:
-        characterValue = literalValueText
+        characterText = literalValueText
 
-        if not isinstance(characterValue, str):
+        if not isinstance(characterText, str):
             raise ParserError(
                 literalToken,
-                [TK_LIT_CHAR],
+                [],
                 "Invalid sigil literal."
             )
 
-        if (
-            len(characterValue) == 3
-            and characterValue[0] == "'"
-            and characterValue[2] == "'"
-        ):
-            characterValue = characterValue[1]
+        if characterText == "''":
+            raise ParserError(
+                literalToken,
+                [],
+                "Empty sigil literal is invalid. A sigil must contain exactly one character or a valid escape sequence."
+            )
+
+        if len(characterText) < 2 or characterText[0] != "'" or characterText[-1] != "'":
+            raise ParserError(
+                literalToken,
+                [],
+                "Invalid sigil literal format. A sigil must be enclosed in single quotes."
+            )
+
+        innerText = characterText[1:-1]
+
+        escapeMap = {
+            r"\n": "\n",
+            r"\t": "\t",
+            r"\0": "\0",
+            r"\'": "'",
+            r"\"": '"',
+            r"\\": "\\",
+        }
+
+        if innerText in escapeMap:
+            characterValue = escapeMap[innerText]
+
+        elif len(innerText) == 1:
+            characterValue = innerText
+
         else:
             raise ParserError(
                 literalToken,
-                [TK_LIT_CHAR],
-                "Invalid sigil literal format."
+                [],
+                "Invalid sigil literal format. A sigil must contain exactly one character or a valid escape sequence."
             )
 
         return LiteralExpression(

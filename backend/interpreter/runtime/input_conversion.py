@@ -12,23 +12,19 @@ def convertInputForTarget(self, targetReference, rawInputValue, currentEnvironme
     if isinstance(currentRuntimeValue, bool):
         normalizedInputText = str(rawInputValue).strip().lower()
 
-        if normalizedInputText in ("holy", "true", "1"):
+        if normalizedInputText == "holy":
             return True
 
-        if normalizedInputText in ("unholy", "false", "0"):
+        if normalizedInputText == "unholy":
             return False
 
         raise InputConversionRuntimeError(
             targetReference,
-            f"'{rawInputValue}' cannot be converted to verity."
+            f"'{rawInputValue}' cannot be converted to verity. Use only holy or unholy."
         )
 
     if isinstance(currentRuntimeValue, int) and not isinstance(currentRuntimeValue, bool):
         inputText = str(rawInputValue).strip()
-
-        # allow ~ as negative sign
-        if inputText.startswith("~"):
-            inputText = "-" + inputText[1:]
 
         try:
             convertedValue = int(inputText)
@@ -50,8 +46,10 @@ def convertInputForTarget(self, targetReference, rawInputValue, currentEnvironme
         return convertedValue
 
     if isinstance(currentRuntimeValue, float):
+        inputText = str(rawInputValue).strip()
+
         try:
-            return float(rawInputValue)
+            return float(inputText)
 
         except (TypeError, ValueError):
             raise InputConversionRuntimeError(
@@ -74,6 +72,7 @@ def convertInputForTarget(self, targetReference, rawInputValue, currentEnvironme
         return inputText
 
     return rawInputValue
+
 
 def bindInputConversionMethods(interpreterClass):
     interpreterClass.convertInputForTarget = convertInputForTarget

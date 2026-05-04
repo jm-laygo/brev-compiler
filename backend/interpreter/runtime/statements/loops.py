@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from backend.ast.ast_nodes import EndureStatement, ProcessionStatement, RitualStatement
-from backend.interpreter.control import FallSignal, ProceedSignal
+from backend.interpreter.control import AbsolveSignal, FallSignal, ProceedSignal
 from backend.interpreter.environment import Environment
 
 
@@ -37,6 +37,9 @@ def handleLoopStatement(self, statementNode, currentEnvironment):
             except ProceedSignal:
                 pass
 
+            except AbsolveSignal:
+                break
+
             except FallSignal:
                 break
 
@@ -61,6 +64,9 @@ def handleLoopStatement(self, statementNode, currentEnvironment):
             except ProceedSignal:
                 continue
 
+            except AbsolveSignal:
+                break
+
             except FallSignal:
                 break
 
@@ -76,6 +82,9 @@ def handleLoopStatement(self, statementNode, currentEnvironment):
 
             except ProceedSignal:
                 pass
+
+            except AbsolveSignal:
+                break
 
             except FallSignal:
                 break

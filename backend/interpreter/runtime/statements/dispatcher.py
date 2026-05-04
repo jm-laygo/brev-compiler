@@ -7,7 +7,6 @@ from .assignments import handleAssignmentIncrementDecrementStatement
 from .conditionals import (
     evaluateVerseMatch,
     handleConditionalStatement,
-    handleVerseEnd,
     isTruthy,
 )
 from .control import handleControlStatement
@@ -57,4 +56,3 @@ def bindStatementMethods(interpreterClass):
     interpreterClass.executeStatement = executeStatement
     interpreterClass.isTruthy = isTruthy
     interpreterClass.evaluateVerseMatch = evaluateVerseMatch
-    interpreterClass.handleVerseEnd = handleVerseEnd

@@ -31,7 +31,6 @@ class StatementsMixin(
         "AbsolutionClause": "checkAbsolutionClause",
         "DiscernStatement": "checkDiscernStatement",
         "VerseCase": "checkVerseCase",
-        "VerseEnd": "checkVerseEnd",
         "GraceDefault": "checkGraceDefault",
         "ProcessionStatement": "checkProcessionStatement",
         "EndureStatement": "checkEndureStatement",
@@ -44,6 +43,7 @@ class StatementsMixin(
 
     def checkStatement(self, statementNode: Any) -> None:
         statementKind = getClassName(statementNode)
+
         handlerName = self.statementHandlers.get(statementKind)
 
         if handlerName is None:

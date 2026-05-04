@@ -90,7 +90,6 @@ TK_OP_MUL = "TK_OP_MUL"
 TK_OP_DIV = "TK_OP_DIV"
 TK_OP_MOD = "TK_OP_MOD"
 TK_OP_POW = "TK_OP_POW"
-TK_OP_TILDE = "TK_OP_TILDE"
 
 TK_OP_ASSIGN = "TK_OP_ASSIGN"
 TK_OP_PLUS_EQ = "TK_OP_PLUS_EQ"
@@ -241,7 +240,6 @@ TOKEN_DISPLAY_NAMES = {
     TK_OP_DIV: "/",
     TK_OP_MOD: "%",
     TK_OP_POW: "**",
-    TK_OP_TILDE: "~",
     TK_OP_ASSIGN: "=",
 
     TK_OP_EQ: "==",

@@ -13,7 +13,7 @@ from backend.errors import RuntimeErrorBase, InputConversionRuntimeError
 def run(self, programNode: Program):
     self.registerProgram(programNode)
 
-    entryRite = getattr(programNode, "entry", None)
+    entryRite = getattr(programNode, "entryRite", None)
 
     if entryRite is None:
         raise RuntimeErrorBase(
@@ -44,18 +44,18 @@ def defaultInputProvider(self, targetNode=None):
 
 
 def registerProgram(self, programNode: Program):
-    globalDeclarations = getattr(programNode, "globals", []) or []
+    globalDeclarations = getattr(programNode, "globalDeclarations", []) or []
 
     for globalDeclaration in globalDeclarations:
         if isinstance(globalDeclaration, OrderDeclaration):
             self.orderDeclarations[globalDeclaration.name] = globalDeclaration
 
-    entryRite = getattr(programNode, "entry", None)
+    entryRite = getattr(programNode, "entryRite", None)
 
     if entryRite is not None:
         self.riteDeclarations[entryRite.name] = entryRite
 
-    functionRites = getattr(programNode, "functions", []) or []
+    functionRites = getattr(programNode, "riteDeclarations", []) or []
 
     for functionRite in functionRites:
         self.riteDeclarations[functionRite.name] = functionRite

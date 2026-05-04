@@ -35,3 +35,22 @@ class SacredInitializerMixin:
                     declaredItem,
                     f"Cannot assign {initialValueType} to {declaredType} in sacred '{getattr(declaredItem, 'name', '?')}'."
                 )
+            else:
+                # If the sacred was defined with a literal initializer, store
+                # its constant value on the symbol so other checks (like
+                # array-size extraction) can read it.
+                try:
+                    symbolName = getattr(declaredItem, "name", None)
+
+                    if symbolName:
+                        symbol = self.currentScope.resolveLocal(symbolName) or self.currentScope.resolve(symbolName)
+
+                        if symbol is not None and hasattr(symbol, "constantValue"):
+                            # Only set simple literal values here. More complex
+                            # constant evaluation can be added later if needed.
+                            if getattr(initialValue, "literalType", None) is not None:
+                                literalVal = getattr(initialValue, "value", None)
+                                symbol.constantValue = literalVal
+                except Exception:
+                    # Be defensive: don't crash the checker on unexpected shapes
+                    pass

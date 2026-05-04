@@ -14,12 +14,19 @@ class FunctionDeclarationsMixin:
         entryRite = getattr(programNode, "entryRite", None)
 
         if entryRite is not None:
-            functionDeclarations.extend([entryRite])
+            functionDeclarations.append(entryRite)
 
-        functionDeclarations.extend(getattr(programNode, "riteDeclarations", []) or [])
+        functionDeclarations.extend(
+            getattr(programNode, "riteDeclarations", []) or []
+        )
 
         for functionDeclaration in functionDeclarations:
-            if functionDeclaration is None or getClassName(functionDeclaration) != "RiteDeclaration":
+            if functionDeclaration is None:
+                continue
+
+            declarationKind = getClassName(functionDeclaration)
+
+            if declarationKind != "RiteDeclaration":
                 continue
 
             functionName = getattr(functionDeclaration, "name", None)
@@ -29,7 +36,6 @@ class FunctionDeclarationsMixin:
                     functionDeclaration,
                     "Function missing name."
                 )
-
                 continue
 
             if functionName in self.functions:
@@ -37,7 +43,6 @@ class FunctionDeclarationsMixin:
                     functionDeclaration,
                     f"Function '{functionName}' already declared."
                 )
-
                 continue
 
             returnType = self.getTypeFromReturnType(
@@ -52,20 +57,42 @@ class FunctionDeclarationsMixin:
             )
 
             parameterSymbols: List[VariableSymbol] = []
-            parameterDeclarations = getattr(functionDeclaration, "parameters", []) or []
+            parameterDeclarations = (
+                getattr(functionDeclaration, "parameters", None)
+                or getattr(functionDeclaration, "params", [])
+            )
+
+            seenParameterNames = set()
 
             for parameterDeclaration in parameterDeclarations:
                 parameterName = getattr(parameterDeclaration, "name", None)
+
+                if not parameterName:
+                    self.addError(
+                        parameterDeclaration,
+                        f"Parameter in function '{functionName}' missing name."
+                    )
+                    continue
+
+                if parameterName in seenParameterNames:
+                    self.addError(
+                        parameterDeclaration,
+                        f"Duplicate parameter '{parameterName}' in function '{functionName}'."
+                    )
+                    continue
+
+                seenParameterNames.add(parameterName)
+
                 parameterType = self.getTypeFromDeclaration(parameterDeclaration)
 
-                parameterSymbols.extend([
+                parameterSymbols.append(
                     VariableSymbol(
                         name=parameterName,
                         symbolType=parameterType,
                         position=getNodePosition(parameterDeclaration),
                         isConstant=False
                     )
-                ])
+                )
 
             functionSymbol.parameters = parameterSymbols
             self.functions[functionName] = functionSymbol

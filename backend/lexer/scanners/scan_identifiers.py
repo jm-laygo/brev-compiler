@@ -2,7 +2,7 @@ from backend.tokens import Token, TK_IDENTIFIER
 from backend.errors import LexicalError
 from backend.delimiters import (
     idnt_delim as identifierDelimiters,
-    format_expected_delims,
+    formatExpectedDelimiters,
     ALPHABET,
     ALPHA_DIG,
 )
@@ -65,7 +65,7 @@ def scanIdentifier(lexer, tokenList, errorList):
 
     # check delimiter
     currentCharacter = lexer.currentCharacter
-    expectedDelimiters = format_expected_delims(identifierDelimiters)
+    expectedDelimiters = formatExpectedDelimiters(identifierDelimiters)
 
     if currentCharacter is None and None not in identifierDelimiters:
         lexicalError = LexicalError(

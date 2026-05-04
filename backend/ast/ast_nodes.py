@@ -213,18 +213,11 @@ class DiscernStatement(ConditionStatement):
 class VerseCase(Node):
     matchValue: Union["Expression", "IdentifierReference"] = None
     bodyStatements: List[Statement] = field(default_factory=list)
-    verseEnd: Optional["VerseEnd"] = None
-
-
-@dataclass
-class VerseEnd(Node):
-    kind: str = ""
 
 
 @dataclass
 class GraceDefault(Node):
     bodyStatements: List[Statement] = field(default_factory=list)
-    verseEnd: Optional["VerseEnd"] = None
 
 
 # loop statements

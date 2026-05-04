@@ -1,7 +1,7 @@
 from backend.tokens import Token, TK_LIT_INT, TK_LIT_DECIMAL
 from backend.errors import LexicalError
 from backend.delimiters import int_decdelim as integerDecimalDelimiters
-from backend.delimiters import format_expected_delims as formatExpectedDelimiters
+from backend.delimiters import formatExpectedDelimiters
 
 
 MAX_INTEGER_DIGITS = 9
@@ -59,7 +59,7 @@ def consumeInvalidNumberTail(lexer):
     # skip invalid number
     while lexer.currentCharacter is not None and (
         lexer.currentCharacter.isalnum()
-        or lexer.currentCharacter in {".", "_", "~"}
+        or lexer.currentCharacter in {".", "_", "-"}
     ):
         lexer.advance()
 
@@ -70,11 +70,11 @@ def scanNumbers(lexer, tokenList, errorList):
     if currentCharacter is None:
         return False
 
-    # must start with digit or ~digit
+    # must start with digit or -digit
     if not (
         currentCharacter.isdigit()
         or (
-            currentCharacter == "~"
+            currentCharacter == "-"
             and (lexer.peek() or "").isdigit()
         )
     ):
@@ -88,15 +88,15 @@ def scanNumbers(lexer, tokenList, errorList):
     hasDigitAfterDecimalPoint = False
 
     # negative number marker
-    if lexer.currentCharacter == "~":
-        numberText += "~"
+    if lexer.currentCharacter == "-":
+        numberText += "-"
         lexer.advance()
 
         if lexer.currentCharacter is None or not lexer.currentCharacter.isdigit():
             errorList.append(
                 LexicalError(
                     startingPosition,
-                    "Invalid number literal '~' (expected digit after ~)"
+                    "Invalid number literal '-' (expected digit after -)"
                 )
             )
             return True

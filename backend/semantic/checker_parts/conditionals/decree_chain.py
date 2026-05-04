@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any
 
-from backend.semantic.typesys import isBooleanType
+from backend.semantic.typesys import isBool, isTally
 
 
 class DecreeChainMixin:
@@ -9,10 +9,10 @@ class DecreeChainMixin:
         conditionExpression = getattr(statementNode, "condition", None)
         conditionType = self.getExpressionType(conditionExpression)
 
-        if not isBooleanType(conditionType):
+        if not (isBool(conditionType) or isTally(conditionType)):
             self.addError(
-                conditionExpression,
-                f"Type error: decree condition must be verity, got {conditionType}."
+                conditionExpression if conditionExpression is not None else statementNode,
+                f"decree condition must be verity or tally, got {conditionType}."
             )
 
         bodyStatements = getattr(statementNode, "bodyStatements", []) or []
@@ -34,10 +34,10 @@ class DecreeChainMixin:
         conditionExpression = getattr(statementNode, "condition", None)
         conditionType = self.getExpressionType(conditionExpression)
 
-        if not isBooleanType(conditionType):
+        if not (isBool(conditionType) or isTally(conditionType)):
             self.addError(
-                statementNode,
-                f"edict condition must be verity, got {conditionType}."
+                conditionExpression if conditionExpression is not None else statementNode,
+                f"edict condition must be verity or tally, got {conditionType}."
             )
 
         bodyStatements = getattr(statementNode, "bodyStatements", []) or []

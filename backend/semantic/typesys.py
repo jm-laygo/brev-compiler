@@ -14,6 +14,7 @@ class BaseType(str, Enum):
     UNKNOWN = "unknown"
     ERROR = "error"
 
+
 @dataclass(frozen=True)
 class Type:
     baseType: BaseType = BaseType.UNKNOWN
@@ -99,20 +100,51 @@ class Type:
 
         return self.baseType.value
 
+
 def isNumericType(typeValue: Type) -> bool:
+    if typeValue is None:
+        return False
+
     return (
         typeValue.isBaseType(BaseType.TALLY)
         or typeValue.isBaseType(BaseType.DIVINE)
     )
 
+
+def isTallyType(typeValue: Type) -> bool:
+    if typeValue is None:
+        return False
+
+    return typeValue.isBaseType(BaseType.TALLY)
+
+
 def isBooleanType(typeValue: Type) -> bool:
+    if typeValue is None:
+        return False
+
     return typeValue.isBaseType(BaseType.VERITY)
 
+
 def isStringType(typeValue: Type) -> bool:
+    if typeValue is None:
+        return False
+
     return typeValue.isBaseType(BaseType.SCRIPTURE)
 
+
 def isCharacterType(typeValue: Type) -> bool:
+    if typeValue is None:
+        return False
+
     return typeValue.isBaseType(BaseType.SIGIL)
+
+
+def isErrorType(typeValue: Type) -> bool:
+    if typeValue is None:
+        return True
+
+    return typeValue.baseType == BaseType.ERROR
+
 
 def promoteNumericType(leftType: Type, rightType: Type) -> Type:
     if leftType.isBaseType(BaseType.DIVINE) or rightType.isBaseType(BaseType.DIVINE):
@@ -120,10 +152,18 @@ def promoteNumericType(leftType: Type, rightType: Type) -> Type:
 
     return Type.fromBaseType(BaseType.TALLY)
 
+
 def isSameType(leftType: Type, rightType: Type) -> bool:
+    if leftType is None or rightType is None:
+        return False
+
     return str(leftType) == str(rightType)
 
+
 def canAssign(destinationType: Type, sourceType: Type) -> bool:
+    if destinationType is None or sourceType is None:
+        return False
+
     if destinationType.baseType == BaseType.ERROR or sourceType.baseType == BaseType.ERROR:
         return True
 
@@ -151,44 +191,64 @@ def canAssign(destinationType: Type, sourceType: Type) -> bool:
 
     return False
 
-def canConcatenate(leftType: Type, rightType: Type, allowCoercion: bool = True) -> bool:
+
+def canConcatenate(leftType: Type, rightType: Type, allowCoercion: bool = False) -> bool:
+    if leftType is None or rightType is None:
+        return False
+
     if leftType.baseType == BaseType.ERROR or rightType.baseType == BaseType.ERROR:
         return True
 
     if isStringType(leftType) and isStringType(rightType):
         return True
 
-    if not allowCoercion:
-        return False
+    if isStringType(leftType) and isCharacterType(rightType):
+        return True
 
-    if isStringType(leftType) or isStringType(rightType):
+    if isCharacterType(leftType) and isStringType(rightType):
+        return True
+
+    if isCharacterType(leftType) and isCharacterType(rightType):
+        return True
+
+    if allowCoercion and (isStringType(leftType) or isStringType(rightType)):
         return True
 
     return False
 
+
 def getBinaryOperationResult(operator: str, leftType: Type, rightType: Type) -> Type:
+    if leftType is None or rightType is None:
+        return Type.error()
+
     if leftType.baseType == BaseType.ERROR or rightType.baseType == BaseType.ERROR:
         return Type.error()
 
     operator = operator or ""
 
-    if operator in ("&", "concat"):
-        if canConcatenate(leftType, rightType, allowCoercion=True):
+    if operator == "&":
+        if canConcatenate(leftType, rightType, allowCoercion=False):
             return Type.fromBaseType(BaseType.SCRIPTURE)
 
         return Type.error()
 
-    if operator in ("+", "-", "*", "/", "%", "**", "^"):
+    if operator in ("+", "-", "*", "/", "**", "^"):
         if isNumericType(leftType) and isNumericType(rightType):
             return promoteNumericType(leftType, rightType)
 
         return Type.error()
 
+    if operator == "%":
+        if leftType.isBaseType(BaseType.TALLY) and rightType.isBaseType(BaseType.TALLY):
+            return Type.fromBaseType(BaseType.TALLY)
+
+        return Type.error()
+
     if operator in ("==", "!="):
-        if isSameType(leftType, rightType) or (
-            isNumericType(leftType)
-            and isNumericType(rightType)
-        ):
+        if isSameType(leftType, rightType):
+            return Type.fromBaseType(BaseType.VERITY)
+
+        if isNumericType(leftType) and isNumericType(rightType):
             return Type.fromBaseType(BaseType.VERITY)
 
         return Type.error()
@@ -202,13 +262,13 @@ def getBinaryOperationResult(operator: str, leftType: Type, rightType: Type) -> 
 
         return Type.error()
 
-    if operator in ("&&", "and"):
+    if operator == "&&":
         if isBooleanType(leftType) and isBooleanType(rightType):
             return Type.fromBaseType(BaseType.VERITY)
 
         return Type.error()
 
-    if operator in ("||", "or"):
+    if operator == "||":
         if isBooleanType(leftType) and isBooleanType(rightType):
             return Type.fromBaseType(BaseType.VERITY)
 
@@ -216,19 +276,23 @@ def getBinaryOperationResult(operator: str, leftType: Type, rightType: Type) -> 
 
     return Type.error()
 
+
 def getUnaryOperationResult(operator: str, operandType: Type) -> Type:
+    if operandType is None:
+        return Type.error()
+
     if operandType.baseType == BaseType.ERROR:
         return Type.error()
 
     operator = operator or ""
 
-    if operator in ("!!", "!", "not"):
+    if operator == "!!":
         if isBooleanType(operandType):
             return Type.fromBaseType(BaseType.VERITY)
 
         return Type.error()
 
-    if operator == "~":
+    if operator == "-":
         if isNumericType(operandType):
             return operandType
 
@@ -241,3 +305,27 @@ def getUnaryOperationResult(operator: str, operandType: Type) -> Type:
         return Type.error()
 
     return Type.error()
+
+
+def isNumeric(typeValue: Type) -> bool:
+    return isNumericType(typeValue)
+
+
+def isTally(typeValue: Type) -> bool:
+    return isTallyType(typeValue)
+
+
+def isBool(typeValue: Type) -> bool:
+    return isBooleanType(typeValue)
+
+
+def isString(typeValue: Type) -> bool:
+    return isStringType(typeValue)
+
+
+def isCharacter(typeValue: Type) -> bool:
+    return isCharacterType(typeValue)
+
+
+def isError(typeValue: Type) -> bool:
+    return isErrorType(typeValue)

@@ -111,8 +111,8 @@ def handleUnaryExpression(self, expressionNode, currentEnvironment):
         return not operandValue
 
     # numeric negation
-    if operatorText == "~":
-        if not isinstance(operandValue, (int, float)):
+    if operatorText == "-":
+        if not isinstance(operandValue, (int, float)) or isinstance(operandValue, bool):
             raise RuntimeTypeError(
                 expressionNode,
                 "Unary negation requires a numeric operand."
@@ -254,17 +254,24 @@ def handleBinaryExpression(self, expressionNode, currentEnvironment):
 
     # modulo
     if operatorText == "%":
+        if not (
+            isinstance(leftValue, int)
+            and not isinstance(leftValue, bool)
+            and isinstance(rightValue, int)
+            and not isinstance(rightValue, bool)
+        ):
+            raise RuntimeTypeError(
+                expressionNode,
+                "Modulo operator '%' requires tally operands."
+            )
+
         if rightValue == 0:
             raise DivisionByZeroRuntimeError(
                 expressionNode,
                 "Modulo by zero."
             )
 
-        return runBinaryOperation(
-            expressionNode,
-            operatorText,
-            lambda: leftValue % rightValue
-        )
+        return leftValue % rightValue
 
     # power
     if operatorText in ("^", "**"):

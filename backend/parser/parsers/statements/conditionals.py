@@ -168,17 +168,16 @@ def parseVerseList(self: Parser) -> List[VerseCase]:
         verseToken = self.expect(TK_CF_VERSE)
         matchValue = self.parseLiteralOrIdentifier()
         self.expect(TK_SYM_COLON)
-        bodyStatements = self.parseCaseStatementList()
-        verseEnd = self.parseVerseEndOptional()
 
-        verseCases.extend([
+        bodyStatements = self.parseCaseStatementList()
+
+        verseCases.append(
             VerseCase(
                 position=getTokenPosition(verseToken),
                 matchValue=matchValue,
-                bodyStatements=bodyStatements,
-                verseEnd=verseEnd
+                bodyStatements=bodyStatements
             )
-        ])
+        )
 
     return verseCases
 
@@ -201,9 +200,8 @@ def parseCaseStatementList(self: Parser) -> List[Statement]:
     while True:
         currentTokenType = self.currentType(0)
 
+        # These are the only real endings of a case body now.
         if currentTokenType in (
-            TK_CF_ABSOLVE,
-            TK_CF_FALL,
             TK_CF_VERSE,
             TK_CF_GRACE,
             TK_SYM_CLSBRACE
@@ -216,7 +214,7 @@ def parseCaseStatementList(self: Parser) -> List[Statement]:
         ):
             break
 
-        statementList.extend([self.parseStatement()])
+        statementList.append(self.parseStatement())
 
     return statementList
 
@@ -241,50 +239,6 @@ def parseLiteralOrIdentifier(self: Parser) -> Union[Expression, IdentifierRefere
 
     return self.parseLiteralExpression()
 
-def parseVerseEndOptional(self: Parser) -> Optional[VerseEnd]:
-    currentTokenType = self.currentType(0)
-
-    # check verse end
-    if currentTokenType not in PREDICT["<verse_end_opt>"]:
-        raise ParserError(
-            self.peek(0) or self.peek(-1),
-            list(PREDICT["<verse_end_opt>"].keys())
-        )
-
-    # no verse end
-    if PREDICT["<verse_end_opt>"][currentTokenType] == [EPSILON]:
-        return None
-
-    return self.parseVerseEnd()
-
-def parseVerseEnd(self: Parser) -> VerseEnd:
-    currentTokenType = self.currentType(0)
-
-    # check verse end
-    if currentTokenType not in PREDICT["<verse_end>"]:
-        raise ParserError(
-            self.peek(0) or self.peek(-1),
-            list(PREDICT["<verse_end>"].keys())
-        )
-
-    # absolve end
-    if currentTokenType == TK_CF_ABSOLVE:
-        absolveToken = self.expect(TK_CF_ABSOLVE)
-        self.expect(TK_SYM_SEMICOL)
-
-        return VerseEnd(
-            position=getTokenPosition(absolveToken),
-            kind="absolve"
-        )
-
-    fallToken = self.expect(TK_CF_FALL)
-    self.expect(TK_SYM_SEMICOL)
-
-    return VerseEnd(
-        position=getTokenPosition(fallToken),
-        kind="fall"
-    )
-
 def parseGraceOptional(self: Parser) -> Optional[GraceDefault]:
     currentTokenType = self.currentType(0)
 
@@ -301,13 +255,12 @@ def parseGraceOptional(self: Parser) -> Optional[GraceDefault]:
 
     graceToken = self.expect(TK_CF_GRACE)
     self.expect(TK_SYM_COLON)
+
     bodyStatements = self.parseCaseStatementList()
-    verseEnd = self.parseVerseEndOptional()
 
     return GraceDefault(
         position=getTokenPosition(graceToken),
-        bodyStatements=bodyStatements,
-        verseEnd=verseEnd
+        bodyStatements=bodyStatements
     )
 
 Parser.parseConditionStatement = parseConditionStatement
@@ -319,6 +272,4 @@ Parser.parseDiscernStatement = parseDiscernStatement
 Parser.parseVerseList = parseVerseList
 Parser.parseCaseStatementList = parseCaseStatementList
 Parser.parseLiteralOrIdentifier = parseLiteralOrIdentifier
-Parser.parseVerseEndOptional = parseVerseEndOptional
-Parser.parseVerseEnd = parseVerseEnd
 Parser.parseGraceOptional = parseGraceOptional

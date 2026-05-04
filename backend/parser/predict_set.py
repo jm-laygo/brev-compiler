@@ -141,7 +141,7 @@ PREDICT = {
         TK_SYM_OPBRACE: ["<array_init>"],
 
         TK_OP_NOT:         ["<expr>"],
-        TK_OP_TILDE:       ["<expr>"],
+        TK_OP_MINUS:       ["<expr>"],
         TK_OP_INC:         ["<expr>"],
         TK_OP_DEC:         ["<expr>"],
         TK_SYM_OPPAREN:    ["<expr>"],
@@ -198,7 +198,7 @@ PREDICT = {
         TK_SYM_OPBRACE: ["<array_init>"],
 
         TK_OP_NOT:         ["<expr>"],
-        TK_OP_TILDE:       ["<expr>"],
+        TK_OP_MINUS:       ["<expr>"],
         TK_OP_INC:         ["<expr>"],
         TK_OP_DEC:         ["<expr>"],
         TK_SYM_OPPAREN:    ["<expr>"],
@@ -227,7 +227,7 @@ PREDICT = {
     "<array_vals_opt>": {
         TK_SYM_OPBRACE:    ["<array_vals>"],
         TK_OP_NOT:         ["<array_vals>"],
-        TK_OP_TILDE:       ["<array_vals>"],
+        TK_OP_MINUS:       ["<array_vals>"],
         TK_OP_INC:         ["<array_vals>"],
         TK_OP_DEC:         ["<array_vals>"],
         TK_SYM_OPPAREN:    ["<array_vals>"],
@@ -244,7 +244,7 @@ PREDICT = {
     "<array_vals>": {
         TK_SYM_OPBRACE:    ["<array_val>", "<array_vals_tail>"],
         TK_OP_NOT:         ["<array_val>", "<array_vals_tail>"],
-        TK_OP_TILDE:       ["<array_val>", "<array_vals_tail>"],
+        TK_OP_MINUS:       ["<array_val>", "<array_vals_tail>"],
         TK_OP_INC:         ["<array_val>", "<array_vals_tail>"],
         TK_OP_DEC:         ["<array_val>", "<array_vals_tail>"],
         TK_SYM_OPPAREN:    ["<array_val>", "<array_vals_tail>"],
@@ -266,7 +266,7 @@ PREDICT = {
         TK_SYM_OPBRACE: [TK_SYM_OPBRACE, "<array_vals_opt>", TK_SYM_CLSBRACE],
 
         TK_OP_NOT:         ["<expr>"],
-        TK_OP_TILDE:       ["<expr>"],
+        TK_OP_MINUS:       ["<expr>"],
         TK_OP_INC:         ["<expr>"],
         TK_OP_DEC:         ["<expr>"],
         TK_SYM_OPPAREN:    ["<expr>"],
@@ -339,7 +339,7 @@ PREDICT = {
 
     "<param_dim_expr_opt>": {
         TK_OP_NOT:         ["<expr>"],
-        TK_OP_TILDE:       ["<expr>"],
+        TK_OP_MINUS:       ["<expr>"],
         TK_OP_INC:         ["<expr>"],
         TK_OP_DEC:         ["<expr>"],
         TK_SYM_OPPAREN:    ["<expr>"],
@@ -528,7 +528,7 @@ PREDICT = {
         TK_CF_RITUAL:       ["<statement>", "<statement_list>"],
         TK_CF_DISMISS:      ["<statement>", "<statement_list>"],
         TK_CF_PROCEED:      ["<statement>", "<statement_list>"],
-        TK_CF_FALL: ["<statement>", "<statement_list>"],
+        TK_CF_FALL:         ["<statement>", "<statement_list>"],
         TK_CF_ABSOLVE:      ["<statement>", "<statement_list>"],
 
         TK_IDENTIFIER:      ["<statement>", "<statement_list>"],
@@ -536,7 +536,6 @@ PREDICT = {
         TK_OP_DEC:          ["<statement>", "<statement_list>"],
         TK_SYM_OPPAREN:     ["<statement>", "<statement_list>"],
 
-        TK_CF_DISMISS:      ["<statement>", "<statement_list>"],
         TK_SYM_CLSBRACE:    [EPSILON],
     },
 
@@ -638,29 +637,13 @@ PREDICT = {
     },
 
     "<io_stmt>": {
-        TK_IO_RECEIVE:  [TK_IO_RECEIVE, TK_SYM_OPPAREN, "<lvalue>", TK_SYM_CLSPAREN, TK_SYM_SEMICOL],
-        TK_IO_PROCLAIM: [TK_IO_PROCLAIM, TK_SYM_OPPAREN, "<output_list_opt>", TK_SYM_CLSPAREN, TK_SYM_SEMICOL],
-    },
-
-    "<output_list_opt>": {
-        TK_OP_NOT:         ["<output_list>"],
-        TK_OP_TILDE:       ["<output_list>"],
-        TK_OP_INC:         ["<output_list>"],
-        TK_OP_DEC:         ["<output_list>"],
-        TK_SYM_OPPAREN:    ["<output_list>"],
-        TK_IDENTIFIER:     ["<output_list>"],
-        TK_OTHERS_VERSEOF: ["<output_list>"],
-        TK_LIT_INT:        ["<output_list>"],
-        TK_LIT_DECIMAL:    ["<output_list>"],
-        TK_LIT_CHAR:       ["<output_list>"],
-        TK_LIT_STRING:     ["<output_list>"],
-        TK_LIT_BOOL:    ["<output_list>"],
-        TK_SYM_CLSPAREN:   [EPSILON],
+        TK_IO_RECEIVE: [TK_IO_RECEIVE, TK_SYM_OPPAREN, "<lvalue>", TK_SYM_CLSPAREN, TK_SYM_SEMICOL],
+        TK_IO_PROCLAIM: [TK_IO_PROCLAIM, TK_SYM_OPPAREN, "<output_list>", TK_SYM_CLSPAREN, TK_SYM_SEMICOL],
     },
 
     "<output_list>": {
         TK_OP_NOT:         ["<expr>", "<output_tail>"],
-        TK_OP_TILDE:       ["<expr>", "<output_tail>"],
+        TK_OP_MINUS:       ["<expr>", "<output_tail>"],
         TK_OP_INC:         ["<expr>", "<output_tail>"],
         TK_OP_DEC:         ["<expr>", "<output_tail>"],
         TK_SYM_OPPAREN:    ["<expr>", "<output_tail>"],
@@ -715,6 +698,7 @@ PREDICT = {
         TK_CF_RITUAL:       [EPSILON],
         TK_CF_DISMISS:      [EPSILON],
         TK_CF_PROCEED:      [EPSILON],
+        TK_CF_FALL:         [EPSILON],
         TK_CF_ABSOLVE:      [EPSILON],
 
         TK_IDENTIFIER:      [EPSILON],
@@ -749,6 +733,7 @@ PREDICT = {
         TK_CF_RITUAL:       [EPSILON],
         TK_CF_DISMISS:      [EPSILON],
         TK_CF_PROCEED:      [EPSILON],
+        TK_CF_FALL:         [EPSILON],
         TK_CF_ABSOLVE:      [EPSILON],
 
         TK_IDENTIFIER:      [EPSILON],
@@ -767,7 +752,7 @@ PREDICT = {
     "<verse_list>": {
         TK_CF_VERSE: [
             TK_CF_VERSE, "<literal_or_identifier>", TK_SYM_COLON,
-            "<case_statement_list>", "<verse_end_opt>", "<verse_list>"
+            "<case_statement_list>", "<verse_list>"
         ],
         TK_CF_GRACE:     [EPSILON],
         TK_SYM_CLSBRACE: [EPSILON],
@@ -779,10 +764,13 @@ PREDICT = {
         TK_DTYPE_SIGIL:     ["<statement>", "<case_statement_list>"],
         TK_DTYPE_SCRIPTURE: ["<statement>", "<case_statement_list>"],
         TK_DTYPE_VERITY:    ["<statement>", "<case_statement_list>"],
+
         TK_OTHERS_ORDER:    ["<statement>", "<case_statement_list>"],
         TK_OTHERS_ORDAIN:   ["<statement>", "<case_statement_list>"],
+
         TK_IO_RECEIVE:      ["<statement>", "<case_statement_list>"],
         TK_IO_PROCLAIM:     ["<statement>", "<case_statement_list>"],
+
         TK_CF_DECREE:       ["<statement>", "<case_statement_list>"],
         TK_CF_DISCERN:      ["<statement>", "<case_statement_list>"],
         TK_CF_PROCESSION:   ["<statement>", "<case_statement_list>"],
@@ -790,16 +778,17 @@ PREDICT = {
         TK_CF_RITUAL:       ["<statement>", "<case_statement_list>"],
         TK_CF_DISMISS:      ["<statement>", "<case_statement_list>"],
         TK_CF_PROCEED:      ["<statement>", "<case_statement_list>"],
+        TK_CF_FALL:         ["<statement>", "<case_statement_list>"],
+        TK_CF_ABSOLVE:      ["<statement>", "<case_statement_list>"],
+
         TK_IDENTIFIER:      ["<statement>", "<case_statement_list>"],
         TK_OP_INC:          ["<statement>", "<case_statement_list>"],
         TK_OP_DEC:          ["<statement>", "<case_statement_list>"],
         TK_SYM_OPPAREN:     ["<statement>", "<case_statement_list>"],
 
-        TK_CF_ABSOLVE:    [EPSILON],
-        TK_CF_FALL:      [EPSILON],
-        TK_CF_VERSE:     [EPSILON],
-        TK_CF_GRACE:     [EPSILON],
-        TK_SYM_CLSBRACE: [EPSILON],
+        TK_CF_VERSE:        [EPSILON],
+        TK_CF_GRACE:        [EPSILON],
+        TK_SYM_CLSBRACE:    [EPSILON],
     },
 
     "<literal_or_identifier>": {
@@ -811,21 +800,8 @@ PREDICT = {
         TK_IDENTIFIER:    [TK_IDENTIFIER],
     },
 
-    "<verse_end_opt>": {
-        TK_CF_ABSOLVE:    ["<verse_end>"],
-        TK_CF_FALL:       ["<verse_end>"],
-        TK_CF_VERSE:      [EPSILON],
-        TK_CF_GRACE:      [EPSILON],
-        TK_SYM_CLSBRACE:  [EPSILON],
-    },
-
-    "<verse_end>": {
-        TK_CF_ABSOLVE: [TK_CF_ABSOLVE, TK_SYM_SEMICOL],
-        TK_CF_FALL:    [TK_CF_FALL,    TK_SYM_SEMICOL],
-    },
-
     "<grace_opt>": {
-        TK_CF_GRACE:     [TK_CF_GRACE, TK_SYM_COLON, "<case_statement_list>", "<verse_end_opt>"],
+        TK_CF_GRACE:     [TK_CF_GRACE, TK_SYM_COLON, "<case_statement_list>"],
         TK_SYM_CLSBRACE: [EPSILON],
     },
     
@@ -855,7 +831,7 @@ PREDICT = {
 
     "<expr_opt>": {
         TK_OP_NOT:         ["<expr>"],
-        TK_OP_TILDE:       ["<expr>"],
+        TK_OP_MINUS:       ["<expr>"],
         TK_OP_INC:         ["<expr>"],
         TK_OP_DEC:         ["<expr>"],
         TK_SYM_OPPAREN:    ["<expr>"],
@@ -919,7 +895,7 @@ PREDICT = {
 
     "<dismiss_tail>": {
         TK_OP_NOT:         ["<expr>", TK_SYM_SEMICOL],
-        TK_OP_TILDE:       ["<expr>", TK_SYM_SEMICOL],
+        TK_OP_MINUS:       ["<expr>", TK_SYM_SEMICOL],
         TK_OP_INC:         ["<expr>", TK_SYM_SEMICOL],
         TK_OP_DEC:         ["<expr>", TK_SYM_SEMICOL],
         TK_SYM_OPPAREN:    ["<expr>", TK_SYM_SEMICOL],
@@ -1044,7 +1020,7 @@ PREDICT = {
     # 16) ARG LIST
     "<arg_list_opt>": {
         TK_OP_NOT:         ["<arg_list>"],
-        TK_OP_TILDE:       ["<arg_list>"],
+        TK_OP_MINUS:       ["<arg_list>"],
         TK_OP_INC:         ["<arg_list>"],
         TK_OP_DEC:         ["<arg_list>"],
         TK_SYM_OPPAREN:    ["<arg_list>"],
@@ -1060,7 +1036,7 @@ PREDICT = {
 
     "<arg_list>": {
         TK_OP_NOT:         ["<expr>", "<arg_list_tail>"],
-        TK_OP_TILDE:       ["<expr>", "<arg_list_tail>"],
+        TK_OP_MINUS:       ["<expr>", "<arg_list_tail>"],
         TK_OP_INC:         ["<expr>", "<arg_list_tail>"],
         TK_OP_DEC:         ["<expr>", "<arg_list_tail>"],
         TK_SYM_OPPAREN:    ["<expr>", "<arg_list_tail>"],
@@ -1081,7 +1057,7 @@ PREDICT = {
     # 17) EXPR TREE
     "<expr>": {
         TK_OP_NOT:         ["<logic_or>"],
-        TK_OP_TILDE:       ["<logic_or>"],
+        TK_OP_MINUS:       ["<logic_or>"],
         TK_OP_INC:         ["<logic_or>"],
         TK_OP_DEC:         ["<logic_or>"],
         TK_SYM_OPPAREN:    ["<logic_or>"],
@@ -1096,7 +1072,7 @@ PREDICT = {
 
     "<logic_or>": {
         TK_OP_NOT:         ["<logic_and>", "<logic_or_tail>"],
-        TK_OP_TILDE:       ["<logic_and>", "<logic_or_tail>"],
+        TK_OP_MINUS:       ["<logic_and>", "<logic_or_tail>"],
         TK_OP_INC:         ["<logic_and>", "<logic_or_tail>"],
         TK_OP_DEC:         ["<logic_and>", "<logic_or_tail>"],
         TK_SYM_OPPAREN:    ["<logic_and>", "<logic_or_tail>"],
@@ -1121,7 +1097,7 @@ PREDICT = {
 
     "<logic_and>": {
         TK_OP_NOT:         ["<equality>", "<logic_and_tail>"],
-        TK_OP_TILDE:       ["<equality>", "<logic_and_tail>"],
+        TK_OP_MINUS:       ["<equality>", "<logic_and_tail>"],
         TK_OP_INC:         ["<equality>", "<logic_and_tail>"],
         TK_OP_DEC:         ["<equality>", "<logic_and_tail>"],
         TK_SYM_OPPAREN:    ["<equality>", "<logic_and_tail>"],
@@ -1147,7 +1123,7 @@ PREDICT = {
 
     "<equality>": {
         TK_OP_NOT:         ["<relational>", "<eq_op_opt>"],
-        TK_OP_TILDE:       ["<relational>", "<eq_op_opt>"],
+        TK_OP_MINUS:       ["<relational>", "<eq_op_opt>"],
         TK_OP_INC:         ["<relational>", "<eq_op_opt>"],
         TK_OP_DEC:         ["<relational>", "<eq_op_opt>"],
         TK_SYM_OPPAREN:    ["<relational>", "<eq_op_opt>"],
@@ -1180,7 +1156,7 @@ PREDICT = {
 
     "<relational>": {
         TK_OP_NOT:         ["<arith_expr>", "<rel_op_opt>"],
-        TK_OP_TILDE:       ["<arith_expr>", "<rel_op_opt>"],
+        TK_OP_MINUS:       ["<arith_expr>", "<rel_op_opt>"],
         TK_OP_INC:         ["<arith_expr>", "<rel_op_opt>"],
         TK_OP_DEC:         ["<arith_expr>", "<rel_op_opt>"],
         TK_SYM_OPPAREN:    ["<arith_expr>", "<rel_op_opt>"],
@@ -1219,7 +1195,7 @@ PREDICT = {
 
     "<arith_expr>": {
         TK_OP_NOT:         ["<mul_expr>", "<add_sub_tail>"],
-        TK_OP_TILDE:       ["<mul_expr>", "<add_sub_tail>"],
+        TK_OP_MINUS:       ["<mul_expr>", "<add_sub_tail>"],
         TK_OP_INC:         ["<mul_expr>", "<add_sub_tail>"],
         TK_OP_DEC:         ["<mul_expr>", "<add_sub_tail>"],
         TK_SYM_OPPAREN:    ["<mul_expr>", "<add_sub_tail>"],
@@ -1255,7 +1231,7 @@ PREDICT = {
 
     "<mul_expr>": {
         TK_OP_NOT:         ["<pow_expr>", "<mul_tail>"],
-        TK_OP_TILDE:       ["<pow_expr>", "<mul_tail>"],
+        TK_OP_MINUS:       ["<pow_expr>", "<mul_tail>"],
         TK_OP_INC:         ["<pow_expr>", "<mul_tail>"],
         TK_OP_DEC:         ["<pow_expr>", "<mul_tail>"],
         TK_SYM_OPPAREN:    ["<pow_expr>", "<mul_tail>"],
@@ -1295,7 +1271,7 @@ PREDICT = {
 
     "<pow_expr>": {
         TK_OP_NOT:         ["<unary_expr>", "<pow_tail>"],
-        TK_OP_TILDE:       ["<unary_expr>", "<pow_tail>"],
+        TK_OP_MINUS:       ["<unary_expr>", "<pow_tail>"],
         TK_OP_INC:         ["<unary_expr>", "<pow_tail>"],
         TK_OP_DEC:         ["<unary_expr>", "<pow_tail>"],
         TK_SYM_OPPAREN:    ["<unary_expr>", "<pow_tail>"],
@@ -1335,7 +1311,7 @@ PREDICT = {
 
     "<unary_expr>": {
         TK_OP_NOT:   [TK_OP_NOT, "<unary_expr>"],
-        TK_OP_TILDE: [TK_OP_TILDE, "<unary_expr>"],
+        TK_OP_MINUS: [TK_OP_MINUS, "<unary_expr>"],
 
         TK_OP_INC: ["<prefix_unary>"],
         TK_OP_DEC: ["<prefix_unary>"],
@@ -1458,7 +1434,7 @@ PREDICT = {
         TK_IDENTIFIER:     ["<const_logic_or>"],
         TK_SYM_OPPAREN:    ["<const_logic_or>"],
         TK_OP_NOT:         ["<const_logic_or>"],
-        TK_OP_TILDE:       ["<const_logic_or>"],
+        TK_OP_MINUS:       ["<const_logic_or>"],
     },
 
     "<const_logic_or>": {
@@ -1470,7 +1446,7 @@ PREDICT = {
         TK_IDENTIFIER:     ["<const_logic_and>", "<const_logic_or_tail>"],
         TK_SYM_OPPAREN:    ["<const_logic_and>", "<const_logic_or_tail>"],
         TK_OP_NOT:         ["<const_logic_and>", "<const_logic_or_tail>"],
-        TK_OP_TILDE:       ["<const_logic_and>", "<const_logic_or_tail>"],
+        TK_OP_MINUS:       ["<const_logic_and>", "<const_logic_or_tail>"],
     },
 
     "<const_logic_or_tail>": {
@@ -1489,7 +1465,7 @@ PREDICT = {
         TK_IDENTIFIER:     ["<const_equality>", "<const_logic_and_tail>"],
         TK_SYM_OPPAREN:    ["<const_equality>", "<const_logic_and_tail>"],
         TK_OP_NOT:         ["<const_equality>", "<const_logic_and_tail>"],
-        TK_OP_TILDE:       ["<const_equality>", "<const_logic_and_tail>"],
+        TK_OP_MINUS:       ["<const_equality>", "<const_logic_and_tail>"],
     },
 
     "<const_logic_and_tail>": {
@@ -1509,7 +1485,7 @@ PREDICT = {
         TK_IDENTIFIER:     ["<const_relational>", "<const_eq_opt>"],
         TK_SYM_OPPAREN:    ["<const_relational>", "<const_eq_opt>"],
         TK_OP_NOT:         ["<const_relational>", "<const_eq_opt>"],
-        TK_OP_TILDE:       ["<const_relational>", "<const_eq_opt>"],
+        TK_OP_MINUS:       ["<const_relational>", "<const_eq_opt>"],
     },
 
     "<const_eq_opt>": {
@@ -1531,7 +1507,7 @@ PREDICT = {
         TK_IDENTIFIER:     ["<const_add>", "<const_rel_opt>"],
         TK_SYM_OPPAREN:    ["<const_add>", "<const_rel_opt>"],
         TK_OP_NOT:         ["<const_add>", "<const_rel_opt>"],
-        TK_OP_TILDE:       ["<const_add>", "<const_rel_opt>"],
+        TK_OP_MINUS:       ["<const_add>", "<const_rel_opt>"],
     },
 
     "<const_rel_opt>": {
@@ -1557,7 +1533,7 @@ PREDICT = {
         TK_IDENTIFIER:     ["<const_mul>", "<const_add_tail>"],
         TK_SYM_OPPAREN:    ["<const_mul>", "<const_add_tail>"],
         TK_OP_NOT:         ["<const_mul>", "<const_add_tail>"],
-        TK_OP_TILDE:       ["<const_mul>", "<const_add_tail>"],
+        TK_OP_MINUS:       ["<const_mul>", "<const_add_tail>"],
     },
 
     "<const_add_tail>": {
@@ -1585,7 +1561,7 @@ PREDICT = {
         TK_IDENTIFIER:     ["<const_pow>", "<const_mul_tail>"],
         TK_SYM_OPPAREN:    ["<const_pow>", "<const_mul_tail>"],
         TK_OP_NOT:         ["<const_pow>", "<const_mul_tail>"],
-        TK_OP_TILDE:       ["<const_pow>", "<const_mul_tail>"],
+        TK_OP_MINUS:       ["<const_pow>", "<const_mul_tail>"],
     },
 
     "<const_mul_tail>": {
@@ -1616,7 +1592,7 @@ PREDICT = {
         TK_IDENTIFIER:     ["<const_unary>", "<const_pow_tail>"],
         TK_SYM_OPPAREN:    ["<const_unary>", "<const_pow_tail>"],
         TK_OP_NOT:         ["<const_unary>", "<const_pow_tail>"],
-        TK_OP_TILDE:       ["<const_unary>", "<const_pow_tail>"],
+        TK_OP_MINUS:       ["<const_unary>", "<const_pow_tail>"],
     },
 
     "<const_pow_tail>": {
@@ -1640,7 +1616,7 @@ PREDICT = {
     },
 
     "<const_unary>": {
-        TK_OP_TILDE: [TK_OP_TILDE, "<const_unary>"],
+        TK_OP_MINUS: [TK_OP_MINUS, "<const_unary>"],
         TK_OP_NOT:   [TK_OP_NOT, "<const_unary>"],
         TK_LIT_BOOL:    ["<const_primary>"],
         TK_LIT_INT:        ["<const_primary>"],

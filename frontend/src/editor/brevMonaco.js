@@ -79,7 +79,7 @@ export const brevLanguage = {
             [/\+=|-=|\*=|\/=|%=|\*\*/, "operator"],
             [/==|!=|>=|<=|>|</, "operator.compare"],
             [/&&|\|\|/, "operator.logic"],
-            [/=|\+|-|\*|\/|%|&|!|~/, "operator"],
+            [/=|\+|-|\*|\/|%|&|!/, "operator"],
 
             [/[{}()[\]]/, "@brackets"],
             [/[;,.:\]]/, "delimiter"],

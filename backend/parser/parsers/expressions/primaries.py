@@ -11,29 +11,24 @@ from backend.parser.parser import Parser, getTokenValue, getTokenPosition
 def parseUnaryExpression(self: Parser) -> Expression:
     currentTokenType = self.currentType(0)
 
-    # reject minus
-    if currentTokenType == TK_OP_MINUS:
-        raise ParserError(
-            self.peek(0) or self.peek(-1),
-            [TK_OP_TILDE],
-            "Unary minus (-) is not allowed. Use ~ for negation."
-        )
-
-    # check unary expression
     if currentTokenType not in PREDICT["<unary_expr>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
             list(PREDICT["<unary_expr>"].keys())
         )
 
-    # prefix not or negation
-    if currentTokenType in (TK_OP_NOT, TK_OP_TILDE):
+    # logical not or unary negative
+    if currentTokenType in (TK_OP_NOT, TK_OP_MINUS):
         operatorToken = self.advance()
         operandExpression = self.parseUnaryExpression()
 
-        operatorLexeme = getTokenValue(operatorToken) or (
-            "!" if currentTokenType == TK_OP_NOT else "~"
-        )
+        operatorLexeme = getTokenValue(operatorToken)
+
+        if not operatorLexeme:
+            if currentTokenType == TK_OP_NOT:
+                operatorLexeme = "!!"
+            else:
+                operatorLexeme = "-"
 
         return UnaryExpression(
             position=getTokenPosition(operatorToken),
@@ -47,11 +42,17 @@ def parseUnaryExpression(self: Parser) -> Expression:
         operatorToken = self.advance()
         targetReference = self.parseLeftHandValueCore()
 
+        operatorLexeme = getTokenValue(operatorToken)
+
+        if not operatorLexeme:
+            if currentTokenType == TK_OP_INC:
+                operatorLexeme = "++"
+            else:
+                operatorLexeme = "--"
+
         return UnaryExpression(
             position=getTokenPosition(operatorToken),
-            operator=getTokenValue(operatorToken) or (
-                "++" if currentTokenType == TK_OP_INC else "--"
-            ),
+            operator=operatorLexeme,
             operand=VariableExpression(
                 position=getTokenPosition(operatorToken),
                 reference=targetReference

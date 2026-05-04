@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any
 
-from backend.semantic.typesys import isBooleanType, isNumericType
+from backend.semantic.typesys import isBool, isNumeric
 
 
 class LoopStatementsMixin:
@@ -19,10 +19,10 @@ class LoopStatementsMixin:
             if conditionExpression:
                 conditionType = self.getExpressionType(conditionExpression)
 
-                if not isBooleanType(conditionType):
+                if not (isBool(conditionType) or isNumeric(conditionType)):
                     self.addError(
-                        statementNode,
-                        f"procession condition must be verity, got {conditionType}."
+                        conditionExpression,
+                        f"procession condition must be verity or tally, got {conditionType}."
                     )
 
             updateStatement = getattr(statementNode, "updateStatement", None)
@@ -45,10 +45,10 @@ class LoopStatementsMixin:
             conditionExpression = getattr(statementNode, "condition", None)
             conditionType = self.getExpressionType(conditionExpression)
 
-            if not (isBooleanType(conditionType) or isNumericType(conditionType)):
+            if not (isBool(conditionType) or isNumeric(conditionType)):
                 self.addError(
-                    statementNode,
-                    f"endure condition must be verity or numeric, got {conditionType}."
+                    conditionExpression if conditionExpression is not None else statementNode,
+                    f"endure condition must be verity or tally, got {conditionType}."
                 )
 
             bodyStatements = getattr(statementNode, "bodyStatements", []) or []
@@ -71,10 +71,10 @@ class LoopStatementsMixin:
             conditionExpression = getattr(statementNode, "condition", None)
             conditionType = self.getExpressionType(conditionExpression)
 
-            if not isBooleanType(conditionType):
+            if not (isBool(conditionType) or isNumeric(conditionType)):
                 self.addError(
-                    statementNode,
-                    f"ritual endure condition must be verity, got {conditionType}."
+                    conditionExpression if conditionExpression is not None else statementNode,
+                    f"ritual endure condition must be verity or tally, got {conditionType}."
                 )
 
         finally:

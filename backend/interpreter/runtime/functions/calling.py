@@ -71,13 +71,13 @@ def callRite(self, riteName: str, argumentValues, *, callNode=None):
     except FallSignal:
         raise RuntimeErrorBase(
             callNode or riteNode,
-            "'fall' may only be used inside loops or valid discern flow."
+            "'fall' may only be used inside discern statements."
         )
 
     except AbsolveSignal:
         raise RuntimeErrorBase(
             callNode or riteNode,
-            "'absolve' may only be used inside discern statements."
+            "'absolve' may only be used inside loops or discern statements."
         )
 
     return None

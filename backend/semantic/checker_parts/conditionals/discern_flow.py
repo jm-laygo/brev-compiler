@@ -32,18 +32,6 @@ class DiscernFlowMixin:
         for bodyStatement in bodyStatements:
             self.checkStatement(bodyStatement)
 
-        verseEnd = getattr(statementNode, "verseEnd", None)
-
-        if verseEnd:
-            self.checkStatement(verseEnd)
-
-    def checkVerseEnd(self, statementNode: Any) -> None:
-        if self.discernDepth <= 0:
-            self.addError(
-                statementNode,
-                "absolve/fall verse-end used outside discern."
-            )
-
     def checkGraceDefault(self, statementNode: Any) -> None:
         bodyStatements = getattr(statementNode, "bodyStatements", []) or []
 
@@ -51,10 +39,10 @@ class DiscernFlowMixin:
             self.checkStatement(bodyStatement)
 
     def checkFallStatement(self, statementNode: Any) -> None:
-        if self.loopDepth <= 0 and self.discernDepth <= 0:
+        if self.discernDepth <= 0:
             self.addError(
                 statementNode,
-                "fall used outside loop/discern."
+                "fall used outside discern."
             )
 
     def checkAbsolveStatement(self, statementNode: Any) -> None:

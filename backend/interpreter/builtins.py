@@ -32,12 +32,6 @@ def stringifyValue(value):
         return f"{value:.2f}"
 
     if isinstance(value, str):
-        if value == "\0":
-            return r"'\0'"
-
-        if value == "":
-            return '""'
-
         return value
 
     return str(value)

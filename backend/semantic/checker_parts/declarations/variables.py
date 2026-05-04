@@ -63,6 +63,30 @@ class VariableDeclarationsMixin:
                     arraySizes=arraySizes
                 )
             )
+            # If this is a sacred constant with an initializer, try to store
+            # its literal value on the symbol so later declarations (like
+            # arrays) can use it when extracting sizes.
+            if isConstant:
+                try:
+                    # declaredItem may use 'value' (SacredItem) or
+                    # 'initialValue' (VariableItem/OrdainItem).
+                    initExpr = getattr(declaredItem, "value", None) or getattr(declaredItem, "initialValue", None)
+
+                    # Prefer integer constant extraction when available.
+                    if initExpr is not None and hasattr(self, "getConstantIntegerValue"):
+                        constInt = self.getConstantIntegerValue(initExpr)
+                        if constInt is not None:
+                            sym = self.currentScope.resolveLocal(variableName) or self.currentScope.resolve(variableName)
+                            if sym is not None and hasattr(sym, "constantValue"):
+                                sym.constantValue = constInt
+                    else:
+                        # Fallback: if initializer is a literal expression, store its raw value.
+                        if initExpr is not None and getattr(initExpr, "literalType", None) is not None:
+                            sym = self.currentScope.resolveLocal(variableName) or self.currentScope.resolve(variableName)
+                            if sym is not None and hasattr(sym, "constantValue"):
+                                sym.constantValue = getattr(initExpr, "value", None)
+                except Exception:
+                    pass
 
     def declareOrdainDeclaration(self, declarationNode: Any, isGlobal: bool) -> None:
         orderName = getattr(declarationNode, "name", None)

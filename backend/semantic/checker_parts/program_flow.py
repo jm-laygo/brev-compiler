@@ -25,12 +25,12 @@ class ProgramFlowMixin:
         entryRite = getattr(programNode, "entryRite", None)
 
         if entryRite is not None:
-            self.checkFunction(entryRite)
+            self.checkRite(entryRite)
 
         riteDeclarations = getattr(programNode, "riteDeclarations", []) or []
 
         for riteDeclaration in riteDeclarations:
-            self.checkFunction(riteDeclaration)
+            self.checkRite(riteDeclaration)
 
     def blockGuaranteesDismiss(self, statementList: list[Any]) -> bool:
         for statementNode in statementList or []:
@@ -80,32 +80,32 @@ class ProgramFlowMixin:
 
         return False
 
-    def checkFunction(self, functionNode: Any) -> None:
-        if getClassName(functionNode) != "RiteDeclaration":
+    def checkRite(self, riteNode: Any) -> None:
+        if getClassName(riteNode) != "RiteDeclaration":
             return
 
-        functionName = getattr(functionNode, "name", "")
-        functionSymbol = self.functions.get(functionName)
-        self.currentFunction = functionSymbol
+        riteName = getattr(riteNode, "name", "")
+        riteSymbol = self.functions.get(riteName)
+        self.currentFunction = riteSymbol
 
         previousScope = self.currentScope
         self.currentScope = Scope(self.globalScope)
 
         try:
-            if functionSymbol:
+            if riteSymbol:
                 seenParameterNames = set()
 
-                for parameterSymbol in functionSymbol.parameters:
+                for parameterSymbol in riteSymbol.parameters:
                     if parameterSymbol.name in seenParameterNames:
                         self.addError(
                             parameterSymbol.position,
-                            f"Duplicate parameter '{parameterSymbol.name}' in function '{functionName}'."
+                            f"Duplicate parameter '{parameterSymbol.name}' in rite '{riteName}'."
                         )
 
                     seenParameterNames.add(parameterSymbol.name)
                     self.currentScope.define(parameterSymbol)
 
-            localDeclarations = getattr(functionNode, "localDeclarations", []) or []
+            localDeclarations = getattr(riteNode, "localDeclarations", []) or []
 
             for localDeclaration in localDeclarations:
                 declarationKind = getClassName(localDeclaration)
@@ -129,31 +129,31 @@ class ProgramFlowMixin:
                 elif declarationKind == "OrderDeclaration":
                     self.addError(
                         localDeclaration,
-                        "Order declarations are not allowed inside functions."
+                        "Order declarations are not allowed inside rites."
                     )
 
-            bodyStatements = getattr(functionNode, "bodyStatements", []) or []
+            bodyStatements = getattr(riteNode, "bodyStatements", []) or []
 
             for statementNode in bodyStatements:
                 self.checkStatement(statementNode)
 
-            dismissStatement = getattr(functionNode, "dismissStatement", None)
+            dismissStatement = getattr(riteNode, "dismissStatement", None)
 
             if dismissStatement is not None:
                 self.checkStatement(dismissStatement)
 
             if (
-                functionSymbol is not None
-                and not functionSymbol.returnType.isBaseType(BaseType.HOLLOW)
+                riteSymbol is not None
+                and not riteSymbol.returnType.isBaseType(BaseType.HOLLOW)
             ):
                 bodyGuaranteesDismiss = self.blockGuaranteesDismiss(bodyStatements)
                 finalDismissExists = dismissStatement is not None
-                functionGuaranteesDismiss = bodyGuaranteesDismiss or finalDismissExists
+                riteGuaranteesDismiss = bodyGuaranteesDismiss or finalDismissExists
 
-                if not functionGuaranteesDismiss:
+                if not riteGuaranteesDismiss:
                     self.addError(
-                        functionNode,
-                        f"Function '{functionName}' must dismiss a value of type {functionSymbol.returnType}."
+                        riteNode,
+                        f"Rite '{riteName}' must dismiss a value of type {riteSymbol.returnType}."
                     )
 
         finally:

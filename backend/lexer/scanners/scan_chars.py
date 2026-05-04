@@ -1,7 +1,7 @@
 from backend.tokens import Token, TK_LIT_CHAR
 from backend.errors import LexicalError
 from backend.delimiters import chr_delim as characterDelimiters
-from backend.delimiters import format_expected_delims
+from backend.delimiters import formatExpectedDelimiters
 
 def acceptCharacterLiteral(
     lexer,
@@ -13,7 +13,7 @@ def acceptCharacterLiteral(
 ):
     # check delimiter
     currentCharacter = lexer.currentCharacter
-    expectedDelimiters = format_expected_delims(allowedDelimiters)
+    expectedDelimiters = formatExpectedDelimiters(allowedDelimiters)
 
     if currentCharacter is None and None not in allowedDelimiters:
         lexicalError = LexicalError(

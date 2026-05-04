@@ -121,9 +121,9 @@ class Parser:
             )
 
         programNode = Program(position=getTokenPosition(self.peek(0)))
-        programNode.globals = []
-        programNode.functions = []
-        programNode.entry = None
+        programNode.globalDeclarations = []
+        programNode.riteDeclarations = []
+        programNode.entryRite = None
 
         # parse until eof
         while self.currentType(0) != TK_EOF:
@@ -134,21 +134,21 @@ class Parser:
                 entryRite, functionNodeList = self.parseRiteSequence()
 
                 if entryRite is not None:
-                    if programNode.entry is not None:
+                    if programNode.entryRite is not None:
                         raise ParserError(
                             self.peek(-1),
                             [],
                             "Multiple genesis() rites are not allowed"
                         )
 
-                    programNode.entry = entryRite
+                    programNode.entryRite = entryRite
 
-                programNode.functions.extend(functionNodeList)
+                programNode.riteDeclarations.extend(functionNodeList)
                 continue
 
             # global declaration
             if currentTokenType in PREDICT["<global_dec_item>"]:
-                programNode.globals.append(self.parseGlobalDeclarationItem())
+                programNode.globalDeclarations.append(self.parseGlobalDeclarationItem())
                 continue
 
             raise ParserError(
@@ -157,7 +157,7 @@ class Parser:
             )
 
         # no genesis
-        if programNode.entry is None:
+        if programNode.entryRite is None:
             raise ParserError(
                 self.peek(0) or self.peek(-1),
                 [TK_OTHERS_GENESIS]

@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from backend.ast.ast_nodes import FunctionCallStatement, ProclaimStatement, ReceiveStatement
+from backend.ast.ast_nodes import (
+    FunctionCallStatement,
+    ProclaimStatement,
+    ReceiveStatement,
+)
+
+from backend.interpreter.builtins import stringifyValue
 
 
 def handleInputOutputStatement(self, statementNode, currentEnvironment):
@@ -8,9 +14,9 @@ def handleInputOutputStatement(self, statementNode, currentEnvironment):
         evaluatedArgumentValues = []
 
         for argumentNode in statementNode.arguments:
-            evaluatedArgumentValues.extend([
+            evaluatedArgumentValues.append(
                 self.evaluateExpression(argumentNode, currentEnvironment)
-            ])
+            )
 
         self.callRite(
             statementNode.calleeName,
@@ -47,12 +53,14 @@ def handleInputOutputStatement(self, statementNode, currentEnvironment):
                 currentEnvironment
             )
 
-            outputParts.extend([
-                self.stringifyRuntimeValue(evaluatedValue)
-            ])
+            outputParts.append(
+                stringifyValue(evaluatedValue)
+            )
 
-        self.writeInline("".join(outputParts))
-
+        # C-style:
+        # Does NOT automatically add a newline.
+        # Newline only happens when the string contains "\n".
+        self.writeInline(" ".join(outputParts))
         return True
 
     return False

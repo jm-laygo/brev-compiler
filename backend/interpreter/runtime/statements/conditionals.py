@@ -6,7 +6,6 @@ from backend.ast.ast_nodes import (
     DiscernStatement,
     EdictClause,
     IdentifierReference,
-    VerseEnd,
 )
 from backend.interpreter.control import AbsolveSignal, FallSignal
 
@@ -76,9 +75,6 @@ def handleConditionalStatement(self, statementNode, currentEnvironment):
                         currentEnvironment
                     )
 
-                    if getattr(verseCase, "verseEnd", None) is not None:
-                        self.handleVerseEnd(verseCase.verseEnd)
-
                 except FallSignal:
                     break
 
@@ -93,9 +89,6 @@ def handleConditionalStatement(self, statementNode, currentEnvironment):
                     graceDefault.bodyStatements,
                     currentEnvironment
                 )
-
-                if getattr(graceDefault, "verseEnd", None) is not None:
-                    self.handleVerseEnd(graceDefault.verseEnd)
 
             except FallSignal:
                 pass
@@ -129,11 +122,13 @@ def handleConditionalStatement(self, statementNode, currentEnvironment):
 
     return False
 
+
 def isTruthy(self, value) -> bool:
     if isinstance(value, bool):
         return value
 
     return bool(value)
+
 
 def evaluateVerseMatch(self, matchNode, currentEnvironment):
     if isinstance(matchNode, IdentifierReference):
@@ -146,12 +141,3 @@ def evaluateVerseMatch(self, matchNode, currentEnvironment):
         matchNode,
         currentEnvironment
     )
-
-def handleVerseEnd(self, verseEndNode: VerseEnd):
-    verseEndKind = (getattr(verseEndNode, "kind", "") or "").lower()
-
-    if verseEndKind == "fall":
-        raise FallSignal()
-
-    if verseEndKind == "absolve":
-        raise AbsolveSignal()

@@ -1,7 +1,7 @@
 from backend.tokens import *
 from backend.delimiters import *
 from backend.errors import LexicalError
-from backend.delimiters import format_expected_delims as formatExpectedDelimiters
+from backend.delimiters import formatExpectedDelimiters
 
 
 def scanKeywordsManual(lexer, tokenList, errorList):
@@ -429,7 +429,7 @@ def scanKeywordsManual(lexer, tokenList, errorList):
                                     TK_OTHERS_GENESIS,
                                     keywordText,
                                     startingPosition,
-                                    {op_par}
+                                    {op_par, space}
                                 )
 
         # GRACE

@@ -1,7 +1,7 @@
 from backend.tokens import Token, TK_LIT_STRING
 from backend.errors import LexicalError
 from backend.delimiters import str_delim as stringDelimiters
-from backend.delimiters import format_expected_delims
+from backend.delimiters import formatExpectedDelimiters
 
 
 def acceptStringLiteral(
@@ -14,7 +14,7 @@ def acceptStringLiteral(
 ):
     # check delimiter
     currentCharacter = lexer.currentCharacter
-    expectedDelimiters = format_expected_delims(allowedDelimiters)
+    expectedDelimiters = formatExpectedDelimiters(allowedDelimiters)
 
     if currentCharacter is None and None not in allowedDelimiters:
         lexicalError = LexicalError(
@@ -132,10 +132,11 @@ def scanString(lexer, tokenList, errorList):
                 stringDelimiters
             )
 
+        # normal character
         stringValue += currentCharacter
         lexer.advance()
 
-    # no closing quote
+    # If we get here, we hit EOF without closing quote
     lexicalError = LexicalError(
         startingPosition,
         "Unterminated string literal"
