@@ -10,7 +10,6 @@ class Position:
         if currentCharacter == "\n":
             self.lineNumber += 1
             self.columnNumber = 1
-
         else:
             self.columnNumber += 1
 

@@ -8,32 +8,32 @@ from backend.parser.parser import Parser, getTokenValue
 
 
 def parseDataType(self: Parser) -> str:
-    lookaheadType = self.currentType(0)
+    currentTokenType = self.currentType(0)
 
     # check data type
-    if lookaheadType not in PREDICT["<data_type>"]:
+    if currentTokenType not in PREDICT["<data_type>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
             list(PREDICT["<data_type>"].keys())
         )
 
-    if lookaheadType == TK_DTYPE_TALLY:
+    if currentTokenType == TK_DTYPE_TALLY:
         self.expect(TK_DTYPE_TALLY)
         return "tally"
 
-    if lookaheadType == TK_DTYPE_DIVINE:
+    if currentTokenType == TK_DTYPE_DIVINE:
         self.expect(TK_DTYPE_DIVINE)
         return "divine"
 
-    if lookaheadType == TK_DTYPE_SIGIL:
+    if currentTokenType == TK_DTYPE_SIGIL:
         self.expect(TK_DTYPE_SIGIL)
         return "sigil"
 
-    if lookaheadType == TK_DTYPE_SCRIPTURE:
+    if currentTokenType == TK_DTYPE_SCRIPTURE:
         self.expect(TK_DTYPE_SCRIPTURE)
         return "scripture"
 
-    if lookaheadType == TK_DTYPE_VERITY:
+    if currentTokenType == TK_DTYPE_VERITY:
         self.expect(TK_DTYPE_VERITY)
         return "verity"
 
@@ -49,26 +49,26 @@ def parseDataType(self: Parser) -> str:
     )
 
 def parseDataTypeIdentifier(self: Parser) -> str:
-    lookaheadType = self.currentType(0)
+    currentTokenType = self.currentType(0)
 
     # check data type or identifier
-    if lookaheadType not in PREDICT["<data_type_id>"]:
+    if currentTokenType not in PREDICT["<data_type_id>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
             list(PREDICT["<data_type_id>"].keys())
         )
 
     # user defined type
-    if lookaheadType == TK_IDENTIFIER:
+    if currentTokenType == TK_IDENTIFIER:
         return getTokenValue(self.expect(TK_IDENTIFIER))
 
     return self.parseDataType()
 
 def parseConstantExpression(self: Parser) -> Expression:
-    lookaheadType = self.currentType(0)
+    currentTokenType = self.currentType(0)
 
     # check constant expression
-    if lookaheadType not in PREDICT["<const_expr>"]:
+    if currentTokenType not in PREDICT["<const_expr>"]:
         raise ParserError(
             self.peek(0) or self.peek(-1),
             list(PREDICT["<const_expr>"].keys())

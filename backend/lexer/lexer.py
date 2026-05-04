@@ -20,7 +20,7 @@ class Lexer:
         self.advance()
 
     def peek_Non_Whitespace(self):
-        nextCharacterIndex = self.currentPosition.index + 1
+        nextCharacterIndex = self.currentPosition.characterIndex + 1
 
         while nextCharacterIndex < len(self.sourceCode):
             nextCharacter = self.sourceCode[nextCharacterIndex]
@@ -36,20 +36,20 @@ class Lexer:
     def advance(self):
         self.currentPosition.advance(self.currentCharacter)
 
-        if self.currentPosition.index < len(self.sourceCode):
-            self.currentCharacter = self.sourceCode[self.currentPosition.index]
+        if self.currentPosition.characterIndex < len(self.sourceCode):
+            self.currentCharacter = self.sourceCode[self.currentPosition.characterIndex]
         else:
             self.currentCharacter = None
 
     def peek(self):
-        nextCharacterIndex = self.currentPosition.index + 1
+        nextCharacterIndex = self.currentPosition.characterIndex + 1
 
         if nextCharacterIndex < len(self.sourceCode):
             return self.sourceCode[nextCharacterIndex]
 
         return None
 
-    def make_Tokens(self):
+    def makeTokens(self):
         tokenList = []
         errorList = []
 

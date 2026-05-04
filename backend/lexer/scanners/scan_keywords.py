@@ -8,8 +8,8 @@ def scanKeywordsManual(lexer, tokenList, errorList):
     def restoreLexerState(savedPosition):
         lexer.currentPosition = savedPosition.copy()
 
-        if 0 <= lexer.currentPosition.index < len(lexer.sourceCode):
-            lexer.currentCharacter = lexer.sourceCode[lexer.currentPosition.index]
+        if 0 <= lexer.currentPosition.characterIndex < len(lexer.sourceCode):
+            lexer.currentCharacter = lexer.sourceCode[lexer.currentPosition.characterIndex]
         else:
             lexer.currentCharacter = None
 
