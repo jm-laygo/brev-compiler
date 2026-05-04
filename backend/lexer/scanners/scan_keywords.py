@@ -4,7 +4,7 @@ from backend.errors import LexicalError
 from backend.delimiters import formatExpectedDelimiters
 
 
-def scanKeywordsManual(lexer, tokenList, errorList):
+def scanReservedWord(lexer, tokenList, errorList):
     def restoreLexerState(savedPosition):
         lexer.currentPosition = savedPosition.copy()
 
@@ -1088,4 +1088,4 @@ def scanKeywordsManual(lexer, tokenList, errorList):
 
 
 def scanKeywords(lexer, tokenList, errorList):
-    return scanKeywordsManual(lexer, tokenList, errorList)
+    return scanReservedWord(lexer, tokenList, errorList)
