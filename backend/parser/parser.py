@@ -166,19 +166,24 @@ class Parser:
         return programNode
 
 
-import backend.parser.parsers.globals as globalsParserModule
-import backend.parser.parsers.rites as ritesParserModule
+import backend.parser.parsers.declarations as globalsParserModule
+import backend.parser.parsers.functions as ritesParserModule
 import backend.parser.parsers.statements as statementsParserModule
 import backend.parser.parsers.lvalues as lvaluesParserModule
 import backend.parser.parsers.expressions as expressionsParserModule
 
+from backend.parser.token_filter import filterParserTokens
+
 
 def parseTokensToAst(tokenList: List[Any]) -> Program:
-    return Parser(tokenList).parse()
+    filteredTokenList = filterParserTokens(tokenList)
+    return Parser(filteredTokenList).parse()
 
 
 def validate(tokenList):
-    parser = Parser(tokenList)
+    filteredTokenList = filterParserTokens(tokenList)
+
+    parser = Parser(filteredTokenList)
     abstractSyntaxTree = parser.parse()
 
     # extra token after parse

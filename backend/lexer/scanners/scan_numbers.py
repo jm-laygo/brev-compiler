@@ -71,13 +71,7 @@ def scanNumbers(lexer, tokenList, errorList):
         return False
 
     # must start with digit or -digit
-    if not (
-        currentCharacter.isdigit()
-        or (
-            currentCharacter == "-"
-            and (lexer.peek() or "").isdigit()
-        )
-    ):
+    if not currentCharacter.isdigit():
         return False
 
     startingPosition = lexer.currentPosition.copy()
@@ -86,20 +80,6 @@ def scanNumbers(lexer, tokenList, errorList):
     integerDigitCount = 0
     fractionalDigitCount = 0
     hasDigitAfterDecimalPoint = False
-
-    # negative number marker
-    if lexer.currentCharacter == "-":
-        numberText += "-"
-        lexer.advance()
-
-        if lexer.currentCharacter is None or not lexer.currentCharacter.isdigit():
-            errorList.append(
-                LexicalError(
-                    startingPosition,
-                    "Invalid number literal '-' (expected digit after -)"
-                )
-            )
-            return True
 
     # read number
     while lexer.currentCharacter is not None:

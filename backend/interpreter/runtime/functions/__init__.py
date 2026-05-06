@@ -1,4 +1,4 @@
-from . import calling  # noqa: F401
-from . import locals  # noqa: F401
+from . import function_calls  # noqa: F401
+from . import local_declaration  # noqa: F401
 
-from .dispatcher import bindFunctionMethods
+from .function_binder import bindFunctionMethods

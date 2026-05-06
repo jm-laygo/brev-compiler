@@ -101,8 +101,8 @@ def scanString(lexer, tokenList, errorList):
             elif escapeCharacter == "\\":
                 stringValue += "\\"
 
-            elif escapeCharacter == '"':
-                stringValue += '"'
+            elif escapeCharacter == "'":
+                stringValue += "'"
 
             else:
                 lexicalError = LexicalError(

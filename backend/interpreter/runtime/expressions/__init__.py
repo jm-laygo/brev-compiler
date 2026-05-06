@@ -1,5 +1,5 @@
-from . import primitives  # noqa: F401
-from . import calls  # noqa: F401
-from . import operators  # noqa: F401
+from . import basic_expression  # noqa: F401
+from . import function_calls_expression  # noqa: F401
+from . import expression_operators  # noqa: F401
 
-from .dispatcher import bindExpressionMethods
+from .expression_binder import bindExpressionMethods

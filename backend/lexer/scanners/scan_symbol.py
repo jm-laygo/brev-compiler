@@ -10,7 +10,6 @@ from backend.tokens import (
     TK_SYM_COMMA,
     TK_SYM_COLON,
     TK_SYM_DOT,
-    TK_SYM_TERNARY,
 )
 
 symbolMap = {
@@ -24,7 +23,6 @@ symbolMap = {
     ",": (TK_SYM_COMMA, ","),
     ":": (TK_SYM_COLON, ":"),
     ".": (TK_SYM_DOT, "."),
-    "?": (TK_SYM_TERNARY, "?"),
 }
 
 def scanSymbol(lexer, tokenList, errorList):

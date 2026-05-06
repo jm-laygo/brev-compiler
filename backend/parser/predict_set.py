@@ -13,7 +13,6 @@ PREDICT = {
         TK_DTYPE_SCRIPTURE: ["<global_dec_opt>", "<rite_seq>"],
         TK_DTYPE_VERITY:    ["<global_dec_opt>", "<rite_seq>"],
         TK_OTHERS_ORDER:    ["<global_dec_opt>", "<rite_seq>"],
-        TK_OTHERS_ORDAIN:   ["<global_dec_opt>", "<rite_seq>"],
         TK_CF_RITE:         ["<global_dec_opt>", "<rite_seq>"],
     },
 
@@ -26,7 +25,6 @@ PREDICT = {
         TK_DTYPE_SCRIPTURE: ["<global_dec_list>"],
         TK_DTYPE_VERITY:    ["<global_dec_list>"],
         TK_OTHERS_ORDER:    ["<global_dec_list>"],
-        TK_OTHERS_ORDAIN:   ["<global_dec_list>"],
         TK_CF_RITE:         [EPSILON],
     },
 
@@ -38,7 +36,6 @@ PREDICT = {
         TK_DTYPE_SCRIPTURE: ["<global_dec_item>", "<global_dec_list_tail>"],
         TK_DTYPE_VERITY:    ["<global_dec_item>", "<global_dec_list_tail>"],
         TK_OTHERS_ORDER:    ["<global_dec_item>", "<global_dec_list_tail>"],
-        TK_OTHERS_ORDAIN:   ["<global_dec_item>", "<global_dec_list_tail>"],
     },
 
     "<global_dec_list_tail>": {
@@ -49,7 +46,6 @@ PREDICT = {
         TK_DTYPE_SCRIPTURE: ["<global_dec_item>", "<global_dec_list_tail>"],
         TK_DTYPE_VERITY:    ["<global_dec_item>", "<global_dec_list_tail>"],
         TK_OTHERS_ORDER:    ["<global_dec_item>", "<global_dec_list_tail>"],
-        TK_OTHERS_ORDAIN:   ["<global_dec_item>", "<global_dec_list_tail>"],
         TK_CF_RITE:         [EPSILON],
     },
 
@@ -61,7 +57,6 @@ PREDICT = {
         TK_DTYPE_SCRIPTURE: ["<data_type>", "<var_decl_group>", TK_SYM_SEMICOL],
         TK_DTYPE_VERITY:    ["<data_type>", "<var_decl_group>", TK_SYM_SEMICOL],
         TK_OTHERS_ORDER:  [TK_OTHERS_ORDER, TK_IDENTIFIER, TK_SYM_OPBRACE, "<member_list_opt>", TK_SYM_CLSBRACE, TK_SYM_SEMICOL],
-        TK_OTHERS_ORDAIN: [TK_OTHERS_ORDAIN, TK_IDENTIFIER, "<ordain_dec_list>", TK_SYM_SEMICOL],
     },
 
     # 3) RITES / FUNCTIONS
@@ -124,12 +119,12 @@ PREDICT = {
     },
 
     "<member>": {
-        TK_DTYPE_TALLY:     ["<data_type_id>", TK_IDENTIFIER, "<array_dims_tail>", "<member_init_opt>", TK_SYM_SEMICOL],
-        TK_DTYPE_DIVINE:    ["<data_type_id>", TK_IDENTIFIER, "<array_dims_tail>", "<member_init_opt>", TK_SYM_SEMICOL],
-        TK_DTYPE_SIGIL:     ["<data_type_id>", TK_IDENTIFIER, "<array_dims_tail>", "<member_init_opt>", TK_SYM_SEMICOL],
-        TK_DTYPE_SCRIPTURE: ["<data_type_id>", TK_IDENTIFIER, "<array_dims_tail>", "<member_init_opt>", TK_SYM_SEMICOL],
-        TK_DTYPE_VERITY:    ["<data_type_id>", TK_IDENTIFIER, "<array_dims_tail>", "<member_init_opt>", TK_SYM_SEMICOL],
-        TK_IDENTIFIER:      ["<data_type_id>", TK_IDENTIFIER, "<array_dims_tail>", "<member_init_opt>", TK_SYM_SEMICOL],
+        TK_DTYPE_TALLY:     ["<data_type_id>", TK_IDENTIFIER, "<array_dims_tail>", TK_SYM_SEMICOL],
+        TK_DTYPE_DIVINE:    ["<data_type_id>", TK_IDENTIFIER, "<array_dims_tail>", TK_SYM_SEMICOL],
+        TK_DTYPE_SIGIL:     ["<data_type_id>", TK_IDENTIFIER, "<array_dims_tail>", TK_SYM_SEMICOL],
+        TK_DTYPE_SCRIPTURE: ["<data_type_id>", TK_IDENTIFIER, "<array_dims_tail>", TK_SYM_SEMICOL],
+        TK_DTYPE_VERITY:    ["<data_type_id>", TK_IDENTIFIER, "<array_dims_tail>", TK_SYM_SEMICOL],
+        TK_IDENTIFIER:      ["<data_type_id>", TK_IDENTIFIER, "<array_dims_tail>", TK_SYM_SEMICOL],
     },
 
     "<member_init_opt>": {
@@ -362,7 +357,6 @@ PREDICT = {
         TK_DTYPE_SIGIL:     ["<func_local_dec>"],
         TK_DTYPE_SCRIPTURE: ["<func_local_dec>"],
         TK_DTYPE_VERITY:    ["<func_local_dec>"],
-        TK_OTHERS_ORDER:    ["<func_local_dec>"],
         TK_OTHERS_ORDAIN:   ["<func_local_dec>"],
         TK_IO_RECEIVE:      [EPSILON],
         TK_IO_PROCLAIM:     [EPSILON],
@@ -389,7 +383,6 @@ PREDICT = {
         TK_DTYPE_SIGIL:     ["<func_local_item>", "<func_local_dec_tail>"],
         TK_DTYPE_SCRIPTURE: ["<func_local_item>", "<func_local_dec_tail>"],
         TK_DTYPE_VERITY:    ["<func_local_item>", "<func_local_dec_tail>"],
-        TK_OTHERS_ORDER:    ["<func_local_item>", "<func_local_dec_tail>"],
         TK_OTHERS_ORDAIN:   ["<func_local_item>", "<func_local_dec_tail>"],
     },
 
@@ -400,7 +393,6 @@ PREDICT = {
         TK_DTYPE_SIGIL:     ["<func_local_item>", "<func_local_dec_tail>"],
         TK_DTYPE_SCRIPTURE: ["<func_local_item>", "<func_local_dec_tail>"],
         TK_DTYPE_VERITY:    ["<func_local_item>", "<func_local_dec_tail>"],
-        TK_OTHERS_ORDER:    ["<func_local_item>", "<func_local_dec_tail>"],
         TK_OTHERS_ORDAIN:   ["<func_local_item>", "<func_local_dec_tail>"],
         TK_IO_RECEIVE:      [EPSILON],
         TK_IO_PROCLAIM:     [EPSILON],
@@ -421,14 +413,13 @@ PREDICT = {
     },
 
     "<func_local_item>": {
-        TK_SACRED:          ["<global_dec_item>"],
-        TK_DTYPE_TALLY:     ["<global_dec_item>"],
-        TK_DTYPE_DIVINE:    ["<global_dec_item>"],
-        TK_DTYPE_SIGIL:     ["<global_dec_item>"],
-        TK_DTYPE_SCRIPTURE: ["<global_dec_item>"],
-        TK_DTYPE_VERITY:    ["<global_dec_item>"],
-        TK_OTHERS_ORDER:    ["<global_dec_item>"],
-        TK_OTHERS_ORDAIN:   ["<global_dec_item>"],
+        TK_SACRED:          [TK_SACRED, "<data_type>", "<sacred_init_list>", TK_SYM_SEMICOL],
+        TK_DTYPE_TALLY:     ["<data_type>", "<var_decl_group>", TK_SYM_SEMICOL],
+        TK_DTYPE_DIVINE:    ["<data_type>", "<var_decl_group>", TK_SYM_SEMICOL],
+        TK_DTYPE_SIGIL:     ["<data_type>", "<var_decl_group>", TK_SYM_SEMICOL],
+        TK_DTYPE_SCRIPTURE: ["<data_type>", "<var_decl_group>", TK_SYM_SEMICOL],
+        TK_DTYPE_VERITY:    ["<data_type>", "<var_decl_group>", TK_SYM_SEMICOL],
+        TK_OTHERS_ORDAIN:   [TK_OTHERS_ORDAIN, TK_IDENTIFIER, "<ordain_dec_list>", TK_SYM_SEMICOL],
     },
 
     "<main_local_dec_opt>": {
@@ -438,7 +429,6 @@ PREDICT = {
         TK_DTYPE_SIGIL:     ["<main_local_dec>"],
         TK_DTYPE_SCRIPTURE: ["<main_local_dec>"],
         TK_DTYPE_VERITY:    ["<main_local_dec>"],
-        TK_OTHERS_ORDER:    ["<main_local_dec>"],
         TK_OTHERS_ORDAIN:   ["<main_local_dec>"],
         TK_IO_RECEIVE:      [EPSILON],
         TK_IO_PROCLAIM:     [EPSILON],
@@ -465,7 +455,6 @@ PREDICT = {
         TK_DTYPE_SIGIL:     ["<main_dec_item>", "<main_local_dec_tail>"],
         TK_DTYPE_SCRIPTURE: ["<main_dec_item>", "<main_local_dec_tail>"],
         TK_DTYPE_VERITY:    ["<main_dec_item>", "<main_local_dec_tail>"],
-        TK_OTHERS_ORDER:    ["<main_dec_item>", "<main_local_dec_tail>"],
         TK_OTHERS_ORDAIN:   ["<main_dec_item>", "<main_local_dec_tail>"],
     },
 
@@ -476,7 +465,6 @@ PREDICT = {
         TK_DTYPE_SIGIL:     ["<main_dec_item>", "<main_local_dec_tail>"],
         TK_DTYPE_SCRIPTURE: ["<main_dec_item>", "<main_local_dec_tail>"],
         TK_DTYPE_VERITY:    ["<main_dec_item>", "<main_local_dec_tail>"],
-        TK_OTHERS_ORDER:    ["<main_dec_item>", "<main_local_dec_tail>"],
         TK_OTHERS_ORDAIN:   ["<main_dec_item>", "<main_local_dec_tail>"],
         TK_IO_RECEIVE:      [EPSILON],
         TK_IO_PROCLAIM:     [EPSILON],
@@ -509,15 +497,6 @@ PREDICT = {
 
     # 11) STATEMENTS
     "<statement_list>": {
-        TK_DTYPE_TALLY:     ["<statement>", "<statement_list>"],
-        TK_DTYPE_DIVINE:    ["<statement>", "<statement_list>"],
-        TK_DTYPE_SIGIL:     ["<statement>", "<statement_list>"],
-        TK_DTYPE_SCRIPTURE: ["<statement>", "<statement_list>"],
-        TK_DTYPE_VERITY:    ["<statement>", "<statement_list>"],
-
-        TK_OTHERS_ORDER:    ["<statement>", "<statement_list>"],
-        TK_OTHERS_ORDAIN:   ["<statement>", "<statement_list>"],
-
         TK_IO_RECEIVE:      ["<statement>", "<statement_list>"],
         TK_IO_PROCLAIM:     ["<statement>", "<statement_list>"],
 
@@ -820,13 +799,8 @@ PREDICT = {
     },
 
     "<init_opt>": {
-        TK_DTYPE_TALLY:     ["<data_type>", TK_IDENTIFIER, TK_OP_ASSIGN, "<expr>"],
-        TK_DTYPE_DIVINE:    ["<data_type>", TK_IDENTIFIER, TK_OP_ASSIGN, "<expr>"],
-        TK_DTYPE_SIGIL:     ["<data_type>", TK_IDENTIFIER, TK_OP_ASSIGN, "<expr>"],
-        TK_DTYPE_SCRIPTURE: ["<data_type>", TK_IDENTIFIER, TK_OP_ASSIGN, "<expr>"],
-        TK_DTYPE_VERITY:    ["<data_type>", TK_IDENTIFIER, TK_OP_ASSIGN, "<expr>"],
-        TK_IDENTIFIER:      ["<lvalue>", TK_OP_ASSIGN, "<expr>"],
-        TK_SYM_SEMICOL:     [EPSILON],
+        TK_DTYPE_TALLY: [TK_DTYPE_TALLY, TK_IDENTIFIER, TK_OP_ASSIGN, "<expr>"],
+        TK_IDENTIFIER: ["<lvalue>", TK_OP_ASSIGN, "<expr>"],
     },
 
     "<expr_opt>": {

@@ -1,4 +1,4 @@
-from . import readers  # noqa: F401
-from . import writers  # noqa: F401
+from . import reference_reading  # noqa: F401
+from . import reference_writing  # noqa: F401
 
-from .dispatcher import bindReferenceMethods
+from .reference_binder import bindReferenceMethods

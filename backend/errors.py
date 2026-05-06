@@ -85,7 +85,7 @@ class ParserError(Exception):
                 for tokenType in self.expectedTokens
             )
         else:
-            expectedText = "<?>"
+            expectedText = None
 
         foundTokenType = getattr(self.token, "type", None)
 
@@ -94,13 +94,26 @@ class ParserError(Exception):
         else:
             foundText = "<?>"
 
-        errorMessage = (
-            f"Ln {lineNumber}, Col {columnNumber} Syntax Error: "
-            f"Expected {expectedText} but found '{foundText}'."
-        )
+        if expectedText is None and self.errorDetails:
+            errorMessage = (
+                f"Ln {lineNumber}, Col {columnNumber} Syntax Error: "
+                f"{self.errorDetails}"
+            )
 
-        if self.errorDetails:
-            errorMessage = errorMessage + f" ({self.errorDetails})"
+        elif expectedText is None:
+            errorMessage = (
+                f"Ln {lineNumber}, Col {columnNumber} Syntax Error: "
+                f"Unexpected token '{foundText}'."
+            )
+
+        else:
+            errorMessage = (
+                f"Ln {lineNumber}, Col {columnNumber} Syntax Error: "
+                f"Expected {expectedText} but found '{foundText}'."
+            )
+
+            if self.errorDetails:
+                errorMessage = errorMessage + f" ({self.errorDetails})"
 
         return errorMessage
 

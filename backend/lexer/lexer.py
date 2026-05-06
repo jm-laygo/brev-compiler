@@ -19,7 +19,7 @@ class Lexer:
         self.currentCharacter = None
         self.advance()
 
-    def peek_Non_Whitespace(self):
+    def peekNonWhitespace(self):
         nextCharacterIndex = self.currentPosition.characterIndex + 1
 
         while nextCharacterIndex < len(self.sourceCode):

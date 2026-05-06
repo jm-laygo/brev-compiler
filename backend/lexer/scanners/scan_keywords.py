@@ -24,49 +24,48 @@ def scanReservedWord(lexer, tokenList, errorList):
 
         expectedDelimiters = formatExpectedDelimiters(allowedDelimiters)
 
+        # if another identifier char follows, this is not a keyword
+        # example: tallyCount should become identifier, not tally + identifier
         if currentCharacter is not None and (currentCharacter.isalnum() or currentCharacter == "_"):
             restoreLexerState(startingPosition)
             return False
 
         if currentCharacter is None and None not in allowedDelimiters:
-            lexicalError = LexicalError(
-                startingPosition,
-                f"Missing delimiter after '{keywordText}'. Expected: {expectedDelimiters}"
+            errorList.append(
+                LexicalError(
+                    startingPosition,
+                    f"Missing delimiter after '{keywordText}'. Expected: {expectedDelimiters}"
+                )
             )
-
-            errorList.extend([lexicalError])
             return True
 
-        if currentCharacter is not None and currentCharacter in allowedDelimiters:
-            keywordToken = Token(
+        if currentCharacter is not None and currentCharacter not in allowedDelimiters:
+            errorList.append(
+                LexicalError(
+                    startingPosition,
+                    f"Invalid delimiter {repr(currentCharacter)} after '{keywordText}'. Expected: {expectedDelimiters}"
+                )
+            )
+            return True
+
+        tokenList.append(
+            Token(
                 tokenType,
                 keywordText,
                 startingPosition
             )
-
-            tokenList.extend([keywordToken])
-            return True
-
-        if currentCharacter is not None and currentCharacter not in allowedDelimiters:
-            lexicalError = LexicalError(
-                startingPosition,
-                f"Invalid delimiter {repr(currentCharacter)} after '{keywordText}'. Expected: {expectedDelimiters}"
-            )
-
-            errorList.extend([lexicalError])
-            return True
-
-        keywordToken = Token(
-            tokenType,
-            keywordText,
-            startingPosition
         )
 
-        tokenList.extend([keywordToken])
         return True
 
     startingPosition = lexer.currentPosition.copy()
     firstCharacter = lexer.currentCharacter
+
+    keywordBeforeOpenParen = whitespace | {op_par}
+    keywordBeforeOpenBrace = whitespace | {op_bra}
+    keywordBeforeSemicolon = whitespace | {semicolon}
+    keywordBeforeColon = whitespace | {colon}
+    keywordBeforeDeclarationName = whitespace
 
     # LETTER A
     if firstCharacter == "a":
@@ -78,46 +77,46 @@ def scanReservedWord(lexer, tokenList, errorList):
         keywordText = "a"
 
         if lexer.currentCharacter == "b":
-            keywordText = keywordText + "b"
+            keywordText += "b"
             lexer.advance()
 
             if lexer.currentCharacter == "s":
-                keywordText = keywordText + "s"
+                keywordText += "s"
                 lexer.advance()
 
                 if lexer.currentCharacter == "o":
-                    keywordText = keywordText + "o"
+                    keywordText += "o"
                     lexer.advance()
 
                     if lexer.currentCharacter == "l":
-                        keywordText = keywordText + "l"
+                        keywordText += "l"
                         lexer.advance()
 
                         if lexer.currentCharacter == "u":
-                            keywordText = keywordText + "u"
+                            keywordText += "u"
                             lexer.advance()
 
                             if lexer.currentCharacter == "t":
-                                keywordText = keywordText + "t"
+                                keywordText += "t"
                                 lexer.advance()
 
                                 if lexer.currentCharacter == "i":
-                                    keywordText = keywordText + "i"
+                                    keywordText += "i"
                                     lexer.advance()
 
                                     if lexer.currentCharacter == "o":
-                                        keywordText = keywordText + "o"
+                                        keywordText += "o"
                                         lexer.advance()
 
                                         if lexer.currentCharacter == "n":
-                                            keywordText = keywordText + "n"
+                                            keywordText += "n"
                                             lexer.advance()
 
                                             return acceptKeyword(
                                                 TK_CF_ABSOLUTION,
                                                 keywordText,
                                                 startingPosition,
-                                                els_delim
+                                                keywordBeforeOpenBrace
                                             )
 
         # ABSOLVE
@@ -125,34 +124,34 @@ def scanReservedWord(lexer, tokenList, errorList):
         keywordText = "a"
 
         if lexer.currentCharacter == "b":
-            keywordText = keywordText + "b"
+            keywordText += "b"
             lexer.advance()
 
             if lexer.currentCharacter == "s":
-                keywordText = keywordText + "s"
+                keywordText += "s"
                 lexer.advance()
 
                 if lexer.currentCharacter == "o":
-                    keywordText = keywordText + "o"
+                    keywordText += "o"
                     lexer.advance()
 
                     if lexer.currentCharacter == "l":
-                        keywordText = keywordText + "l"
+                        keywordText += "l"
                         lexer.advance()
 
                         if lexer.currentCharacter == "v":
-                            keywordText = keywordText + "v"
+                            keywordText += "v"
                             lexer.advance()
 
                             if lexer.currentCharacter == "e":
-                                keywordText = keywordText + "e"
+                                keywordText += "e"
                                 lexer.advance()
 
                                 return acceptKeyword(
                                     TK_CF_ABSOLVE,
                                     keywordText,
                                     startingPosition,
-                                    {semicolon}
+                                    keywordBeforeSemicolon
                                 )
 
         restoreLexerState(startingPosition)
@@ -168,30 +167,30 @@ def scanReservedWord(lexer, tokenList, errorList):
         keywordText = "d"
 
         if lexer.currentCharacter == "e":
-            keywordText = keywordText + "e"
+            keywordText += "e"
             lexer.advance()
 
             if lexer.currentCharacter == "c":
-                keywordText = keywordText + "c"
+                keywordText += "c"
                 lexer.advance()
 
                 if lexer.currentCharacter == "r":
-                    keywordText = keywordText + "r"
+                    keywordText += "r"
                     lexer.advance()
 
                     if lexer.currentCharacter == "e":
-                        keywordText = keywordText + "e"
+                        keywordText += "e"
                         lexer.advance()
 
                         if lexer.currentCharacter == "e":
-                            keywordText = keywordText + "e"
+                            keywordText += "e"
                             lexer.advance()
 
                             return acceptKeyword(
                                 TK_CF_DECREE,
                                 keywordText,
                                 startingPosition,
-                                {op_par, space}
+                                keywordBeforeOpenParen
                             )
 
         # DISCERN / DISMISS / DIVINE
@@ -208,30 +207,30 @@ def scanReservedWord(lexer, tokenList, errorList):
             keywordText = keywordTextWithDi
 
             if lexer.currentCharacter == "s":
-                keywordText = keywordText + "s"
+                keywordText += "s"
                 lexer.advance()
 
                 if lexer.currentCharacter == "c":
-                    keywordText = keywordText + "c"
+                    keywordText += "c"
                     lexer.advance()
 
                     if lexer.currentCharacter == "e":
-                        keywordText = keywordText + "e"
+                        keywordText += "e"
                         lexer.advance()
 
                         if lexer.currentCharacter == "r":
-                            keywordText = keywordText + "r"
+                            keywordText += "r"
                             lexer.advance()
 
                             if lexer.currentCharacter == "n":
-                                keywordText = keywordText + "n"
+                                keywordText += "n"
                                 lexer.advance()
 
                                 return acceptKeyword(
                                     TK_CF_DISCERN,
                                     keywordText,
                                     startingPosition,
-                                    {op_par, space}
+                                    keywordBeforeOpenParen
                                 )
 
             # DISMISS
@@ -239,30 +238,30 @@ def scanReservedWord(lexer, tokenList, errorList):
             keywordText = keywordTextWithDi
 
             if lexer.currentCharacter == "s":
-                keywordText = keywordText + "s"
+                keywordText += "s"
                 lexer.advance()
 
                 if lexer.currentCharacter == "m":
-                    keywordText = keywordText + "m"
+                    keywordText += "m"
                     lexer.advance()
 
                     if lexer.currentCharacter == "i":
-                        keywordText = keywordText + "i"
+                        keywordText += "i"
                         lexer.advance()
 
                         if lexer.currentCharacter == "s":
-                            keywordText = keywordText + "s"
+                            keywordText += "s"
                             lexer.advance()
 
                             if lexer.currentCharacter == "s":
-                                keywordText = keywordText + "s"
+                                keywordText += "s"
                                 lexer.advance()
 
                                 return acceptKeyword(
                                     TK_CF_DISMISS,
                                     keywordText,
                                     startingPosition,
-                                    {space, semicolon}
+                                    keywordBeforeSemicolon
                                 )
 
             # DIVINE
@@ -270,26 +269,26 @@ def scanReservedWord(lexer, tokenList, errorList):
             keywordText = keywordTextWithDi
 
             if lexer.currentCharacter == "v":
-                keywordText = keywordText + "v"
+                keywordText += "v"
                 lexer.advance()
 
                 if lexer.currentCharacter == "i":
-                    keywordText = keywordText + "i"
+                    keywordText += "i"
                     lexer.advance()
 
                     if lexer.currentCharacter == "n":
-                        keywordText = keywordText + "n"
+                        keywordText += "n"
                         lexer.advance()
 
                         if lexer.currentCharacter == "e":
-                            keywordText = keywordText + "e"
+                            keywordText += "e"
                             lexer.advance()
 
                             return acceptKeyword(
                                 TK_DTYPE_DIVINE,
                                 keywordText,
                                 startingPosition,
-                                {space}
+                                keywordBeforeDeclarationName
                             )
 
         restoreLexerState(startingPosition)
@@ -305,26 +304,26 @@ def scanReservedWord(lexer, tokenList, errorList):
         keywordText = "e"
 
         if lexer.currentCharacter == "d":
-            keywordText = keywordText + "d"
+            keywordText += "d"
             lexer.advance()
 
             if lexer.currentCharacter == "i":
-                keywordText = keywordText + "i"
+                keywordText += "i"
                 lexer.advance()
 
                 if lexer.currentCharacter == "c":
-                    keywordText = keywordText + "c"
+                    keywordText += "c"
                     lexer.advance()
 
                     if lexer.currentCharacter == "t":
-                        keywordText = keywordText + "t"
+                        keywordText += "t"
                         lexer.advance()
 
                         return acceptKeyword(
                             TK_CF_EDICT,
                             keywordText,
                             startingPosition,
-                            {op_par, space}
+                            keywordBeforeOpenParen
                         )
 
         # ENDURE
@@ -332,30 +331,30 @@ def scanReservedWord(lexer, tokenList, errorList):
         keywordText = "e"
 
         if lexer.currentCharacter == "n":
-            keywordText = keywordText + "n"
+            keywordText += "n"
             lexer.advance()
 
             if lexer.currentCharacter == "d":
-                keywordText = keywordText + "d"
+                keywordText += "d"
                 lexer.advance()
 
                 if lexer.currentCharacter == "u":
-                    keywordText = keywordText + "u"
+                    keywordText += "u"
                     lexer.advance()
 
                     if lexer.currentCharacter == "r":
-                        keywordText = keywordText + "r"
+                        keywordText += "r"
                         lexer.advance()
 
                         if lexer.currentCharacter == "e":
-                            keywordText = keywordText + "e"
+                            keywordText += "e"
                             lexer.advance()
 
                             return acceptKeyword(
                                 TK_CF_ENDURE,
                                 keywordText,
                                 startingPosition,
-                                {op_par, space}
+                                keywordBeforeOpenParen
                             )
 
         restoreLexerState(startingPosition)
@@ -371,22 +370,22 @@ def scanReservedWord(lexer, tokenList, errorList):
         keywordText = "f"
 
         if lexer.currentCharacter == "a":
-            keywordText = keywordText + "a"
+            keywordText += "a"
             lexer.advance()
 
             if lexer.currentCharacter == "l":
-                keywordText = keywordText + "l"
+                keywordText += "l"
                 lexer.advance()
 
                 if lexer.currentCharacter == "l":
-                    keywordText = keywordText + "l"
+                    keywordText += "l"
                     lexer.advance()
 
                     return acceptKeyword(
                         TK_CF_FALL,
                         keywordText,
                         startingPosition,
-                        {semicolon}
+                        keywordBeforeSemicolon
                     )
 
         restoreLexerState(startingPosition)
@@ -402,34 +401,34 @@ def scanReservedWord(lexer, tokenList, errorList):
         keywordText = "g"
 
         if lexer.currentCharacter == "e":
-            keywordText = keywordText + "e"
+            keywordText += "e"
             lexer.advance()
 
             if lexer.currentCharacter == "n":
-                keywordText = keywordText + "n"
+                keywordText += "n"
                 lexer.advance()
 
                 if lexer.currentCharacter == "e":
-                    keywordText = keywordText + "e"
+                    keywordText += "e"
                     lexer.advance()
 
                     if lexer.currentCharacter == "s":
-                        keywordText = keywordText + "s"
+                        keywordText += "s"
                         lexer.advance()
 
                         if lexer.currentCharacter == "i":
-                            keywordText = keywordText + "i"
+                            keywordText += "i"
                             lexer.advance()
 
                             if lexer.currentCharacter == "s":
-                                keywordText = keywordText + "s"
+                                keywordText += "s"
                                 lexer.advance()
 
                                 return acceptKeyword(
                                     TK_OTHERS_GENESIS,
                                     keywordText,
                                     startingPosition,
-                                    {op_par, space}
+                                    keywordBeforeOpenParen
                                 )
 
         # GRACE
@@ -437,26 +436,26 @@ def scanReservedWord(lexer, tokenList, errorList):
         keywordText = "g"
 
         if lexer.currentCharacter == "r":
-            keywordText = keywordText + "r"
+            keywordText += "r"
             lexer.advance()
 
             if lexer.currentCharacter == "a":
-                keywordText = keywordText + "a"
+                keywordText += "a"
                 lexer.advance()
 
                 if lexer.currentCharacter == "c":
-                    keywordText = keywordText + "c"
+                    keywordText += "c"
                     lexer.advance()
 
                     if lexer.currentCharacter == "e":
-                        keywordText = keywordText + "e"
+                        keywordText += "e"
                         lexer.advance()
 
                         return acceptKeyword(
                             TK_CF_GRACE,
                             keywordText,
                             startingPosition,
-                            {colon}
+                            keywordBeforeColon
                         )
 
         restoreLexerState(startingPosition)
@@ -472,30 +471,30 @@ def scanReservedWord(lexer, tokenList, errorList):
         keywordText = "h"
 
         if lexer.currentCharacter == "o":
-            keywordText = keywordText + "o"
+            keywordText += "o"
             lexer.advance()
 
             if lexer.currentCharacter == "l":
-                keywordText = keywordText + "l"
+                keywordText += "l"
                 lexer.advance()
 
                 if lexer.currentCharacter == "l":
-                    keywordText = keywordText + "l"
+                    keywordText += "l"
                     lexer.advance()
 
                     if lexer.currentCharacter == "o":
-                        keywordText = keywordText + "o"
+                        keywordText += "o"
                         lexer.advance()
 
                         if lexer.currentCharacter == "w":
-                            keywordText = keywordText + "w"
+                            keywordText += "w"
                             lexer.advance()
 
                             return acceptKeyword(
                                 TK_DTYPE_HOLLOW,
                                 keywordText,
                                 startingPosition,
-                                {space}
+                                keywordBeforeDeclarationName
                             )
 
         # HOLY
@@ -503,15 +502,15 @@ def scanReservedWord(lexer, tokenList, errorList):
         keywordText = "h"
 
         if lexer.currentCharacter == "o":
-            keywordText = keywordText + "o"
+            keywordText += "o"
             lexer.advance()
 
             if lexer.currentCharacter == "l":
-                keywordText = keywordText + "l"
+                keywordText += "l"
                 lexer.advance()
 
                 if lexer.currentCharacter == "y":
-                    keywordText = keywordText + "y"
+                    keywordText += "y"
                     lexer.advance()
 
                     return acceptKeyword(
@@ -520,7 +519,11 @@ def scanReservedWord(lexer, tokenList, errorList):
                         startingPosition,
                         bool_delim
                     )
-                    # LETTER O
+
+        restoreLexerState(startingPosition)
+        return False
+
+    # LETTER O
     if firstCharacter == "o":
         lexer.advance()
         savedPosition = lexer.currentPosition.copy()
@@ -530,30 +533,30 @@ def scanReservedWord(lexer, tokenList, errorList):
         keywordText = "o"
 
         if lexer.currentCharacter == "r":
-            keywordText = keywordText + "r"
+            keywordText += "r"
             lexer.advance()
 
             if lexer.currentCharacter == "d":
-                keywordText = keywordText + "d"
+                keywordText += "d"
                 lexer.advance()
 
                 if lexer.currentCharacter == "a":
-                    keywordText = keywordText + "a"
+                    keywordText += "a"
                     lexer.advance()
 
                     if lexer.currentCharacter == "i":
-                        keywordText = keywordText + "i"
+                        keywordText += "i"
                         lexer.advance()
 
                         if lexer.currentCharacter == "n":
-                            keywordText = keywordText + "n"
+                            keywordText += "n"
                             lexer.advance()
 
                             return acceptKeyword(
                                 TK_OTHERS_ORDAIN,
                                 keywordText,
                                 startingPosition,
-                                {space}
+                                keywordBeforeDeclarationName
                             )
 
         # ORDER
@@ -561,26 +564,26 @@ def scanReservedWord(lexer, tokenList, errorList):
         keywordText = "o"
 
         if lexer.currentCharacter == "r":
-            keywordText = keywordText + "r"
+            keywordText += "r"
             lexer.advance()
 
             if lexer.currentCharacter == "d":
-                keywordText = keywordText + "d"
+                keywordText += "d"
                 lexer.advance()
 
                 if lexer.currentCharacter == "e":
-                    keywordText = keywordText + "e"
+                    keywordText += "e"
                     lexer.advance()
 
                     if lexer.currentCharacter == "r":
-                        keywordText = keywordText + "r"
+                        keywordText += "r"
                         lexer.advance()
 
                         return acceptKeyword(
                             TK_OTHERS_ORDER,
                             keywordText,
                             startingPosition,
-                            space
+                            keywordBeforeDeclarationName
                         )
 
         restoreLexerState(startingPosition)
@@ -605,30 +608,30 @@ def scanReservedWord(lexer, tokenList, errorList):
             keywordText = keywordTextWithPr
 
             if lexer.currentCharacter == "o":
-                keywordText = keywordText + "o"
+                keywordText += "o"
                 lexer.advance()
 
                 if lexer.currentCharacter == "c":
-                    keywordText = keywordText + "c"
+                    keywordText += "c"
                     lexer.advance()
 
                     if lexer.currentCharacter == "e":
-                        keywordText = keywordText + "e"
+                        keywordText += "e"
                         lexer.advance()
 
                         if lexer.currentCharacter == "e":
-                            keywordText = keywordText + "e"
+                            keywordText += "e"
                             lexer.advance()
 
                             if lexer.currentCharacter == "d":
-                                keywordText = keywordText + "d"
+                                keywordText += "d"
                                 lexer.advance()
 
                                 return acceptKeyword(
                                     TK_CF_PROCEED,
                                     keywordText,
                                     startingPosition,
-                                    {semicolon}
+                                    keywordBeforeSemicolon
                                 )
 
             # PROCLAIM
@@ -636,34 +639,34 @@ def scanReservedWord(lexer, tokenList, errorList):
             keywordText = keywordTextWithPr
 
             if lexer.currentCharacter == "o":
-                keywordText = keywordText + "o"
+                keywordText += "o"
                 lexer.advance()
 
                 if lexer.currentCharacter == "c":
-                    keywordText = keywordText + "c"
+                    keywordText += "c"
                     lexer.advance()
 
                     if lexer.currentCharacter == "l":
-                        keywordText = keywordText + "l"
+                        keywordText += "l"
                         lexer.advance()
 
                         if lexer.currentCharacter == "a":
-                            keywordText = keywordText + "a"
+                            keywordText += "a"
                             lexer.advance()
 
                             if lexer.currentCharacter == "i":
-                                keywordText = keywordText + "i"
+                                keywordText += "i"
                                 lexer.advance()
 
                                 if lexer.currentCharacter == "m":
-                                    keywordText = keywordText + "m"
+                                    keywordText += "m"
                                     lexer.advance()
 
                                     return acceptKeyword(
                                         TK_IO_PROCLAIM,
                                         keywordText,
                                         startingPosition,
-                                        {op_par}
+                                        keywordBeforeOpenParen
                                     )
 
             # PROCESSION
@@ -671,42 +674,42 @@ def scanReservedWord(lexer, tokenList, errorList):
             keywordText = keywordTextWithPr
 
             if lexer.currentCharacter == "o":
-                keywordText = keywordText + "o"
+                keywordText += "o"
                 lexer.advance()
 
                 if lexer.currentCharacter == "c":
-                    keywordText = keywordText + "c"
+                    keywordText += "c"
                     lexer.advance()
 
                     if lexer.currentCharacter == "e":
-                        keywordText = keywordText + "e"
+                        keywordText += "e"
                         lexer.advance()
 
                         if lexer.currentCharacter == "s":
-                            keywordText = keywordText + "s"
+                            keywordText += "s"
                             lexer.advance()
 
                             if lexer.currentCharacter == "s":
-                                keywordText = keywordText + "s"
+                                keywordText += "s"
                                 lexer.advance()
 
                                 if lexer.currentCharacter == "i":
-                                    keywordText = keywordText + "i"
+                                    keywordText += "i"
                                     lexer.advance()
 
                                     if lexer.currentCharacter == "o":
-                                        keywordText = keywordText + "o"
+                                        keywordText += "o"
                                         lexer.advance()
 
                                         if lexer.currentCharacter == "n":
-                                            keywordText = keywordText + "n"
+                                            keywordText += "n"
                                             lexer.advance()
 
                                             return acceptKeyword(
                                                 TK_CF_PROCESSION,
                                                 keywordText,
                                                 startingPosition,
-                                                {op_par, space}
+                                                keywordBeforeOpenParen
                                             )
 
         restoreLexerState(startingPosition)
@@ -722,34 +725,34 @@ def scanReservedWord(lexer, tokenList, errorList):
         keywordText = "r"
 
         if lexer.currentCharacter == "e":
-            keywordText = keywordText + "e"
+            keywordText += "e"
             lexer.advance()
 
             if lexer.currentCharacter == "c":
-                keywordText = keywordText + "c"
+                keywordText += "c"
                 lexer.advance()
 
                 if lexer.currentCharacter == "e":
-                    keywordText = keywordText + "e"
+                    keywordText += "e"
                     lexer.advance()
 
                     if lexer.currentCharacter == "i":
-                        keywordText = keywordText + "i"
+                        keywordText += "i"
                         lexer.advance()
 
                         if lexer.currentCharacter == "v":
-                            keywordText = keywordText + "v"
+                            keywordText += "v"
                             lexer.advance()
 
                             if lexer.currentCharacter == "e":
-                                keywordText = keywordText + "e"
+                                keywordText += "e"
                                 lexer.advance()
 
                                 return acceptKeyword(
                                     TK_IO_RECEIVE,
                                     keywordText,
                                     startingPosition,
-                                    {op_par}
+                                    keywordBeforeOpenParen
                                 )
 
         # RITUAL / RITE
@@ -766,26 +769,26 @@ def scanReservedWord(lexer, tokenList, errorList):
             keywordText = keywordTextWithRi
 
             if lexer.currentCharacter == "t":
-                keywordText = keywordText + "t"
+                keywordText += "t"
                 lexer.advance()
 
                 if lexer.currentCharacter == "u":
-                    keywordText = keywordText + "u"
+                    keywordText += "u"
                     lexer.advance()
 
                     if lexer.currentCharacter == "a":
-                        keywordText = keywordText + "a"
+                        keywordText += "a"
                         lexer.advance()
 
                         if lexer.currentCharacter == "l":
-                            keywordText = keywordText + "l"
+                            keywordText += "l"
                             lexer.advance()
 
                             return acceptKeyword(
                                 TK_CF_RITUAL,
                                 keywordText,
                                 startingPosition,
-                                {space, op_bra}
+                                keywordBeforeOpenBrace
                             )
 
             # RITE
@@ -793,18 +796,18 @@ def scanReservedWord(lexer, tokenList, errorList):
             keywordText = keywordTextWithRi
 
             if lexer.currentCharacter == "t":
-                keywordText = keywordText + "t"
+                keywordText += "t"
                 lexer.advance()
 
                 if lexer.currentCharacter == "e":
-                    keywordText = keywordText + "e"
+                    keywordText += "e"
                     lexer.advance()
 
                     return acceptKeyword(
                         TK_CF_RITE,
                         keywordText,
                         startingPosition,
-                        {space}
+                        keywordBeforeDeclarationName
                     )
 
         restoreLexerState(startingPosition)
@@ -820,30 +823,30 @@ def scanReservedWord(lexer, tokenList, errorList):
         keywordText = "s"
 
         if lexer.currentCharacter == "a":
-            keywordText = keywordText + "a"
+            keywordText += "a"
             lexer.advance()
 
             if lexer.currentCharacter == "c":
-                keywordText = keywordText + "c"
+                keywordText += "c"
                 lexer.advance()
 
                 if lexer.currentCharacter == "r":
-                    keywordText = keywordText + "r"
+                    keywordText += "r"
                     lexer.advance()
 
                     if lexer.currentCharacter == "e":
-                        keywordText = keywordText + "e"
+                        keywordText += "e"
                         lexer.advance()
 
                         if lexer.currentCharacter == "d":
-                            keywordText = keywordText + "d"
+                            keywordText += "d"
                             lexer.advance()
 
                             return acceptKeyword(
                                 TK_SACRED,
                                 keywordText,
                                 startingPosition,
-                                {space}
+                                keywordBeforeDeclarationName
                             )
 
         # SCRIPTURE
@@ -851,42 +854,42 @@ def scanReservedWord(lexer, tokenList, errorList):
         keywordText = "s"
 
         if lexer.currentCharacter == "c":
-            keywordText = keywordText + "c"
+            keywordText += "c"
             lexer.advance()
 
             if lexer.currentCharacter == "r":
-                keywordText = keywordText + "r"
+                keywordText += "r"
                 lexer.advance()
 
                 if lexer.currentCharacter == "i":
-                    keywordText = keywordText + "i"
+                    keywordText += "i"
                     lexer.advance()
 
                     if lexer.currentCharacter == "p":
-                        keywordText = keywordText + "p"
+                        keywordText += "p"
                         lexer.advance()
 
                         if lexer.currentCharacter == "t":
-                            keywordText = keywordText + "t"
+                            keywordText += "t"
                             lexer.advance()
 
                             if lexer.currentCharacter == "u":
-                                keywordText = keywordText + "u"
+                                keywordText += "u"
                                 lexer.advance()
 
                                 if lexer.currentCharacter == "r":
-                                    keywordText = keywordText + "r"
+                                    keywordText += "r"
                                     lexer.advance()
 
                                     if lexer.currentCharacter == "e":
-                                        keywordText = keywordText + "e"
+                                        keywordText += "e"
                                         lexer.advance()
 
                                         return acceptKeyword(
                                             TK_DTYPE_SCRIPTURE,
                                             keywordText,
                                             startingPosition,
-                                            {space}
+                                            keywordBeforeDeclarationName
                                         )
 
         # SIGIL
@@ -894,26 +897,26 @@ def scanReservedWord(lexer, tokenList, errorList):
         keywordText = "s"
 
         if lexer.currentCharacter == "i":
-            keywordText = keywordText + "i"
+            keywordText += "i"
             lexer.advance()
 
             if lexer.currentCharacter == "g":
-                keywordText = keywordText + "g"
+                keywordText += "g"
                 lexer.advance()
 
                 if lexer.currentCharacter == "i":
-                    keywordText = keywordText + "i"
+                    keywordText += "i"
                     lexer.advance()
 
                     if lexer.currentCharacter == "l":
-                        keywordText = keywordText + "l"
+                        keywordText += "l"
                         lexer.advance()
 
                         return acceptKeyword(
                             TK_DTYPE_SIGIL,
                             keywordText,
                             startingPosition,
-                            {space}
+                            keywordBeforeDeclarationName
                         )
 
         restoreLexerState(startingPosition)
@@ -929,26 +932,26 @@ def scanReservedWord(lexer, tokenList, errorList):
         keywordText = "t"
 
         if lexer.currentCharacter == "a":
-            keywordText = keywordText + "a"
+            keywordText += "a"
             lexer.advance()
 
             if lexer.currentCharacter == "l":
-                keywordText = keywordText + "l"
+                keywordText += "l"
                 lexer.advance()
 
                 if lexer.currentCharacter == "l":
-                    keywordText = keywordText + "l"
+                    keywordText += "l"
                     lexer.advance()
 
                     if lexer.currentCharacter == "y":
-                        keywordText = keywordText + "y"
+                        keywordText += "y"
                         lexer.advance()
 
                         return acceptKeyword(
                             TK_DTYPE_TALLY,
                             keywordText,
                             startingPosition,
-                            {space}
+                            keywordBeforeDeclarationName
                         )
 
         restoreLexerState(startingPosition)
@@ -964,23 +967,23 @@ def scanReservedWord(lexer, tokenList, errorList):
         keywordText = "u"
 
         if lexer.currentCharacter == "n":
-            keywordText = keywordText + "n"
+            keywordText += "n"
             lexer.advance()
 
             if lexer.currentCharacter == "h":
-                keywordText = keywordText + "h"
+                keywordText += "h"
                 lexer.advance()
 
                 if lexer.currentCharacter == "o":
-                    keywordText = keywordText + "o"
+                    keywordText += "o"
                     lexer.advance()
 
                     if lexer.currentCharacter == "l":
-                        keywordText = keywordText + "l"
+                        keywordText += "l"
                         lexer.advance()
 
                         if lexer.currentCharacter == "y":
-                            keywordText = keywordText + "y"
+                            keywordText += "y"
                             lexer.advance()
 
                             return acceptKeyword(
@@ -1012,26 +1015,26 @@ def scanReservedWord(lexer, tokenList, errorList):
             keywordText = keywordTextWithVe
 
             if lexer.currentCharacter == "r":
-                keywordText = keywordText + "r"
+                keywordText += "r"
                 lexer.advance()
 
                 if lexer.currentCharacter == "i":
-                    keywordText = keywordText + "i"
+                    keywordText += "i"
                     lexer.advance()
 
                     if lexer.currentCharacter == "t":
-                        keywordText = keywordText + "t"
+                        keywordText += "t"
                         lexer.advance()
 
                         if lexer.currentCharacter == "y":
-                            keywordText = keywordText + "y"
+                            keywordText += "y"
                             lexer.advance()
 
                             return acceptKeyword(
                                 TK_DTYPE_VERITY,
                                 keywordText,
                                 startingPosition,
-                                {space}
+                                keywordBeforeDeclarationName
                             )
 
             # VERSE / VERSEOF
@@ -1039,15 +1042,15 @@ def scanReservedWord(lexer, tokenList, errorList):
             keywordText = keywordTextWithVe
 
             if lexer.currentCharacter == "r":
-                keywordText = keywordText + "r"
+                keywordText += "r"
                 lexer.advance()
 
                 if lexer.currentCharacter == "s":
-                    keywordText = keywordText + "s"
+                    keywordText += "s"
                     lexer.advance()
 
                     if lexer.currentCharacter == "e":
-                        keywordText = keywordText + "e"
+                        keywordText += "e"
                         lexer.advance()
 
                         # VERSEOF
@@ -1055,18 +1058,18 @@ def scanReservedWord(lexer, tokenList, errorList):
                             savedPositionAtLetterO = lexer.currentPosition.copy()
                             keywordTextBeforeVerseOf = keywordText
 
-                            keywordText = keywordText + "o"
+                            keywordText += "o"
                             lexer.advance()
 
                             if lexer.currentCharacter == "f":
-                                keywordText = keywordText + "f"
+                                keywordText += "f"
                                 lexer.advance()
 
                                 return acceptKeyword(
                                     TK_OTHERS_VERSEOF,
                                     keywordText,
                                     startingPosition,
-                                    {op_par}
+                                    keywordBeforeOpenParen
                                 )
 
                             restoreLexerState(savedPositionAtLetterO)
@@ -1077,7 +1080,7 @@ def scanReservedWord(lexer, tokenList, errorList):
                             TK_CF_VERSE,
                             keywordText,
                             startingPosition,
-                            {space}
+                            keywordBeforeDeclarationName
                         )
 
         restoreLexerState(startingPosition)

@@ -3,62 +3,63 @@ from backend.errors import LexicalError
 from backend.delimiters import chr_delim as characterDelimiters
 from backend.delimiters import formatExpectedDelimiters
 
+
 def acceptCharacterLiteral(
     lexer,
     tokenList,
     errorList,
     startingPosition,
+    characterValue,
     displayedCharacterValue,
     allowedDelimiters
 ):
-    # check delimiter
     currentCharacter = lexer.currentCharacter
     expectedDelimiters = formatExpectedDelimiters(allowedDelimiters)
 
     if currentCharacter is None and None not in allowedDelimiters:
-        lexicalError = LexicalError(
-            startingPosition,
-            f"Missing delimiter after char literal {displayedCharacterValue}. Expected: {expectedDelimiters}"
+        errorList.append(
+            LexicalError(
+                startingPosition,
+                f"Missing delimiter after char literal {displayedCharacterValue}. Expected: {expectedDelimiters}"
+            )
         )
-
-        errorList.extend([lexicalError])
         return True
 
     if currentCharacter is not None and currentCharacter not in allowedDelimiters:
-        lexicalError = LexicalError(
-            startingPosition,
-            f"Invalid delimiter {repr(currentCharacter)} after char literal {displayedCharacterValue}. Expected: {expectedDelimiters}"
+        errorList.append(
+            LexicalError(
+                startingPosition,
+                f"Invalid delimiter {repr(currentCharacter)} after char literal {displayedCharacterValue}. Expected: {expectedDelimiters}"
+            )
         )
-
-        errorList.extend([lexicalError])
         return True
 
-    characterToken = Token(
-        TK_LIT_CHAR,
-        displayedCharacterValue,
-        startingPosition
+    tokenList.append(
+        Token(
+            TK_LIT_CHAR,
+            characterValue,
+            startingPosition
+        )
     )
 
-    tokenList.extend([characterToken])
     return True
 
+
 def recoverCharacterLiteral(lexer):
-    # skip invalid char
     while lexer.currentCharacter is not None and lexer.currentCharacter not in {"'", "\n"}:
         lexer.advance()
 
     if lexer.currentCharacter == "'":
         lexer.advance()
 
+
 def scanCharacter(lexer, tokenList, errorList):
-    # must start with quote
     if lexer.currentCharacter != "'":
         return False
 
     startingPosition = lexer.currentPosition.copy()
     lexer.advance()
 
-    # missing closing quote
     if lexer.currentCharacter is None:
         lexicalError = LexicalError(
             startingPosition,
@@ -68,7 +69,6 @@ def scanCharacter(lexer, tokenList, errorList):
         errorList.extend([lexicalError])
         return True
 
-    # newline not allowed
     if lexer.currentCharacter == "\n":
         lexicalError = LexicalError(
             startingPosition,
@@ -78,20 +78,18 @@ def scanCharacter(lexer, tokenList, errorList):
         errorList.extend([lexicalError])
         return True
 
-    # empty char
     if lexer.currentCharacter == "'":
         lexer.advance()
 
-        return acceptCharacterLiteral(
-            lexer,
-            tokenList,
-            errorList,
-            startingPosition,
-            "''",
-            characterDelimiters
+        errorList.append(
+            LexicalError(
+                startingPosition,
+                "Empty char literal is invalid"
+            )
         )
 
-    # escape char
+        return True
+
     if lexer.currentCharacter == "\\":
         lexer.advance()
 
@@ -109,12 +107,12 @@ def scanCharacter(lexer, tokenList, errorList):
             "t": "\t",
             "0": "\0",
             "'": "'",
+            '"': '"',
             "\\": "\\",
         }
 
         escapeCharacter = lexer.currentCharacter
 
-        # invalid escape
         if escapeCharacter not in escapeSequenceMap:
             lexicalError = LexicalError(
                 startingPosition,
@@ -131,11 +129,9 @@ def scanCharacter(lexer, tokenList, errorList):
         lexer.advance()
 
     else:
-        # normal char
         characterValue = lexer.currentCharacter
         lexer.advance()
 
-    # one char only
     if lexer.currentCharacter != "'":
         lexicalError = LexicalError(
             startingPosition,
@@ -149,7 +145,6 @@ def scanCharacter(lexer, tokenList, errorList):
 
     lexer.advance()
 
-    # ascii only
     if ord(characterValue) > 127:
         lexicalError = LexicalError(
             startingPosition,
@@ -159,7 +154,6 @@ def scanCharacter(lexer, tokenList, errorList):
         errorList.extend([lexicalError])
         return True
 
-    # display escape value
     if characterValue == "\n":
         displayedCharacter = "\\n"
 
@@ -169,6 +163,15 @@ def scanCharacter(lexer, tokenList, errorList):
     elif characterValue == "\0":
         displayedCharacter = "\\0"
 
+    elif characterValue == "'":
+        displayedCharacter = "\\'"
+
+    elif characterValue == '"':
+        displayedCharacter = '\\"'
+
+    elif characterValue == "\\":
+        displayedCharacter = "\\\\"
+
     else:
         displayedCharacter = characterValue
 
@@ -177,6 +180,7 @@ def scanCharacter(lexer, tokenList, errorList):
         tokenList,
         errorList,
         startingPosition,
+        characterValue,
         f"'{displayedCharacter}'",
         characterDelimiters
     )

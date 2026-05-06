@@ -8,6 +8,7 @@ ALPHA_DIG = ALPHABET + DIGITS
 space      = ' '
 newline    = '\n'
 tab        = '\t'
+whitespace = {space, newline, tab}
 
 comma      = ','
 semicolon  = ';'
@@ -25,15 +26,26 @@ cl_bra     = '}'
 id_sym      = set("_" + ALPHA_DIG)
 
 op_delim    = {'+', '-', '*', '/', '%', '!', '&', '|', '=', '>', '<'}
-els_delim   = {space, newline, op_bra}
-bool_delim = {space, cl_par, cl_brc, semicolon, comma, colon, cl_bra} | op_delim
+els_delim = whitespace | {op_bra}
 
-int_decdelim = {space, semicolon, newline, colon, comma, cl_bra, cl_par, cl_brc} | op_delim
-chr_delim    = {space, semicolon, newline, comma, colon, cl_bra, cl_par, '&'}
-str_delim    = {comma, semicolon, newline, space, colon, cl_par, cl_brc, cl_bra, '&'}
+bool_delim = whitespace | {
+    cl_par, cl_brc, semicolon, comma, colon, cl_bra
+} | op_delim
 
-idnt_delim = {
-    space, semicolon, colon, comma, period,
+int_decdelim = whitespace | {
+    semicolon, colon, comma, cl_bra, cl_par, cl_brc
+} | op_delim
+
+chr_delim = whitespace | {
+    semicolon, comma, colon, cl_bra, cl_par, '&'
+}
+
+str_delim = whitespace | {
+    comma, semicolon, colon, cl_par, cl_brc, cl_bra, '&'
+}
+
+idnt_delim = whitespace | {
+    semicolon, colon, comma, period,
     op_par, cl_par,
     op_brc, cl_brc,
     op_bra, cl_bra,

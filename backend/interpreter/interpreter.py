@@ -5,9 +5,9 @@ from backend.ast.ast_nodes import *
 from backend.errors import RuntimeErrorBase
 from backend.interpreter.environment import Environment
 from backend.interpreter.input_request import InputRequest
-from backend.interpreter.runtime.output import bindOutputMethods
-from backend.interpreter.runtime.coercion import bindCoercionMethods
-from backend.interpreter.runtime.program import bindProgramMethods
+from backend.interpreter.runtime.output_writer import bindOutputMethods
+from backend.interpreter.runtime.type_conversion import bindCoercionMethods
+from backend.interpreter.runtime.program_runner import bindProgramMethods
 from backend.interpreter.runtime.functions import bindFunctionMethods
 from backend.interpreter.runtime.statements import bindStatementMethods
 from backend.interpreter.runtime.expressions import bindExpressionMethods
