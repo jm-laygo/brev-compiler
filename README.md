@@ -218,8 +218,8 @@ The Brev compiler follows a staged pipeline. Each stage receives the result of t
 
 ### 1. Lexical Analysis
 
-<p align="left">
-  <img src="frontend/public/images/lexical_analyzer_window.svg" alt="Lexical Analyzer Window" width="520" height="500" />
+<p align="center">
+  <img src="frontend/public/images/lexical_analyzer_window.svg" alt="Lexical Analyzer Window" width="520" />
 </p>
 
 The lexical analyzer, or lexer, reads the raw Brev source code and converts it into a stream of tokens. Tokens are the smallest meaningful units of the program, such as keywords, identifiers, literals, operators, and symbols.
