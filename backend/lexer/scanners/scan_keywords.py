@@ -24,8 +24,6 @@ def scanReservedWord(lexer, tokenList, errorList):
 
         expectedDelimiters = formatExpectedDelimiters(allowedDelimiters)
 
-        # if another identifier char follows, this is not a keyword
-        # example: tallyCount should become identifier, not tally + identifier
         if currentCharacter is not None and (currentCharacter.isalnum() or currentCharacter == "_"):
             restoreLexerState(startingPosition)
             return False
