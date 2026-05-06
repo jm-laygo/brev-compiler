@@ -234,7 +234,7 @@ def apiSyntax():
 
     try:
         parser = Parser(getParserTokens(tokenList))
-        programAst = parser.parse()
+        parser.parse()
 
         if parser.currentType(0) != TK_EOF:
             raise ParserError(
