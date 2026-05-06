@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List, Optional
+from typing import List
 
 from backend.tokens import *
 from backend.errors import ParserError
@@ -23,6 +23,7 @@ def parseSacredInitializationList(self: Parser) -> List[SacredItem]:
 
     return sacredItems
 
+
 def parseSacredInitializationTail(self: Parser) -> List[SacredItem]:
     currentTokenType = self.currentType(0)
 
@@ -44,6 +45,7 @@ def parseSacredInitializationTail(self: Parser) -> List[SacredItem]:
 
     return remainingSacredItems
 
+
 def parseSacredInitialization(self: Parser) -> SacredItem:
     currentTokenType = self.currentType(0)
 
@@ -55,7 +57,10 @@ def parseSacredInitialization(self: Parser) -> SacredItem:
         )
 
     identifierToken = self.expect(TK_IDENTIFIER)
-    initialValue = self.parseSacredAssignmentOptional()
+
+    # sacred must always have an initializer
+    self.expect(TK_OP_ASSIGN)
+    initialValue = self.parseConstantExpression()
 
     return SacredItem(
         position=getTokenPosition(identifierToken),
@@ -63,25 +68,7 @@ def parseSacredInitialization(self: Parser) -> SacredItem:
         value=initialValue
     )
 
-def parseSacredAssignmentOptional(self: Parser) -> Optional[Expression]:
-    currentTokenType = self.currentType(0)
-
-    # check sacred assign
-    if currentTokenType not in PREDICT["<sacred_assign_opt>"]:
-        raise ParserError(
-            self.peek(0) or self.peek(-1),
-            list(PREDICT["<sacred_assign_opt>"].keys())
-        )
-
-    # no initial value
-    if currentTokenType in (TK_SYM_COMMA, TK_SYM_SEMICOL):
-        return None
-
-    self.expect(TK_OP_ASSIGN)
-
-    return self.parseConstantExpression()
 
 Parser.parseSacredInitializationList = parseSacredInitializationList
 Parser.parseSacredInitializationTail = parseSacredInitializationTail
 Parser.parseSacredInitialization = parseSacredInitialization
-Parser.parseSacredAssignmentOptional = parseSacredAssignmentOptional

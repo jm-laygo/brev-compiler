@@ -44,10 +44,10 @@ def parseProcessionStatement(self: Parser) -> ProcessionStatement:
     initializerStatement = self.parseInitializerOptional()
     self.expect(TK_SYM_SEMICOL)
 
-    conditionExpression = self.parseExpressionOptional()
+    conditionExpression = self.parseExpression()
     self.expect(TK_SYM_SEMICOL)
 
-    updateStatement = self.parseUpdateOptional()
+    updateStatement = self.parseUpdateExpression()
     self.expect(TK_SYM_CLSPAREN)
 
     self.expect(TK_SYM_OPBRACE)
@@ -133,22 +133,6 @@ def parseExpressionOptional(self: Parser) -> Optional[Expression]:
         return None
 
     return self.parseExpression()
-
-def parseUpdateOptional(self: Parser) -> Optional[Statement]:
-    currentTokenType = self.currentType(0)
-
-    # check update
-    if currentTokenType not in PREDICT["<update_opt>"]:
-        raise ParserError(
-            self.peek(0) or self.peek(-1),
-            list(PREDICT["<update_opt>"].keys())
-        )
-
-    # no update
-    if PREDICT["<update_opt>"][currentTokenType] == [EPSILON]:
-        return None
-
-    return self.parseUpdateExpression()
 
 def parseUpdateExpression(self: Parser) -> Statement:
     currentTokenType = self.currentType(0)
@@ -320,7 +304,6 @@ Parser.parseLoopStatement = parseLoopStatement
 Parser.parseProcessionStatement = parseProcessionStatement
 Parser.parseInitializerOptional = parseInitializerOptional
 Parser.parseExpressionOptional = parseExpressionOptional
-Parser.parseUpdateOptional = parseUpdateOptional
 Parser.parseUpdateExpression = parseUpdateExpression
 Parser.parseUpdateTail = parseUpdateTail
 Parser.parseEndureStatement = parseEndureStatement

@@ -127,11 +127,6 @@ PREDICT = {
         TK_IDENTIFIER:      ["<data_type_id>", TK_IDENTIFIER, "<array_dims_tail>", TK_SYM_SEMICOL],
     },
 
-    "<member_init_opt>": {
-        TK_OP_ASSIGN:   [TK_OP_ASSIGN, "<member_init_val>"],
-        TK_SYM_SEMICOL: [EPSILON],
-    },
-
     "<member_init_val>": {
         TK_SYM_OPBRACE: ["<array_init>"],
 
@@ -160,13 +155,7 @@ PREDICT = {
     },
 
     "<sacred_init>": {
-        TK_IDENTIFIER: [TK_IDENTIFIER, "<sacred_assign_opt>"]
-    },
-
-    "<sacred_assign_opt>": {
-        TK_OP_ASSIGN:   [TK_OP_ASSIGN, "<const_expr>"],
-        TK_SYM_COMMA:   [EPSILON],
-        TK_SYM_SEMICOL: [EPSILON],
+        TK_IDENTIFIER: [TK_IDENTIFIER, TK_OP_ASSIGN, "<const_expr>"]
     },
 
     # 6) VAR DECL GROUP
@@ -525,7 +514,6 @@ PREDICT = {
         TK_DTYPE_SCRIPTURE: ["<var_dec_stmt>"],
         TK_DTYPE_VERITY:    ["<var_dec_stmt>"],
         TK_OTHERS_ORDAIN:   ["<ordain_stmt>"],
-        TK_OTHERS_ORDER:    ["<order_stmt>"],
         TK_IO_RECEIVE:      ["<io_stmt>"],
         TK_IO_PROCLAIM:     ["<io_stmt>"],
         TK_CF_DECREE:       ["<cond_stmt>"],
@@ -666,7 +654,6 @@ PREDICT = {
         TK_DTYPE_SCRIPTURE: [EPSILON],
         TK_DTYPE_VERITY:    [EPSILON],
 
-        TK_OTHERS_ORDER:    [EPSILON],
         TK_OTHERS_ORDAIN:   [EPSILON],
         TK_IO_RECEIVE:      [EPSILON],
         TK_IO_PROCLAIM:     [EPSILON],
@@ -701,7 +688,6 @@ PREDICT = {
         TK_DTYPE_SCRIPTURE: [EPSILON],
         TK_DTYPE_VERITY:    [EPSILON],
 
-        TK_OTHERS_ORDER:    [EPSILON],
         TK_OTHERS_ORDAIN:   [EPSILON],
         TK_IO_RECEIVE:      [EPSILON],
         TK_IO_PROCLAIM:     [EPSILON],
@@ -744,7 +730,6 @@ PREDICT = {
         TK_DTYPE_SCRIPTURE: ["<statement>", "<case_statement_list>"],
         TK_DTYPE_VERITY:    ["<statement>", "<case_statement_list>"],
 
-        TK_OTHERS_ORDER:    ["<statement>", "<case_statement_list>"],
         TK_OTHERS_ORDAIN:   ["<statement>", "<case_statement_list>"],
 
         TK_IO_RECEIVE:      ["<statement>", "<case_statement_list>"],
@@ -793,7 +778,10 @@ PREDICT = {
 
     "<procession_stmt>": {
         TK_CF_PROCESSION: [
-            TK_CF_PROCESSION, TK_SYM_OPPAREN, "<init_opt>", TK_SYM_SEMICOL, "<expr_opt>", TK_SYM_SEMICOL, "<update_opt>", TK_SYM_CLSPAREN,
+            TK_CF_PROCESSION, TK_SYM_OPPAREN,
+            "<init_opt>", TK_SYM_SEMICOL,
+            "<expr>", TK_SYM_SEMICOL,
+            "<update_expr>", TK_SYM_CLSPAREN,
             TK_SYM_OPBRACE, "<statement_list>", TK_SYM_CLSBRACE
         ]
     },
@@ -803,7 +791,7 @@ PREDICT = {
         TK_IDENTIFIER: ["<lvalue>", TK_OP_ASSIGN, "<expr>"],
     },
 
-    "<expr_opt>": {
+        "<expr_opt>": {
         TK_OP_NOT:         ["<expr>"],
         TK_OP_MINUS:       ["<expr>"],
         TK_OP_INC:         ["<expr>"],
@@ -815,16 +803,8 @@ PREDICT = {
         TK_LIT_DECIMAL:    ["<expr>"],
         TK_LIT_CHAR:       ["<expr>"],
         TK_LIT_STRING:     ["<expr>"],
-        TK_LIT_BOOL:    ["<expr>"],
+        TK_LIT_BOOL:       ["<expr>"],
         TK_SYM_SEMICOL:    [EPSILON],
-    },
-
-    "<update_opt>": {
-        TK_IDENTIFIER:   ["<update_expr>"],
-        TK_OP_INC:       ["<update_expr>"],
-        TK_OP_DEC:       ["<update_expr>"],
-        TK_SYM_OPPAREN:  ["<update_expr>"],
-        TK_SYM_CLSPAREN: [EPSILON],
     },
 
     "<update_expr>": {

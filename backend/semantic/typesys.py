@@ -245,6 +245,12 @@ def getBinaryOperationResult(operator: str, leftType: Type, rightType: Type) -> 
         return Type.error()
 
     if operator in ("==", "!="):
+        if leftType.isOrder() or rightType.isOrder():
+            return Type.error()
+
+        if leftType.isArray() or rightType.isArray():
+            return Type.error()
+
         if isSameType(leftType, rightType):
             return Type.fromBaseType(BaseType.VERITY)
 
