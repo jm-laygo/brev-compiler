@@ -61,6 +61,15 @@ def scanString(lexer, tokenList, errorList):
 
     lexer.advance()
 
+    escapeSequenceMap = {
+        "n": "\n",
+        "t": "\t",
+        "0": "\0",
+        "'": "'",
+        '"': '"',
+        "\\": "\\",
+    }
+
     # read string
     while lexer.currentCharacter is not None:
         currentCharacter = lexer.currentCharacter
@@ -89,32 +98,18 @@ def scanString(lexer, tokenList, errorList):
                 errorList.extend([lexicalError])
                 return True
 
-            if escapeCharacter == "n":
-                stringValue += "\n"
+            if escapeCharacter not in escapeSequenceMap:
+                lexicalError = LexicalError(
+                    startingPosition,
+                    f"Unknown escape sequence '\\{escapeCharacter}'"
+                )
 
-            elif escapeCharacter == "t":
-                stringValue += "\t"
-
-            elif escapeCharacter == "0":
-                stringValue += "\0"
-
-            elif escapeCharacter == "\\":
-                stringValue += "\\"
-
-            elif escapeCharacter == "'":
-                stringValue += "'"
-
-            elif escapeCharacter == '"':
-                stringValue += '"'
-
-            else:
-                # Keep literal backslashes usable inside strings even when they
-                # are not part of a known escape sequence.
-                stringValue += "\\"
-                stringValue += escapeCharacter
+                errorList.extend([lexicalError])
                 lexer.advance()
-                continue
+                recoverStringLiteral(lexer)
+                return True
 
+            stringValue += escapeSequenceMap[escapeCharacter]
             lexer.advance()
             continue
 
