@@ -33,8 +33,13 @@ def callRite(self, riteName: str, argumentValues, *, callNode=None):
     for parameterNode, argumentValue in zip(parameterNodes, argumentValues):
         riteEnvironment.declare(
             parameterNode.name,
-            argumentValue,
-            isConstant=False
+            self.coerceValueToType(
+                getattr(parameterNode, "typeName", None),
+                argumentValue,
+                parameterNode
+            ),
+            isConstant=False,
+            declaredType=getattr(parameterNode, "typeName", None)
         )
 
     self.executeLocalDeclarations(
@@ -60,7 +65,11 @@ def callRite(self, riteName: str, argumentValues, *, callNode=None):
             )
 
     except DismissSignal as dismissSignal:
-        return dismissSignal.value
+        return self.coerceValueToType(
+            getattr(riteNode, "returnType", None),
+            dismissSignal.value,
+            callNode or riteNode
+        )
 
     except ProceedSignal:
         raise RuntimeErrorBase(

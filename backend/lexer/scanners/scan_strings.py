@@ -104,17 +104,16 @@ def scanString(lexer, tokenList, errorList):
             elif escapeCharacter == "'":
                 stringValue += "'"
 
+            elif escapeCharacter == '"':
+                stringValue += '"'
+
             else:
-                lexicalError = LexicalError(
-                    startingPosition,
-                    f"Invalid escape sequence '\\{escapeCharacter}'"
-                )
-
-                errorList.extend([lexicalError])
+                # Keep literal backslashes usable inside strings even when they
+                # are not part of a known escape sequence.
+                stringValue += "\\"
+                stringValue += escapeCharacter
                 lexer.advance()
-                recoverStringLiteral(lexer)
-
-                return True
+                continue
 
             lexer.advance()
             continue

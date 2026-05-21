@@ -11,8 +11,9 @@ class Environment:
         self.parentEnvironment = parentEnvironment
         self.storedValues = {}
         self.constantNames = set()
+        self.declaredTypes = {}
 
-    def declare(self, name, value=None, *, isConstant=False, node=None):
+    def declare(self, name, value=None, *, isConstant=False, node=None, declaredType=None):
         if name in self.storedValues:
             raise RuntimeNameError(
                 node,
@@ -20,6 +21,9 @@ class Environment:
             )
 
         self.storedValues[name] = value
+
+        if declaredType is not None:
+            self.declaredTypes[name] = declaredType
 
         if isConstant:
             self.constantNames.add(name)
@@ -58,6 +62,15 @@ class Environment:
             node,
             f"Undefined variable '{name}'."
         )
+
+    def getDeclaredType(self, name: str):
+        if name in self.declaredTypes:
+            return self.declaredTypes[name]
+
+        if self.parentEnvironment is not None:
+            return self.parentEnvironment.getDeclaredType(name)
+
+        return None
 
     def isConstant(self, name: str) -> bool:
         if name in self.storedValues:

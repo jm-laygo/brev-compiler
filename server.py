@@ -28,6 +28,80 @@ def getParserTokens(tokenList):
     ]
 
 
+def formatError(errorObject):
+    if hasattr(errorObject, "asString"):
+        return errorObject.asString()
+
+    if hasattr(errorObject, "as_string"):
+        return errorObject.as_string()
+
+    errorPosition = getattr(errorObject, "position", None)
+    errorMessage = getattr(errorObject, "message", str(errorObject))
+
+    if (
+        errorPosition
+        and hasattr(errorPosition, "lineNumber")
+        and hasattr(errorPosition, "columnNumber")
+    ):
+        return (
+            f"Ln {errorPosition.lineNumber}, "
+            f"Col {errorPosition.columnNumber} Error: {errorMessage}"
+        )
+
+    return str(errorObject)
+
+
+def runLexerOnly(sourceCode):
+    lexer = Lexer(sourceCode)
+    tokenList, lexicalErrors = lexer.makeTokens()
+
+    return tokenList, lexicalErrors
+
+
+def runParserOnly(sourceCode):
+    tokenList, lexicalErrors = runLexerOnly(sourceCode)
+
+    if lexicalErrors:
+        return None, tokenList, lexicalErrors, [
+            "Syntax analysis not performed because lexical errors exist."
+        ] + [formatError(error) for error in lexicalErrors]
+
+    parser = Parser(getParserTokens(tokenList))
+    programAst = parser.parse()
+
+    if parser.currentType(0) != TK_EOF:
+        raise ParserError(
+            parser.peek(0),
+            [TK_EOF],
+            details="Trailing tokens"
+        )
+
+    return programAst, tokenList, lexicalErrors, []
+
+
+def runSemanticOnly(sourceCode):
+    try:
+        programAst, tokenList, lexicalErrors, syntaxErrors = runParserOnly(sourceCode)
+
+        if syntaxErrors:
+            return None, tokenList, lexicalErrors, syntaxErrors, []
+
+    except ParserError as parserError:
+        return None, [], [], [
+            "Semantic analysis not performed because syntax errors exist.",
+            formatError(parserError)
+        ], []
+
+    checkedProgram, semanticErrors = runSemanticAnalysis(programAst)
+
+    formattedSemanticErrors = [
+        formatError(error)
+        for error in semanticErrors
+    ]
+
+    return checkedProgram, tokenList, lexicalErrors, [], formattedSemanticErrors
+
+
 app = Flask(__name__)
 RUNNING_SESSIONS = {}
 
@@ -64,7 +138,7 @@ def getOutputDelta(previousOutput, currentOutput):
             tailDelta = currentTail[len(previousTail):]
 
             if tailDelta:
-                outputDelta.extend([tailDelta])
+                outputDelta.append(tailDelta)
 
             outputDelta.extend(currentOutput[matchingLineCount + 1:])
 
@@ -81,42 +155,146 @@ def ping():
     }), 200
 
 
+@app.post("/api/lex")
+def apiLex():
+    requestData = request.get_json(silent=True) or {}
+    sourceCode = requestData.get("source_code", "")
+
+    try:
+        tokenList, lexicalErrors = runLexerOnly(sourceCode)
+
+        return jsonify({
+            "lexical_valid": len(lexicalErrors) == 0,
+            "tokens": [
+                token.toDictionary()
+                for token in tokenList
+            ],
+            "errors": [
+                formatError(error)
+                for error in lexicalErrors
+            ],
+        }), 200
+
+    except Exception as exceptionObject:
+        traceback.print_exc()
+
+        return jsonify({
+            "lexical_valid": False,
+            "tokens": [],
+            "errors": [
+                f"Lexer crashed: {exceptionObject.__class__.__name__}: {str(exceptionObject)}"
+            ],
+        }), 500
+
+
+@app.post("/api/syntax")
+def apiSyntax():
+    requestData = request.get_json(silent=True) or {}
+    sourceCode = requestData.get("source_code", "")
+
+    try:
+        programAst, tokenList, lexicalErrors, syntaxErrors = runParserOnly(sourceCode)
+
+        if syntaxErrors:
+            return jsonify({
+                "syntax_valid": False,
+                "errors": syntaxErrors,
+            }), 200
+
+        return jsonify({
+            "syntax_valid": True,
+            "errors": [],
+        }), 200
+
+    except ParserError as parserError:
+        return jsonify({
+            "syntax_valid": False,
+            "errors": [
+                formatError(parserError)
+            ],
+        }), 200
+
+    except Exception as exceptionObject:
+        traceback.print_exc()
+
+        return jsonify({
+            "syntax_valid": False,
+            "errors": [
+                f"Parser crashed: {exceptionObject.__class__.__name__}: {str(exceptionObject)}"
+            ],
+        }), 500
+
+
+@app.post("/api/sem")
+def apiSemantic():
+    requestData = request.get_json(silent=True) or {}
+    sourceCode = requestData.get("source_code", "")
+
+    try:
+        checkedProgram, tokenList, lexicalErrors, syntaxErrors, semanticErrors = runSemanticOnly(sourceCode)
+
+        if syntaxErrors:
+            return jsonify({
+                "semantic_valid": False,
+                "errors": syntaxErrors,
+            }), 200
+
+        if semanticErrors:
+            return jsonify({
+                "semantic_valid": False,
+                "errors": semanticErrors,
+            }), 200
+
+        return jsonify({
+            "semantic_valid": True,
+            "errors": [],
+        }), 200
+
+    except Exception as exceptionObject:
+        traceback.print_exc()
+
+        return jsonify({
+            "semantic_valid": False,
+            "errors": [
+                f"Semantic analyzer crashed: {exceptionObject.__class__.__name__}: {str(exceptionObject)}"
+            ],
+        }), 500
+
+
 def analyzeSource(sourceCode):
-    lexer = Lexer(sourceCode)
-    tokenList, lexicalErrors = lexer.makeTokens()
+    checkedProgram, tokenList, lexicalErrors, syntaxErrors, semanticErrors = runSemanticOnly(sourceCode)
 
     if lexicalErrors:
         return None, {
             "ok": False,
-            "errors": ["Execution not performed because lexical errors exist."]
-            + [error.asString() for error in lexicalErrors]
+            "errors": [
+                "Execution not performed because lexical errors exist."
+            ] + [
+                formatError(error)
+                for error in lexicalErrors
+            ],
         }
 
-    parser = Parser(getParserTokens(tokenList))
-    programAst = parser.parse()
-
-    if parser.currentType(0) != TK_EOF:
-        raise ParserError(
-            parser.peek(0),
-            [TK_EOF],
-            details="Trailing tokens"
-        )
-
-    checkedProgram, semanticErrors = runSemanticAnalysis(programAst)
-
-    if semanticErrors:
-        formattedErrors = [
-            error.asString() if hasattr(error, "asString") else str(error)
-            for error in semanticErrors
-        ]
-
+    if syntaxErrors:
         return None, {
             "ok": False,
-            "errors": ["Execution not performed because semantic errors exist."]
-            + formattedErrors
+            "errors": [
+                "Execution not performed because syntax errors exist."
+            ] + syntaxErrors,
         }
 
-    return checkedProgram, {"ok": True}
+    if semanticErrors:
+        return None, {
+            "ok": False,
+            "errors": [
+                "Execution not performed because semantic errors exist."
+            ] + semanticErrors,
+        }
+
+    return checkedProgram, {
+        "ok": True,
+        "errors": [],
+    }
 
 
 def executeSessionUntilPause(session):
@@ -187,167 +365,10 @@ def executeSessionUntilPause(session):
             "session_id": session["id"],
             "output": deltaOutput,
             "result": None,
-            "errors": [runtimeError.asString()],
-        }
-
-
-@app.post("/api/lex")
-def apiLex():
-    requestData = request.get_json(silent=True) or {}
-    sourceCode = requestData.get("source_code", "")
-
-    try:
-        lexer = Lexer(sourceCode)
-        tokenList, lexicalErrors = lexer.makeTokens()
-
-        return jsonify({
-            "tokens": [token.toDictionary() for token in tokenList],
-            "errors": [error.asString() for error in lexicalErrors]
-        }), 200
-
-    except Exception as exceptionObject:
-        return jsonify({
-            "error": f"Lexer crashed: {str(exceptionObject)}"
-        }), 500
-
-
-@app.post("/api/syntax")
-def apiSyntax():
-    requestData = request.get_json(silent=True) or {}
-    sourceCode = requestData.get("source_code", "")
-
-    try:
-        lexer = Lexer(sourceCode)
-        tokenList, lexicalErrors = lexer.makeTokens()
-
-    except Exception as exceptionObject:
-        return jsonify({
-            "error": f"Lexer crashed: {str(exceptionObject)}"
-        }), 500
-
-    if lexicalErrors:
-        return jsonify({
-            "syntax_valid": False,
-            "errors": ["Syntax analysis not performed because lexical errors exist."]
-            + [error.asString() for error in lexicalErrors]
-        }), 200
-
-    try:
-        parser = Parser(getParserTokens(tokenList))
-        parser.parse()
-
-        if parser.currentType(0) != TK_EOF:
-            raise ParserError(
-                parser.peek(0),
-                [TK_EOF],
-                details="Trailing tokens"
-            )
-
-        return jsonify({
-            "syntax_valid": True,
-            "errors": []
-        }), 200
-
-    except ParserError as parserError:
-        return jsonify({
-            "syntax_valid": False,
-            "errors": [parserError.asString()]
-        }), 200
-
-    except Exception as exceptionObject:
-        return jsonify({
-            "error": f"Parser crashed: {str(exceptionObject)}"
-        }), 500
-
-
-@app.post("/api/sem")
-def apiSemantic():
-    requestData = request.get_json(silent=True) or {}
-    sourceCode = requestData.get("source_code", "")
-
-    try:
-        lexer = Lexer(sourceCode)
-        tokenList, lexicalErrors = lexer.makeTokens()
-
-    except Exception as exceptionObject:
-        return jsonify({
-            "error": f"Lexer crashed: {str(exceptionObject)}"
-        }), 500
-
-    if lexicalErrors:
-        return jsonify({
-            "semantic_valid": False,
-            "errors": ["Semantic analysis not performed because lexical errors exist."]
-            + [error.asString() for error in lexicalErrors]
-        }), 200
-
-    try:
-        parser = Parser(getParserTokens(tokenList))
-        programAst = parser.parse()
-
-        if parser.currentType(0) != TK_EOF:
-            raise ParserError(
-                parser.peek(0),
-                [TK_EOF],
-                details="Trailing tokens"
-            )
-
-    except ParserError as parserError:
-        return jsonify({
-            "semantic_valid": False,
             "errors": [
-                "Semantic analysis not performed because syntax errors exist.",
-                parserError.asString()
-            ]
-        }), 200
-
-    except Exception as exceptionObject:
-        return jsonify({
-            "error": f"Parser crashed: {str(exceptionObject)}"
-        }), 500
-
-    try:
-        checkedProgram, semanticErrors = runSemanticAnalysis(programAst)
-        formattedErrors = []
-
-        for semanticError in semanticErrors:
-            if hasattr(semanticError, "asString"):
-                formattedErrors.extend([semanticError.asString()])
-
-            elif hasattr(semanticError, "as_string"):
-                formattedErrors.extend([semanticError.as_string()])
-
-            else:
-                errorPosition = getattr(semanticError, "position", None)
-                errorMessage = getattr(
-                    semanticError,
-                    "message",
-                    str(semanticError)
-                )
-
-                if (
-                    errorPosition
-                    and hasattr(errorPosition, "lineNumber")
-                    and hasattr(errorPosition, "columnNumber")
-                ):
-                    formattedErrors.extend([
-                        f"Ln {errorPosition.lineNumber}, Col {errorPosition.columnNumber} Semantic Error: {errorMessage}"
-                    ])
-
-                else:
-                    formattedErrors.extend([
-                        f"Semantic Error: {errorMessage}"
-                    ])
-
-        return jsonify({
-            "semantic_valid": len(formattedErrors) == 0,
-            "errors": formattedErrors,
-        }), 200
-
-    except Exception as exceptionObject:
-        return jsonify({
-            "error": f"Semantic analyzer crashed: {str(exceptionObject)}"
-        }), 500
+                formatError(runtimeError)
+            ],
+        }
 
 
 @app.post("/api/run/start")
@@ -378,24 +399,13 @@ def apiRunStart():
         }
 
         RUNNING_SESSIONS[sessionId] = session
+
         response = executeSessionUntilPause(session)
 
         if response["status"] in ("finished", "error"):
             RUNNING_SESSIONS.pop(sessionId, None)
 
         return jsonify(response), 200
-
-    except ParserError as parserError:
-        return jsonify({
-            "status": "error",
-            "session_id": None,
-            "output": [],
-            "result": None,
-            "errors": [
-                "Execution not performed because syntax errors exist.",
-                parserError.asString()
-            ],
-        }), 200
 
     except Exception as exceptionObject:
         traceback.print_exc()
@@ -406,7 +416,7 @@ def apiRunStart():
             "output": [],
             "result": None,
             "errors": [
-                f"Interpreter internal crash: {exceptionObject.__class__.__name__}"
+                f"Interpreter internal crash: {exceptionObject.__class__.__name__}: {str(exceptionObject)}"
             ],
         }), 500
 
@@ -425,10 +435,12 @@ def apiRunInput():
             "session_id": None,
             "output": [],
             "result": None,
-            "errors": ["Runtime session expired or does not exist."],
+            "errors": [
+                "Runtime session expired or does not exist."
+            ],
         }), 200
 
-    session["inputs"].extend([inputValue])
+    session["inputs"].append(inputValue)
 
     try:
         response = executeSessionUntilPause(session)
@@ -448,7 +460,7 @@ def apiRunInput():
             "output": [],
             "result": None,
             "errors": [
-                f"Interpreter internal crash: {exceptionObject.__class__.__name__}"
+                f"Interpreter internal crash: {exceptionObject.__class__.__name__}: {str(exceptionObject)}"
             ],
         }), 500
 

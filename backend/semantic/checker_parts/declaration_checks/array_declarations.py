@@ -13,6 +13,72 @@ class DeclarationArrayMixin:
 
         expressionKind = getClassName(expressionNode)
 
+        if expressionKind == "GroupExpression":
+            return self.getConstantIntegerValue(
+                getattr(expressionNode, "expression", None)
+            )
+
+        if expressionKind == "UnaryExpression":
+            operatorText = (getattr(expressionNode, "operator", "") or "").strip()
+            operandValue = self.getConstantIntegerValue(
+                getattr(expressionNode, "operand", None)
+            )
+
+            if operandValue is None:
+                return None
+
+            if operatorText == "-":
+                return -operandValue
+
+            if operatorText in ("++", "--"):
+                return None
+
+            return None
+
+        if expressionKind == "BinaryExpression":
+            operatorText = (getattr(expressionNode, "operator", "") or "").strip()
+            leftValue = self.getConstantIntegerValue(
+                getattr(expressionNode, "leftExpression", None)
+            )
+            rightValue = self.getConstantIntegerValue(
+                getattr(expressionNode, "rightExpression", None)
+            )
+
+            if leftValue is None or rightValue is None:
+                return None
+
+            try:
+                if operatorText == "+":
+                    return leftValue + rightValue
+
+                if operatorText == "-":
+                    return leftValue - rightValue
+
+                if operatorText == "*":
+                    return leftValue * rightValue
+
+                if operatorText == "/":
+                    if rightValue == 0:
+                        return None
+
+                    if leftValue % rightValue == 0:
+                        return leftValue // rightValue
+
+                    return int(leftValue / rightValue)
+
+                if operatorText == "%":
+                    if rightValue == 0:
+                        return None
+
+                    return leftValue % rightValue
+
+                if operatorText in ("^", "**"):
+                    return leftValue ** rightValue
+            except Exception:
+                return None
+
+            return None
+
         # Case 1: direct integer literal
         # Example: tally numbers[5];
         if expressionKind == "LiteralExpression":
@@ -65,6 +131,36 @@ class DeclarationArrayMixin:
             except Exception:
                 return None
 
+        if expressionKind == "IdentifierReference":
+            constantName = getattr(expressionNode, "name", None)
+
+            if not constantName:
+                return None
+
+            symbol = self.currentScope.resolve(constantName)
+
+            if symbol is None:
+                return None
+
+            isConstant = getattr(symbol, "isConstant", False)
+            symbolType = getattr(symbol, "symbolType", None)
+
+            if not isConstant:
+                return None
+
+            if symbolType is None or not symbolType.isBaseType(BaseType.TALLY):
+                return None
+
+            constantValue = getattr(symbol, "constantValue", None)
+
+            if constantValue is None:
+                return None
+
+            try:
+                return int(constantValue)
+            except Exception:
+                return None
+
         return None
 
     def extractArraySizes(self, dimensionNodes: list[Any], ownerNode: Any) -> Optional[list[int]]:
@@ -76,7 +172,7 @@ class DeclarationArrayMixin:
             if constantSize is None:
                 self.addError(
                     ownerNode,
-                    "Array size must be a positive tally literal or sacred tally constant."
+                    "Array size must be a positive tally literal, constant expression, or sacred tally constant."
                 )
                 return None
 

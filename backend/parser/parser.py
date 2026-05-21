@@ -139,7 +139,7 @@ class Parser:
                             self.peek(-1),
                             [],
                             "Multiple genesis() rites are not allowed"
-                        )
+                        ) 
 
                     programNode.entryRite = entryRite
 

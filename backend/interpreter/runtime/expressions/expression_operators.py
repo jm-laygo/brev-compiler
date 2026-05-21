@@ -129,7 +129,7 @@ def handleUnaryExpression(self, expressionNode, currentEnvironment):
             expressionNode
         )
 
-        return incrementedValue
+        return incrementedValue if expressionNode.isPrefix else currentValue
 
     # decrement expression
     if operatorText == "--":
@@ -160,7 +160,7 @@ def handleUnaryExpression(self, expressionNode, currentEnvironment):
             expressionNode
         )
 
-        return decrementedValue
+        return decrementedValue if expressionNode.isPrefix else currentValue
 
     raise RuntimeErrorBase(
         expressionNode,

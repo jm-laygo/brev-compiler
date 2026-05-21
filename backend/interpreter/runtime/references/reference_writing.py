@@ -11,6 +11,15 @@ from backend.errors import (
 
 def assignLeftHandValue(self, referenceNode, assignedValue, currentEnvironment, node=None):
     if isinstance(referenceNode, NameReference):
+        declaredType = currentEnvironment.getDeclaredType(referenceNode.name)
+
+        if declaredType is not None:
+            assignedValue = self.coerceValueToType(
+                declaredType,
+                assignedValue,
+                node or referenceNode
+            )
+
         currentEnvironment.assign(
             referenceNode.name,
             assignedValue,

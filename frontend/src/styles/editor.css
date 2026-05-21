@@ -243,6 +243,8 @@
     color: transparent;
     padding: 0;
     line-height: 0;
+    overflow: hidden;
+    transition: box-shadow 0.16s ease, filter 0.16s ease;
 }
 
 .brev-editor-tab-add::before{
@@ -257,12 +259,19 @@
     pointer-events: none;
 }
 
+
 .brev-editor-tab-add:hover{
     filter: brightness(1.08);
+    box-shadow:
+        0 0 6px rgba(255,215,0,0.30),
+        0 4px 10px rgba(0,0,0,0.30);
 }
 
 .brev-editor-tab-add:active{
     filter: brightness(0.98);
+    box-shadow:
+        0 0 4px rgba(255,215,0,0.24),
+        inset 0 0 6px rgba(0,0,0,0.22);
 }
 
 .brev-editor-tab-input{

@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import BrevEditor from "./components/editor.jsx";
+import ErrorBoundary from "./components/ErrorBoundary.jsx";
+import TokenPanel from "./components/TokenPanel.jsx";
 import Toolbar from "./components/Toolbar.jsx";
 import OutputPanel from "./components/OutputPanel.jsx";
 import useTerminal from "./hooks/useTerminal.js";
@@ -24,16 +26,16 @@ export default function App() {
 
     const [initialCode, setInitialCode] = useState(DEFAULT_BREV_CODE);
     const [tokenList, setTokenList] = useState([]);
-    const [isTokenPanelOpen, setIsTokenPanelOpen] = useState(false);
-    const [outputWidthPixels, setOutputWidthPixels] = useState(650);
+    const [isTokenPanelOpen, setIsTokenPanelOpen] = useState(true);
+    const [outputHeightPx, setOutputHeightPx] = useState(220);
     const [isResizingPanels, setIsResizingPanels] = useState(false);
 
-    const [, setActiveTokenRange] = useState({
+    const [activeTokenRange, setActiveTokenRange] = useState({
         start: -1,
         end: -1,
     });
 
-    const [, setActiveTokenHeadIndex] = useState(-1);
+    const [activeTokenHeadIndex, setActiveTokenHeadIndex] = useState(-1);
 
     const workspaceRef = useRef(null);
     const editorApiRef = useRef(null);
@@ -43,8 +45,8 @@ export default function App() {
             return;
         }
 
-        const MINIMUM_OUTPUT_WIDTH = 320;
-        const MINIMUM_EDITOR_WIDTH = 380;
+        const MINIMUM_OUTPUT_HEIGHT = 120;
+        const MINIMUM_EDITOR_HEIGHT = 180;
 
         const handlePointerMove = (event) => {
             const workspaceElement = workspaceRef.current;
@@ -54,20 +56,20 @@ export default function App() {
             }
 
             const workspaceRectangle = workspaceElement.getBoundingClientRect();
-            const pointerLeftOffset = event.clientX - workspaceRectangle.left;
-            const nextOutputWidth = workspaceRectangle.width - pointerLeftOffset;
+            const pointerTopOffset = event.clientY - workspaceRectangle.top;
+            const nextOutputHeight = workspaceRectangle.height - pointerTopOffset;
 
-            const maximumOutputWidth = Math.max(
-                MINIMUM_OUTPUT_WIDTH,
-                workspaceRectangle.width - MINIMUM_EDITOR_WIDTH
+            const maximumOutputHeight = Math.max(
+                MINIMUM_OUTPUT_HEIGHT,
+                workspaceRectangle.height - MINIMUM_EDITOR_HEIGHT
             );
 
-            const clampedOutputWidth = Math.max(
-                MINIMUM_OUTPUT_WIDTH,
-                Math.min(nextOutputWidth, maximumOutputWidth)
+            const clampedOutputHeight = Math.max(
+                MINIMUM_OUTPUT_HEIGHT,
+                Math.min(nextOutputHeight, maximumOutputHeight)
             );
 
-            setOutputWidthPixels(clampedOutputWidth);
+            setOutputHeightPx(clampedOutputHeight);
         };
 
         const handlePointerUp = () => {
@@ -95,6 +97,7 @@ export default function App() {
         onEditorReady,
         clearAllEditorMarkers,
         setMarkersFromErrors,
+        jumpToToken,
         jumpToPosition,
     } = useEditorBridge({
         tokens: tokenList,
@@ -106,7 +109,10 @@ export default function App() {
         isRunning,
         runningPhase,
         runLiveOnce,
-        toggleRunProgram,
+        toggleLiveLexical,
+        toggleLiveSyntax,
+        toggleLiveSemantic,
+        toggleExecute,
         onEditorChange,
         runtimePrompt,
         submitRuntimeInput,
@@ -155,9 +161,14 @@ export default function App() {
                     openFile={openFile}
                     saveFile={saveFile}
                     clearEditor={clearEditor}
-                    toggleRunProgram={toggleRunProgram}
+                    toggleLiveLexical={toggleLiveLexical}
+                    toggleLiveSyntax={toggleLiveSyntax}
+                    toggleLiveSemantic={toggleLiveSemantic}
+                    toggleExecute={toggleExecute}
                     isRunning={isRunning}
                     runningPhase={runningPhase}
+                    tokensOpen={isTokenPanelOpen}
+                    toggleTokens={() => setIsTokenPanelOpen((value) => !value)}
                 />
 
                 <div
@@ -182,7 +193,7 @@ export default function App() {
                             terminalLines={terminalLines}
                             outputOpen={true}
                             panelStyle={{
-                                "--output-width": `${outputWidthPixels}px`,
+                                "--output-height": `${outputHeightPx}px`,
                             }}
                             onStartResize={startPanelResize}
                             isResizing={isResizingPanels}
@@ -192,6 +203,17 @@ export default function App() {
                             onCancelRuntimeInput={cancelRuntimeInput}
                         />
                     </div>
+
+                    <aside className="tokens-dock" aria-hidden={!isTokenPanelOpen}>
+                        <ErrorBoundary>
+                            <TokenPanel
+                                tokens={tokenList}
+                                onTokenClick={jumpToToken}
+                                selectedRange={activeTokenRange}
+                                activeHeadIndex={activeTokenHeadIndex}
+                            />
+                        </ErrorBoundary>
+                    </aside>
                 </div>
             </section>
         </main>

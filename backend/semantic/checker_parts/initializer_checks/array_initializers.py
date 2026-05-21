@@ -19,7 +19,7 @@ class ArrayInitializerMixin:
             if dimensionValue is None:
                 self.addError(
                     ownerNode,
-                    "Array size must be a positive tally literal or sacred tally constant."
+                    "Array size must be a positive tally literal, constant expression, or sacred tally constant."
                 )
                 return None
 

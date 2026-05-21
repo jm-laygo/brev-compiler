@@ -143,7 +143,7 @@ export default function OutputPanel({
                 <div
                     className={`output-resize-grip ${isResizing ? "dragging" : ""}`}
                     role="separator"
-                    aria-orientation="vertical"
+                    aria-orientation="horizontal"
                     aria-label="Resize editor and output panels"
                     onPointerDown={onStartResize}
                 />

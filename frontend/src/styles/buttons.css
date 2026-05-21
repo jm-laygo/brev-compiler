@@ -1,11 +1,16 @@
 .command-btn{
+    position: relative;
+    overflow: hidden;
+}
+
+.command-btn{
     white-space: nowrap;
     display: inline-flex;
     align-items: center;
-    gap: 2px;
+    gap: 4px;
 
-    padding: 2px 6px;
-    font-size: 0.9rem;
+    padding: 1px 5px;
+    font-size: 0.84rem;
     line-height: 1;
     color: var(--gold);
     cursor: pointer;
@@ -20,14 +25,16 @@
     background-size: 200px;
 
     border-radius: 2px;
-    transition: transform 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+    transition: transform 0.16s ease, box-shadow 0.16s ease, color 0.16s ease;
+    will-change: transform;
 }
+
 
 .command-btn::before{
     content: "";
-    width: 42px;
-    height: 42px;
-    flex: 0 0 42px;
+    width: 36px;
+    height: 36px;
+    flex: 0 0 36px;
     background-repeat: no-repeat;
     background-position: center center;
     background-size: contain;
@@ -49,19 +56,44 @@
     background-image: url("/icons/clear_button.png");
 }
 
+.command-btn-lexical::before{
+    background-image: url("/icons/lexical.png");
+}
+
+.command-btn-syntax::before{
+    background-image: url("/icons/syntax.png");
+}
+
+.command-btn-semantics::before{
+    background-image: url("/icons/semantics.png");
+}
+
+.command-btn-execution::before{
+    background-image: url("/icons/execution.png");
+}
+
+.command-btn-token-show::before{
+    background-image: url("/icons/show_token.png");
+}
+
+.command-btn-token-close::before{
+    background-image: url("/icons/close_token.png");
+}
+
 .command-btn:hover{
     color: #fff;
     box-shadow:
-        0 0 6px rgba(255,215,0,0.35),
-        0 0 12px rgba(255,215,0,0.22);
-    transform: translateY(-1px);
+        0 0 6px rgba(255,215,0,0.32),
+        0 4px 10px rgba(0,0,0,0.28);
+    transform: translateY(-1px) scale(1.01);
 }
 
+
 .command-btn:active{
-    transform: translateY(0px);
+    transform: translateY(1px) scale(0.992);
     box-shadow:
-        0 0 4px rgba(255,215,0,0.25),
-        0 0 8px rgba(255,215,0,0.18);
+        0 0 4px rgba(255,215,0,0.26),
+        inset 0 0 6px rgba(0,0,0,0.22);
 }
 
 .command-btn.active-btn{

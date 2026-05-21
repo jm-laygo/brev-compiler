@@ -36,7 +36,8 @@ def executeVariableDeclaration(
             declaredItem.name,
             coercedValue,
             isConstant=False,
-            node=declaredItem
+            node=declaredItem,
+            declaredType=declaredTypeName
         )
 
 
@@ -70,7 +71,8 @@ def executeSacredDeclaration(
             declaredItem.name,
             coercedValue,
             isConstant=True,
-            node=declaredItem
+            node=declaredItem,
+            declaredType=declaredTypeName
         )
 
 
@@ -125,5 +127,6 @@ def executeOrdainDeclaration(
             declaredItem.name,
             runtimeValue,
             isConstant=False,
-            node=declaredItem
+            node=declaredItem,
+            declaredType=orderName
         )
