@@ -404,14 +404,20 @@ brev-compiler/
 │   ├── interpreter/
 │   ├── ast/
 │   ├── tokens.py
-│   └── server.py
+│   └── ...
 │
 ├── frontend/
 │   ├── public/
 │   ├── src/
 │   └── package.json
 │
+├── DockerFile
+├── docker-compose.yml
+├── frontend/Dockerfile
+├── frontend/nginx.conf
+│
 ├── requirements.txt
+├── server.py
 └── README.md
 ```
 
@@ -423,13 +429,12 @@ brev-compiler/
 
 Make sure the following are installed:
 
-- Python 3.10 or later
-- Node.js 18 or later
+- Docker and Docker Compose
 - Git
 
 ---
 
-## Installation
+## Run with Docker
 
 ### 1. Clone the Repository
 
@@ -438,41 +443,46 @@ git clone https://github.com/jm-laygo/brev-compiler
 cd brev-compiler
 ```
 
-### 2. Set Up the Backend
+### 2. Build and start the app
+
+```bash
+docker compose up -d --build
+```
+
+### 3. Open the app
+
+```text
+http://localhost:8080
+```
+
+### 4. Optional API check
+
+```text
+http://localhost:8080/api/ping
+```
+
+### 5. Stop the stack
+
+```bash
+docker compose down
+```
+
+---
+
+## Local Development
+
+If you want to run the backend and frontend separately without Docker:
+
+### Backend
 
 ```bash
 python -m venv .venv
-```
-
-Activate the virtual environment.
-
-For Windows:
-
-```bash
 .venv\Scripts\activate
-```
-
-For macOS/Linux:
-
-```bash
-source .venv/bin/activate
-```
-
-Install dependencies:
-
-```bash
 pip install -r requirements.txt
-```
-
-Run the backend server:
-
-```bash
 python server.py
 ```
 
-### 3. Set Up the Frontend
-
-Open a separate terminal:
+### Frontend
 
 ```bash
 cd frontend

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import BrevEditor from "./components/editor.jsx";
+import BrevEditor from "./components/Editor.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import TokenPanel from "./components/TokenPanel.jsx";
 import Toolbar from "./components/Toolbar.jsx";
